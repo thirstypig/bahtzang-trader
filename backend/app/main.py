@@ -1,10 +1,12 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.auth import create_jwt, require_auth, verify_google_token
 from app.database import Base, engine, get_db
 from app.guardrails import load_guardrails, save_guardrails
 from app.models import Trade
@@ -19,11 +21,9 @@ logging.basicConfig(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: create tables and start scheduler
     Base.metadata.create_all(bind=engine)
     start_scheduler()
     yield
-    # Shutdown: stop scheduler
     stop_scheduler()
 
 
@@ -38,13 +38,72 @@ app.add_middleware(
 )
 
 
+# ---------------------------------------------------------------------------
+# Auth endpoints (unprotected)
+# ---------------------------------------------------------------------------
+
+
+class GoogleTokenRequest(BaseModel):
+    token: str
+
+
+@app.post("/auth/google")
+def google_auth(body: GoogleTokenRequest, response: Response):
+    """Verify Google ID token, check email allowlist, return JWT in cookie."""
+    user_info = verify_google_token(body.token)
+    jwt_token = create_jwt(user_info)
+
+    response.set_cookie(
+        key="session",
+        value=jwt_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=7 * 24 * 60 * 60,  # 7 days
+        path="/",
+    )
+
+    return {
+        "email": user_info["email"],
+        "name": user_info["name"],
+        "picture": user_info["picture"],
+    }
+
+
+@app.post("/auth/logout")
+def logout(response: Response):
+    """Clear the session cookie."""
+    response.delete_cookie(key="session", path="/")
+    return {"status": "logged out"}
+
+
+@app.get("/auth/me")
+def get_current_user(user: dict = Depends(require_auth)):
+    """Return the currently authenticated user's info."""
+    return {
+        "email": user.get("email"),
+        "name": user.get("name"),
+        "picture": user.get("picture"),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Public endpoints
+# ---------------------------------------------------------------------------
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
+# ---------------------------------------------------------------------------
+# Protected endpoints
+# ---------------------------------------------------------------------------
+
+
 @app.get("/portfolio")
-async def get_portfolio():
+async def get_portfolio(user: dict = Depends(require_auth)):
     """Current holdings and cash balance."""
     from app.schwab_client import get_account_balance, get_positions
 
@@ -55,7 +114,11 @@ async def get_portfolio():
 
 
 @app.get("/trades")
-def get_trades(limit: int = 50, db: Session = Depends(get_db)):
+def get_trades(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
     """Full trade history with decisions and reasoning."""
     trades = (
         db.query(Trade).order_by(Trade.timestamp.desc()).limit(limit).all()
@@ -79,13 +142,13 @@ def get_trades(limit: int = 50, db: Session = Depends(get_db)):
 
 
 @app.get("/guardrails")
-def get_guardrails():
+def get_guardrails(user: dict = Depends(require_auth)):
     """Current guardrail settings."""
     return load_guardrails()
 
 
 @app.post("/guardrails")
-def update_guardrails(config: dict):
+def update_guardrails(config: dict, user: dict = Depends(require_auth)):
     """Update guardrail settings."""
     current = load_guardrails()
     current.update(config)
@@ -93,7 +156,7 @@ def update_guardrails(config: dict):
 
 
 @app.post("/killswitch")
-def killswitch():
+def killswitch(user: dict = Depends(require_auth)):
     """Immediately halt all trading."""
     config = load_guardrails()
     config["kill_switch"] = True
@@ -102,7 +165,10 @@ def killswitch():
 
 
 @app.post("/run")
-async def manual_run(db: Session = Depends(get_db)):
+async def manual_run(
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
     """Manually trigger one trading cycle."""
     result = await run_cycle(db)
     return result

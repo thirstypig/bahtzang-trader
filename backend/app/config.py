@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
+    ALLOWED_EMAIL: str
+    JWT_SECRET: str
 
 
 settings = Settings()
