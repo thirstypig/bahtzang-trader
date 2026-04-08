@@ -1,13 +1,23 @@
 import { CycleResult, Guardrails, Portfolio, Trade } from "./types";
+import { getSupabase } from "./supabase";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+async function getToken(): Promise<string | null> {
+  const { data } = await getSupabase().auth.getSession();
+  return data.session?.access_token || null;
+}
+
 async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+  const token = await getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API}${path}`, { headers, ...options });
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
   }

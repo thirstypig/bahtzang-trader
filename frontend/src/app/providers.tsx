@@ -1,17 +1,13 @@
 "use client";
 
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import { usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import Navbar from "@/components/Navbar";
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
 
-  // Show a loading spinner while checking auth
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -20,7 +16,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Don't show navbar on login page
   const showNavbar = user && pathname !== "/login";
 
   return (
@@ -33,10 +28,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <AuthProvider>
-        <AppShell>{children}</AppShell>
-      </AuthProvider>
-    </GoogleOAuthProvider>
+    <AuthProvider>
+      <AppShell>{children}</AppShell>
+    </AuthProvider>
   );
 }

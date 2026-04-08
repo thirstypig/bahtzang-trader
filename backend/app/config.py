@@ -9,10 +9,8 @@ class Settings(BaseSettings):
     SCHWAB_CLIENT_SECRET: str
     ALPHA_VANTAGE_KEY: str
     DATABASE_URL: str
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
+    SUPABASE_JWT_SECRET: str
     ALLOWED_EMAIL: str
-    JWT_SECRET: str
     CORS_ORIGINS: str = "http://localhost:3000"  # comma-separated
 
 

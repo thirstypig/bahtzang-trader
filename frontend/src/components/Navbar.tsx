@@ -14,7 +14,7 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -107,7 +107,7 @@ export default function Navbar() {
                   <button
                     onClick={() => {
                       setMenuOpen(false);
-                      logout();
+                      signOut();
                     }}
                     className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
                   >

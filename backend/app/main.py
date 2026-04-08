@@ -1,12 +1,11 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Response
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.auth import create_jwt, require_auth, verify_google_token
+from app.auth import require_auth
 from app.config import settings
 from app.database import Base, engine, get_db
 from app.guardrails import load_guardrails, save_guardrails
@@ -40,56 +39,7 @@ app.add_middleware(
 
 
 # ---------------------------------------------------------------------------
-# Auth endpoints (unprotected)
-# ---------------------------------------------------------------------------
-
-
-class GoogleTokenRequest(BaseModel):
-    token: str
-
-
-@app.post("/auth/google")
-def google_auth(body: GoogleTokenRequest, response: Response):
-    """Verify Google ID token, check email allowlist, return JWT in cookie."""
-    user_info = verify_google_token(body.token)
-    jwt_token = create_jwt(user_info)
-
-    response.set_cookie(
-        key="session",
-        value=jwt_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=7 * 24 * 60 * 60,  # 7 days
-        path="/",
-    )
-
-    return {
-        "email": user_info["email"],
-        "name": user_info["name"],
-        "picture": user_info["picture"],
-    }
-
-
-@app.post("/auth/logout")
-def logout(response: Response):
-    """Clear the session cookie."""
-    response.delete_cookie(key="session", path="/")
-    return {"status": "logged out"}
-
-
-@app.get("/auth/me")
-def get_current_user(user: dict = Depends(require_auth)):
-    """Return the currently authenticated user's info."""
-    return {
-        "email": user.get("email"),
-        "name": user.get("name"),
-        "picture": user.get("picture"),
-    }
-
-
-# ---------------------------------------------------------------------------
-# Public endpoints
+# Public
 # ---------------------------------------------------------------------------
 
 
@@ -99,8 +49,14 @@ def health():
 
 
 # ---------------------------------------------------------------------------
-# Protected endpoints
+# Protected — all require valid Supabase JWT
 # ---------------------------------------------------------------------------
+
+
+@app.get("/auth/me")
+def get_current_user(user: dict = Depends(require_auth)):
+    """Return the authenticated user's profile from the Supabase JWT."""
+    return user
 
 
 @app.get("/portfolio")
