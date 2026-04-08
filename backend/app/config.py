@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str
     ALLOWED_EMAIL: str
     JWT_SECRET: str
+    CORS_ORIGINS: str = "http://localhost:3000"  # comma-separated
 
 
 settings = Settings()

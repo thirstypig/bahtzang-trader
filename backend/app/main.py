@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.auth import create_jwt, require_auth, verify_google_token
+from app.config import settings
 from app.database import Base, engine, get_db
 from app.guardrails import load_guardrails, save_guardrails
 from app.models import Trade
@@ -31,7 +32,7 @@ app = FastAPI(title="bahtzang-trader API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
