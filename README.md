@@ -35,10 +35,10 @@ npm run install:backend
 npm run dev
 
 # Run individually
-npm run dev:frontend   # http://localhost:3000
-npm run dev:backend    # http://localhost:8000
+npm run dev:frontend   # http://localhost:3060
+npm run dev:backend    # http://localhost:4060
 ```
 
 ## API Documentation
 
-Once the backend is running, visit [http://localhost:8000/docs](http://localhost:8000/docs) for the interactive Swagger UI.
+Once the backend is running, visit [http://localhost:4060/docs](http://localhost:4060/docs) for the interactive Swagger UI.

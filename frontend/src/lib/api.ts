@@ -1,7 +1,7 @@
 import { CycleResult, Guardrails, Portfolio, Trade } from "./types";
 import { getSupabase } from "./supabase";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4060";
 
 async function getToken(): Promise<string | null> {
   const { data } = await getSupabase().auth.getSession();

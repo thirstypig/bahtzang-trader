@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     SUPABASE_JWT_SECRET: str
     ALLOWED_EMAIL: str
-    CORS_ORIGINS: str = "http://localhost:3000"  # comma-separated
+    CORS_ORIGINS: str = "http://localhost:3060"  # comma-separated
 
 
 settings = Settings()
