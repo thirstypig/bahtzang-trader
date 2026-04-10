@@ -1,3 +1,6 @@
+"""Trading pipeline orchestrator: gather → think → validate → act → log."""
+
+import asyncio
 import logging
 
 from sqlalchemy.orm import Session
@@ -7,8 +10,10 @@ from app.logger import log_trade
 
 logger = logging.getLogger(__name__)
 
-# TODO: make this configurable per user
 DEFAULT_ACCOUNT_ID = "default"
+
+# 011-fix: Mutex prevents race conditions in concurrent /run requests
+_cycle_lock = asyncio.Lock()
 
 
 async def run_cycle(db: Session, account_id: str = DEFAULT_ACCOUNT_ID) -> dict:
@@ -21,16 +26,25 @@ async def run_cycle(db: Session, account_id: str = DEFAULT_ACCOUNT_ID) -> dict:
     5. Execute on Schwab if approved
     6. Log everything to PostgreSQL
     """
-    # 1. Gather portfolio state
-    positions = await schwab_client.get_positions(account_id)
-    balance = await schwab_client.get_account_balance(account_id)
+    # 011-fix: Lock prevents two concurrent cycles from bypassing guardrails
+    async with _cycle_lock:
+        return await _execute_cycle(db, account_id)
+
+
+async def _execute_cycle(db: Session, account_id: str) -> dict:
+    # 1. Gather portfolio state — 006-fix: parallel fetch
+    positions, balance = await asyncio.gather(
+        schwab_client.get_positions(account_id),
+        schwab_client.get_account_balance(account_id),
+    )
     cash_available = balance["cash_available"]
     total_invested = balance["total_value"] - cash_available
 
-    # 2. Gather market data
+    # 2. Gather market data — 006-fix: parallel fetch
     held_tickers = [p.get("instrument", {}).get("symbol", "") for p in positions]
-    quotes = await market_data.get_quotes(held_tickers) if held_tickers else []
-    news = await market_data.get_news(held_tickers if held_tickers else None)
+    quotes_task = market_data.get_quotes(held_tickers) if held_tickers else asyncio.sleep(0, result=[])
+    news_task = market_data.get_news(held_tickers if held_tickers else None)
+    quotes, news = await asyncio.gather(quotes_task, news_task)
 
     # 3. Get Claude's decision
     guardrails_config = guardrails.load_guardrails()
@@ -42,19 +56,24 @@ async def run_cycle(db: Session, account_id: str = DEFAULT_ACCOUNT_ID) -> dict:
         guardrails_config=guardrails_config,
     )
 
-    # Look up current price for the decided ticker
+    # Look up current price — 006-fix: check cached quotes first
     price = None
     if decision["ticker"] and decision["action"] != "hold":
-        quote = await market_data.get_quote(decision["ticker"])
-        price = quote["price"]
+        cached = next((q for q in quotes if q["ticker"] == decision["ticker"]), None)
+        if cached:
+            price = cached["price"]
+        else:
+            quote = await market_data.get_quote(decision["ticker"])
+            price = quote["price"]
         decision["price"] = price
 
-    # 4. Run through guardrails
+    # 4. Run through guardrails — pass config to avoid redundant file read
     passed, block_reason = guardrails.check_guardrails(
         decision=decision,
         cash_available=cash_available,
         total_invested=total_invested,
         db=db,
+        config=guardrails_config,
     )
 
     # 5. Execute if approved

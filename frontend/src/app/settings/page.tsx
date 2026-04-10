@@ -5,6 +5,7 @@ import { getGuardrails, triggerRun, updateGuardrails } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Guardrails } from "@/lib/types";
 import KillSwitchButton from "@/components/KillSwitchButton";
+import Spinner from "@/components/Spinner";
 import ConfirmModal from "@/components/ConfirmModal";
 
 export default function SettingsPage() {
@@ -58,7 +59,7 @@ export default function SettingsPage() {
   if (loading || !guardrails) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-emerald-500" />
+        <Spinner />
       </div>
     );
   }

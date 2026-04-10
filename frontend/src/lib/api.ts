@@ -19,7 +19,11 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
     headers["Authorization"] = `Bearer ${_accessToken}`;
   }
 
-  const res = await fetch(`${API}${path}`, { headers, ...options });
+  // 012-fix: Merge headers instead of overwriting with spread
+  const res = await fetch(`${API}${path}`, {
+    ...options,
+    headers: { ...headers, ...(options?.headers as Record<string, string>) },
+  });
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
   }
@@ -48,7 +52,7 @@ export async function updateGuardrails(
 }
 
 export async function activateKillSwitch(): Promise<{ status: string }> {
-  return fetchAPI("/killswitch", { method: "POST" });
+  return fetchAPI<{ status: string }>("/killswitch", { method: "POST" });
 }
 
 export async function triggerRun(): Promise<CycleResult> {

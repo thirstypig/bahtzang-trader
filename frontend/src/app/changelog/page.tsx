@@ -1,5 +1,3 @@
-"use client";
-
 import { changelog } from "@/data/changelog";
 
 const TYPE_STYLES: Record<string, string> = {

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
-
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4060";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 
@@ -21,25 +20,34 @@ const STATUS_STYLES = {
   checking: { dot: "bg-zinc-500 animate-pulse", text: "text-zinc-400", label: "Checking..." },
 };
 
+// 013-fix: Define service definitions as a constant (not in state)
+const SERVICE_DEFS = [
+  { name: "Backend API", url: `${API}/health` },
+  { name: "Supabase", url: `${SUPABASE_URL}/auth/v1/health` },
+  { name: "Frontend", url: "" }, // always operational (we're running)
+];
+
 export default function StatusPage() {
   const { user } = useAuth();
-  const [services, setServices] = useState<ServiceCheck[]>([
-    { name: "Backend API", url: `${API}/health`, status: "checking", responseTime: null, lastChecked: null },
-    { name: "Supabase", url: `${SUPABASE_URL}/auth/v1/health`, status: "checking", responseTime: null, lastChecked: null },
-    { name: "Frontend", url: "/", status: "operational", responseTime: null, lastChecked: new Date().toISOString() },
-  ]);
+  const [services, setServices] = useState<ServiceCheck[]>(
+    SERVICE_DEFS.map((s) => ({
+      ...s,
+      status: s.name === "Frontend" ? "operational" : "checking",
+      responseTime: null,
+      lastChecked: s.name === "Frontend" ? new Date().toISOString() : null,
+    }))
+  );
 
   useEffect(() => {
     if (!user) return;
 
-    async function checkService(index: number, url: string) {
+    async function checkService(url: string) {
       const start = performance.now();
       try {
         const res = await fetch(url, { method: "GET", signal: AbortSignal.timeout(5000) });
-        const elapsed = Math.round(performance.now() - start);
         return {
           status: (res.ok ? "operational" : "degraded") as "operational" | "degraded",
-          responseTime: elapsed,
+          responseTime: Math.round(performance.now() - start),
           lastChecked: new Date().toISOString(),
         };
       } catch {
@@ -52,19 +60,27 @@ export default function StatusPage() {
     }
 
     async function runChecks() {
-      const updated = [...services];
-      for (let i = 0; i < updated.length; i++) {
-        if (updated[i].name === "Frontend") continue;
-        const result = await checkService(i, updated[i].url);
-        updated[i] = { ...updated[i], ...result };
-      }
-      setServices([...updated]);
+      // 013-fix: Use functional state update to avoid stale closure
+      const results = await Promise.all(
+        SERVICE_DEFS.map(async (def) => {
+          if (!def.url) {
+            return { status: "operational" as const, responseTime: null, lastChecked: new Date().toISOString() };
+          }
+          return checkService(def.url);
+        })
+      );
+
+      setServices(
+        SERVICE_DEFS.map((def, i) => ({
+          ...def,
+          ...results[i],
+        }))
+      );
     }
 
     runChecks();
     const interval = setInterval(runChecks, 300000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const allOperational = services.every((s) => s.status === "operational");
@@ -78,7 +94,6 @@ export default function StatusPage() {
         </p>
       </div>
 
-      {/* Overall Status */}
       <div
         className={`rounded-xl border p-4 ${
           allOperational
@@ -92,11 +107,7 @@ export default function StatusPage() {
               allOperational ? "bg-emerald-500" : "bg-amber-500"
             }`}
           />
-          <span
-            className={
-              allOperational ? "text-emerald-400" : "text-amber-400"
-            }
-          >
+          <span className={allOperational ? "text-emerald-400" : "text-amber-400"}>
             {allOperational
               ? "All systems operational"
               : "Some systems may be experiencing issues"}
@@ -104,7 +115,6 @@ export default function StatusPage() {
         </div>
       </div>
 
-      {/* Service List */}
       <div className="mt-6 space-y-3">
         {services.map((service) => {
           const style = STATUS_STYLES[service.status];
@@ -115,28 +125,20 @@ export default function StatusPage() {
             >
               <div className="flex items-center gap-3">
                 <div className={`h-2.5 w-2.5 rounded-full ${style.dot}`} />
-                <span className="text-sm font-medium text-white">
-                  {service.name}
-                </span>
+                <span className="text-sm font-medium text-white">{service.name}</span>
               </div>
               <div className="flex items-center gap-4">
                 {service.responseTime !== null && (
-                  <span className="text-xs text-zinc-500">
-                    {service.responseTime}ms
-                  </span>
+                  <span className="text-xs text-zinc-500">{service.responseTime}ms</span>
                 )}
-                <span className={`text-xs font-medium ${style.text}`}>
-                  {style.label}
-                </span>
+                <span className={`text-xs font-medium ${style.text}`}>{style.label}</span>
               </div>
             </div>
           );
         })}
       </div>
 
-      <p className="mt-6 text-center text-xs text-zinc-600">
-        Auto-refreshes every 5 minutes
-      </p>
+      <p className="mt-6 text-center text-xs text-zinc-600">Auto-refreshes every 5 minutes</p>
     </div>
   );
 }

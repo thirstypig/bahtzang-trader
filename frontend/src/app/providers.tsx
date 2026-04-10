@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import Navbar from "@/components/Navbar";
+import Spinner from "@/components/Spinner";
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -11,7 +12,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-emerald-500" />
+        <Spinner />
       </div>
     );
   }

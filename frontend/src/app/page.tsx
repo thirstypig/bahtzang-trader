@@ -7,6 +7,7 @@ import { Balance, Position, Trade } from "@/lib/types";
 import PortfolioCard from "@/components/PortfolioCard";
 import DecisionCard from "@/components/DecisionCard";
 import AllocationChart from "@/components/AllocationChart";
+import Spinner from "@/components/Spinner";
 import ValueChart from "@/components/ValueChart";
 
 export default function DashboardPage() {
@@ -40,7 +41,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-emerald-500" />
+        <Spinner />
       </div>
     );
   }
@@ -52,7 +53,7 @@ export default function DashboardPage() {
           <p className="text-red-400">{error}</p>
           <p className="mt-2 text-sm text-zinc-500">
             Make sure the backend is running at{" "}
-            {process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}
+            {process.env.NEXT_PUBLIC_API_URL || "http://localhost:4060"}
           </p>
         </div>
       </div>

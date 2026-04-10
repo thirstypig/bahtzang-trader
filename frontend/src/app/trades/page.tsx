@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getTrades } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Trade } from "@/lib/types";
+import Spinner from "@/components/Spinner";
 import TradeTable from "@/components/TradeTable";
 
 export default function TradesPage() {
@@ -34,7 +35,7 @@ export default function TradesPage() {
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-emerald-500" />
+          <Spinner />
         </div>
       ) : (
         <TradeTable trades={trades} />

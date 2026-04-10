@@ -1,4 +1,5 @@
-import asyncio
+"""APScheduler cron job: runs the trading pipeline on market days."""
+
 import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 scheduler = AsyncIOScheduler()
 
-# US market days: Monday–Friday, 9:35 AM Eastern
+# US market days: Monday-Friday, 9:35 AM Eastern
 # (5 minutes after open to let initial volatility settle)
 MARKET_TRIGGER = CronTrigger(
     day_of_week="mon-fri",

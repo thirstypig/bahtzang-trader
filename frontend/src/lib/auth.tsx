@@ -21,18 +21,12 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  accessToken: string | null;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  accessToken: null,
-  signIn: async () => {},
-  signOut: async () => {},
-});
+// 007-fix: Throw if used outside provider instead of silent no-op
+const AuthContext = createContext<AuthContextType | null>(null);
 
 function extractUser(session: Session | null): User | null {
   if (!session?.user) return null;
@@ -46,7 +40,6 @@ function extractUser(session: Session | null): User | null {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
@@ -54,9 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     function applySession(session: Session | null) {
       setUser(extractUser(session));
-      const token = session?.access_token || null;
-      setAccessToken(token);
-      setApiToken(token);
+      setApiToken(session?.access_token || null);
       setLoading(false);
     }
 
@@ -97,17 +88,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     await getSupabase().auth.signOut();
     setUser(null);
-    setAccessToken(null);
+    setApiToken(null);
     router.replace("/login");
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, accessToken, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
+export function useAuth(): AuthContextType {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
+  return ctx;
 }

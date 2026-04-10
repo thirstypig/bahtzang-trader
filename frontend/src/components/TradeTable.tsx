@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Trade } from "@/lib/types";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
 
 interface TradeTableProps {
   trades: Trade[];
@@ -84,7 +84,7 @@ export default function TradeTable({ trades }: TradeTableProps) {
                 className="bg-zinc-950 transition-colors hover:bg-zinc-900/50"
               >
                 <td className="whitespace-nowrap px-4 py-3 text-zinc-300">
-                  {formatDate(trade.timestamp)}
+                  {formatDateTime(trade.timestamp)}
                 </td>
                 <td className="px-4 py-3 font-mono font-semibold text-white">
                   {trade.ticker || "—"}

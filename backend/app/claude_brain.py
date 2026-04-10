@@ -1,10 +1,13 @@
+"""Claude Sonnet trading decision engine."""
+
 import json
 
 import anthropic
 
 from app.config import settings
 
-client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+# 001-fix: Use AsyncAnthropic to avoid blocking the event loop
+client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 SYSTEM_PROMPT = """You are a disciplined trading assistant managing a real brokerage account.
 You analyze portfolio positions, cash available, live market data, and news to decide
@@ -44,7 +47,8 @@ async def get_trade_decision(
         indent=2,
     )
 
-    message = client.messages.create(
+    # 001-fix: await the async client
+    message = await client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=1024,
         system=SYSTEM_PROMPT,

@@ -1,7 +1,7 @@
 "use client";
 
 import { Trade } from "@/lib/types";
-import { formatDate } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 
 interface DecisionCardProps {
   trade: Trade | null;
@@ -35,7 +35,7 @@ export default function DecisionCard({ trade }: DecisionCardProps) {
           Claude&apos;s Last Decision
         </h2>
         <span className="text-xs text-zinc-500">
-          {formatDate(trade.timestamp)}
+          {formatDateTime(trade.timestamp)}
         </span>
       </div>
 

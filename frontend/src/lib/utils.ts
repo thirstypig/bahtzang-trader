@@ -5,11 +5,7 @@ export function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export function formatPercent(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
-}
-
-export function formatDate(iso: string): string {
+export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -17,8 +13,4 @@ export function formatDate(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-export function classNames(...classes: (string | false | undefined)[]): string {
-  return classes.filter(Boolean).join(" ");
 }

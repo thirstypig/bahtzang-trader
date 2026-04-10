@@ -1,24 +1,53 @@
+"""Trading guardrails: safety limits that override Claude's decisions."""
+
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.models import Trade
 
+logger = logging.getLogger(__name__)
+
 GUARDRAILS_PATH = Path(__file__).resolve().parent.parent / "guardrails.json"
+
+
+# 002-fix: Pydantic model for validated guardrails updates
+class GuardrailsUpdate(BaseModel):
+    """Validated guardrails update — prevents arbitrary config injection."""
+    max_total_invested: float | None = Field(None, gt=0, le=10_000_000)
+    max_single_trade_size: float | None = Field(None, gt=0, le=1_000_000)
+    stop_loss_threshold: float | None = Field(None, gt=0, lt=1)
+    daily_order_limit: int | None = Field(None, gt=0, le=100)
+    # kill_switch deliberately omitted — only settable via /killswitch
 
 
 def load_guardrails() -> dict:
     """Load guardrails config from guardrails.json."""
-    with open(GUARDRAILS_PATH) as f:
-        return json.load(f)
+    try:
+        with open(GUARDRAILS_PATH) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.warning("Failed to load guardrails, using defaults: %s", e)
+        return {
+            "max_total_invested": 50000,
+            "max_single_trade_size": 5000,
+            "stop_loss_threshold": 0.05,
+            "daily_order_limit": 10,
+            "kill_switch": False,
+        }
 
 
 def save_guardrails(config: dict) -> dict:
     """Save updated guardrails config to guardrails.json."""
-    with open(GUARDRAILS_PATH, "w") as f:
-        json.dump(config, f, indent=2)
+    try:
+        with open(GUARDRAILS_PATH, "w") as f:
+            json.dump(config, f, indent=2)
+    except OSError as e:
+        logger.error("Failed to save guardrails: %s", e)
     return config
 
 
@@ -27,12 +56,15 @@ def check_guardrails(
     cash_available: float,
     total_invested: float,
     db: Session,
+    config: dict | None = None,
 ) -> tuple[bool, str | None]:
     """
     Validate a trade decision against all guardrail rules.
     Returns (passed, block_reason).
     """
-    config = load_guardrails()
+    # 013-fix: Accept config as parameter to avoid redundant file read
+    if config is None:
+        config = load_guardrails()
 
     # Kill switch — block everything
     if config.get("kill_switch", False):
@@ -77,10 +109,6 @@ def check_guardrails(
     if todays_trades >= daily_limit:
         return False, f"Daily order limit reached ({daily_limit} trades today)"
 
-    # Stop loss threshold — block sells at too large a loss
-    # (This is a simplified check; real implementation would compare to entry price)
-    stop_loss = config.get("stop_loss_threshold", 0.05)
-    if decision.get("action") == "sell" and decision.get("loss_pct", 0) > stop_loss:
-        return False, f"Loss {decision['loss_pct']:.1%} exceeds stop-loss threshold {stop_loss:.1%}"
+    # 014-fix: Removed dead stop-loss code (loss_pct was never set by anything)
 
     return True, None

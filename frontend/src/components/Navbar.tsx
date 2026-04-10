@@ -15,7 +15,6 @@ const MAIN_LINKS = [
 
 const MORE_LINKS = [
   { section: "Trading", items: [
-    { href: "/analytics", label: "Analytics" },
     { href: "/roadmap", label: "Roadmap" },
     { href: "/audit-log", label: "Audit Log" },
   ]},

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { getTrades } from "@/lib/api";
 import { Trade } from "@/lib/types";
-import { formatDate } from "@/lib/utils";
+import Spinner from "@/components/Spinner";
+import { formatDateTime } from "@/lib/utils";
 
 interface AuditEntry {
   id: number;
@@ -81,7 +82,7 @@ export default function AuditLogPage() {
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-emerald-500" />
+          <Spinner />
         </div>
       ) : entries.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-8 text-center">
@@ -101,7 +102,7 @@ export default function AuditLogPage() {
                 className="flex w-full items-center gap-4 px-5 py-3 text-left"
               >
                 <span className="shrink-0 text-xs text-zinc-500 font-mono w-36">
-                  {formatDate(entry.timestamp)}
+                  {formatDateTime(entry.timestamp)}
                 </span>
                 <span
                   className={`shrink-0 w-16 text-[10px] font-semibold uppercase ${TYPE_STYLES[entry.type]}`}

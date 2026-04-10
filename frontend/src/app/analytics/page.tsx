@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { getTrades } from "@/lib/api";
 import { Trade } from "@/lib/types";
+import Spinner from "@/components/Spinner";
 
 export default function AnalyticsPage() {
   const { user } = useAuth();
@@ -41,9 +42,9 @@ export default function AnalyticsPage() {
       color: "text-emerald-400",
     },
     {
-      label: "Win Rate",
+      label: "High Confidence Rate",
       value: `${(winRate * 100).toFixed(1)}%`,
-      sub: "Trades with confidence > 60%",
+      sub: "Trades where Claude had > 60% confidence",
       color: winRate >= 0.55 ? "text-emerald-400" : "text-amber-400",
     },
     {
@@ -57,7 +58,7 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-emerald-500" />
+        <Spinner />
       </div>
     );
   }

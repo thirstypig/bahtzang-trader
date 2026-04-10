@@ -1,5 +1,3 @@
-"use client";
-
 const TECH_STACK = {
   Frontend: [
     { name: "Next.js 14", desc: "App Router + Server Components" },
