@@ -17,29 +17,6 @@ export const todos: Todo[] = [
   // =====================================================
 
   {
-    id: "alpaca-account",
-    title: "Get Alpaca API keys (paper trading)",
-    description: "Primary broker for zero-commission stocks, ETFs, options, and crypto. You already signed up — now get the API keys.",
-    steps: [
-      "Go to https://app.alpaca.markets/account/login and sign in",
-      "In the TOP-LEFT corner of the dashboard, click the account switcher and select 'Paper Trading' (not Live)",
-      "On the Home page, find the 'API Keys' panel on the right side",
-      "Click 'Generate New Keys' (or 'Regenerate' if keys already exist)",
-      "IMPORTANT: Copy both the API Key ID AND the Secret Key immediately — the Secret Key is only shown ONCE",
-      "Save them somewhere safe (password manager, .env file)",
-      "Go to Railway → bahtzang-backend → Variables → add two new vars:",
-      "  ALPACA_API_KEY = your API Key ID (e.g., PK...)",
-      "  ALPACA_SECRET_KEY = your Secret Key (e.g., a long string)",
-      "Also add: ALPACA_PAPER = true",
-      "Redeploy the backend service on Railway",
-      "NOTE: Paper and Live trading have DIFFERENT API keys — always switch accounts in the top-left before generating",
-    ],
-    status: "in-progress",
-    priority: "urgent",
-    category: "setup",
-    addedDate: "2026-04-10",
-  },
-  {
     id: "deposit-funds",
     title: "Deposit funds into brokerage account",
     description: "Fund your Alpaca account. Paper trading doesn't need real money, but live trading does.",
@@ -186,6 +163,16 @@ export const todos: Todo[] = [
   // DONE — completed items
   // =====================================================
 
+  {
+    id: "alpaca-account",
+    title: "Alpaca Markets account + API keys",
+    description: "Signed up, API keys generated, ALPACA_API_KEY + ALPACA_SECRET_KEY + ALPACA_PAPER set in Railway. Application in review — paper trading available while live account is approved.",
+    status: "done",
+    priority: "high",
+    category: "setup",
+    addedDate: "2026-04-10",
+    completedDate: "2026-04-10",
+  },
   {
     id: "schwab-api-creds",
     title: "Get Schwab API credentials",
