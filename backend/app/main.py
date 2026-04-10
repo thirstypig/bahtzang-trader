@@ -62,12 +62,16 @@ def get_current_user(user: dict = Depends(require_auth)):
 @app.get("/portfolio")
 async def get_portfolio(user: dict = Depends(require_auth)):
     """Current holdings and cash balance."""
-    from app.schwab_client import get_account_balance, get_positions
+    try:
+        from app.schwab_client import get_account_balance, get_positions
 
-    account_id = "default"
-    positions = await get_positions(account_id)
-    balance = await get_account_balance(account_id)
-    return {"positions": positions, "balance": balance}
+        account_id = "default"
+        positions = await get_positions(account_id)
+        balance = await get_account_balance(account_id)
+        return {"positions": positions, "balance": balance}
+    except Exception as e:
+        logging.error("Portfolio fetch failed: %s", e)
+        return {"positions": [], "balance": {"cash_available": 0, "total_value": 0}}
 
 
 @app.get("/trades")
