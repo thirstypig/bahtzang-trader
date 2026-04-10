@@ -7,10 +7,10 @@
 ## Enhancement Summary
 
 ### Key Improvements
-1. **Alpaca Markets identified as top broker** — zero-commission stocks, ETFs, options, AND crypto with excellent API + paper trading mode
+1. **Multi-broker architecture** — Alpaca (stocks, ETFs, options, crypto — all $0) as primary, Schwab as safe harbor for treasuries/bonds
 2. **Risk management is a full subsystem** — VaR, Kelly criterion position sizing, circuit breakers, PDT compliance, wash sale rules, disaster recovery
 3. **Claude brain architecture refined** — two-tier screening (Python pre-filter → Claude synthesis), technical indicators computed in Python not by Claude, confidence calibration tracking
-4. **6 new admin/docs pages** designed with concrete Next.js 14 + Tailwind implementations
+4. **12 pages total** — 3 main (dashboard, trades, settings) + 4 trading tools (analytics, paper trading, alerts, backtest) + 5 admin (roadmap, changelog, status, docs, about, audit log)
 5. **Learnings from other projects applied** — CSP headers, Supabase auth gotchas, deployment patterns from fbst/fsvppro/bbq-judge
 
 ### New Considerations Discovered
@@ -41,44 +41,55 @@ Schwab-only, US equities, market orders.
 ### Target State
 Multiple brokers, multiple asset classes, zero-commission where possible.
 
-### Zero-Commission Broker Ranking
+### Multi-Broker Architecture
 
-| Broker | Products | Commission | API Quality | Paper Trading | Recommendation |
-|--------|----------|------------|-------------|---------------|----------------|
-| **Alpaca Markets** | Stocks, ETFs, Options, Crypto | $0 all | Excellent REST + WebSocket | Yes, full sandbox | **Top choice — replace Schwab** |
-| **Schwab** | Stocks, ETFs, Options ($0.65/contract) | $0 stocks/ETFs | Limited automation API | No | Keep as backup |
-| **Coinbase Advanced** | Crypto (300+ pairs) | 0.1-0.6% maker/taker | Good REST + WebSocket | Yes | Best for crypto-only |
-| **Interactive Brokers** | Everything (stocks, options, futures, forex) | Tiered ($1-4/trade) | Professional-grade | Yes | Overkill for now |
-| **Robinhood** | Stocks, ETFs, Options, Crypto | $0 | **No official API** | No | Not viable |
+**Strategy:** Each broker handles what it's best at. One unified `BrokerInterface` in our code.
+
+| Broker | Role | Products | Commission | Why |
+|--------|------|----------|------------|-----|
+| **Alpaca** | Primary | Stocks, ETFs, Options, Crypto | $0 all | Best API + paper trading + zero fees |
+| **Schwab** | Safe harbor | Treasuries, Bonds, CDs | $0 | Park idle cash in risk-free yield |
+
+**Why NOT others:**
+- **Coinbase**: Fees (0.1-0.6%), Alpaca already covers crypto
+- **Robinhood**: No official API — not viable for bots
+- **Interactive Brokers**: Fees ($1-4/trade), overkill for this scope
+- **OANDA/Forex**: Forex adds complexity without clear AI edge
 
 ### Research Insights
 
 **Best Practices:**
-- Start with Alpaca for stocks + crypto (single API, zero commissions, paper trading built-in)
+- Alpaca covers 90% of needs: stocks, ETFs, options, crypto — all $0, one API
 - Use Alpaca's paper trading environment to validate Claude's decisions before going live
 - Fractional shares enable precise portfolio rebalancing without needing large capital
-- Add Coinbase later for deeper crypto markets if needed
+- When Claude says "market is too risky, go to cash" → sweep to Schwab treasuries for yield
+- Claude can trade across asset classes: "Sell AAPL stock, buy BTC" in a single cycle
 
 **Implementation Plan:**
-1. Create `alpaca_client.py` alongside existing `schwab_client.py`
-2. Add broker abstraction layer (`BrokerInterface` base class)
-3. Configure which broker to use per-asset-class in `guardrails.json`
-4. Alpaca's paper trading mode maps directly to our paper trading feature (Phase 3)
+1. Create broker abstraction layer (`BrokerInterface` base class)
+2. Implement `AlpacaBroker` (primary — stocks, ETFs, options, crypto)
+3. Implement `SchwabBroker` (safe harbor — treasuries, bonds)
+4. Route trades by asset class: equities/options/crypto → Alpaca, fixed-income → Schwab
+5. Unified portfolio view aggregates positions across both brokers
 
 **New Files:**
-- `backend/app/brokers/base.py` — Abstract broker interface
-- `backend/app/brokers/alpaca_client.py` — Alpaca implementation
-- `backend/app/brokers/schwab_client.py` — Move existing code here
+- `backend/app/brokers/__init__.py`
+- `backend/app/brokers/base.py` — Abstract `BrokerInterface` with `get_positions()`, `place_order()`, `get_balance()`
+- `backend/app/brokers/alpaca_client.py` — Primary broker (stocks, ETFs, options, crypto)
+- `backend/app/brokers/schwab_client.py` — Move existing code here (treasuries, bonds)
+- `backend/app/brokers/router.py` — Routes trades to correct broker by asset class
 
 **New Env Vars:**
 - `ALPACA_API_KEY`
 - `ALPACA_SECRET_KEY`
-- `ALPACA_PAPER` (true/false)
+- `ALPACA_PAPER` (true/false — toggles paper trading mode)
 
 **Edge Cases:**
 - Alpaca crypto trades 24/7 but stocks are market hours only — scheduler needs asset-aware timing
 - Fractional shares have different settlement rules (T+1 for crypto, T+2 for equities)
-- Alpaca has rate limits: 200 requests/minute for paper, 300 for live
+- Alpaca rate limits: 200 req/min paper, 300 live
+- Cross-broker portfolio view must aggregate balances and positions from both APIs
+- Claude's trade decision needs to specify asset class so the router picks the right broker
 
 ---
 
@@ -333,17 +344,36 @@ Professional analytics: equity curve vs benchmark, drawdown chart, risk metrics,
 
 #### 6. `/analytics` — Trading Performance (see Phase 4)
 
+#### 7. `/paper-trading` — Paper vs Live Comparison
+- **Pattern:** Split dashboard — paper portfolio on left, live on right
+- **Metrics:** Side-by-side Sharpe ratio, win rate, P&L curves
+- **Toggle:** Button to start/stop paper trading mode
+- **Graduation criteria:** Display "Ready to go live" when paper Sharpe > 1.0 and 30+ trades
+
+#### 8. `/alerts` — Notification Configuration
+- **Alert types:** Price target hit, drawdown threshold, VIX spike, circuit breaker triggered, trade executed
+- **Channels:** In-app toast, email (via Supabase), browser push notification
+- **Pattern:** Table of alert rules with on/off toggles and threshold inputs
+
+#### 9. `/backtest` — Strategy Backtesting Results
+- **Pattern:** Date range selector + results dashboard
+- **Charts:** Equity curve, drawdown, trade markers on price chart
+- **Metrics:** Same as analytics but for historical simulation
+- **Compare:** Multiple backtest runs side-by-side
+
+#### 10. `/audit-log` — Full Activity Trail
+- **Content:** Every bot action, config change, login, guardrail trigger, circuit breaker activation
+- **Pattern:** Filterable log table with severity levels (info/warning/error)
+- **Retention:** Keep 90 days, archive to cold storage
+- **Regulatory:** Required for compliance documentation
+
 ### Navigation Update
-Add a secondary nav group or dropdown menu:
 ```
-Dashboard | Trades | Settings | More ▾
-                                 ├── Analytics
-                                 ├── Roadmap
-                                 ├── Changelog
-                                 ├── Status
-                                 ├── Docs
-                                 └── About
+Main:     Dashboard | Trades | Settings
+Trading:  Analytics | Paper Trading | Alerts | Backtest
+Admin:    Roadmap | Changelog | Status | Docs | About | Audit Log
 ```
+12 pages total (plus /login). Group into a "More" dropdown or sidebar sections.
 
 ---
 
@@ -378,12 +408,18 @@ Dashboard | Trades | Settings | More ▾
 | Phase | What | Priority | Effort |
 |-------|------|----------|--------|
 | **Phase 0** | Stabilize deployment, verify end-to-end | **Critical** | 1-2 days |
-| **Phase 1** | Alpaca integration + paper trading | **High** | 1 week |
+| **Phase 1** | Multi-broker (Alpaca + Schwab) + paper trading | **High** | 1 week |
 | **Phase 3** | Risk management (Kelly, circuit breakers, PDT) | **High** | 1-2 weeks |
 | **Phase 2** | Enhanced Claude brain (screening, indicators) | **High** | 1-2 weeks |
-| **Phase 5** | Admin pages (roadmap, changelog, status, docs) | **Medium** | 1 week |
-| **Phase 4** | Portfolio analytics dashboard | **Medium** | 1 week |
-| **Phase 6** | Backtesting framework | **Low** | 2-3 weeks |
+| **Phase 5a** | Admin pages (roadmap, changelog, about, status, docs, audit log) | **Medium** | 1 week |
+| **Phase 5b** | Trading tools (analytics, paper trading dashboard, alerts) | **Medium** | 1 week |
+| **Phase 4** | Portfolio analytics (equity curve, drawdown, risk metrics) | **Medium** | 1 week |
+| **Phase 6** | Backtesting framework + backtest page | **Low** | 2-3 weeks |
+
+**Full page count:** 12 pages + login
+- **3 existing:** Dashboard, Trades, Settings
+- **4 trading tools:** Analytics, Paper Trading, Alerts, Backtest
+- **6 admin:** Roadmap, Changelog, About, Status, Docs, Audit Log
 
 **Note:** Phase 3 (risk management) is ordered before Phase 2 (enhanced brain) because you should never trade with real money without proper risk controls, even if the AI is good.
 
