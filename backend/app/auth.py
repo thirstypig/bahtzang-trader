@@ -1,6 +1,7 @@
 import logging
 
 import jwt
+from jwt import PyJWKClient
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -10,22 +11,30 @@ logger = logging.getLogger(__name__)
 
 bearer_scheme = HTTPBearer()
 
+# Supabase publishes its signing keys at this well-known endpoint.
+# PyJWKClient fetches and caches the public keys automatically.
+_jwks_url = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+_jwks_client = PyJWKClient(_jwks_url)
+
 
 def require_auth(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> dict:
     """
     Verify the Supabase access token from the Authorization header.
-    Checks the JWT signature and restricts access to ALLOWED_EMAIL.
+    Fetches the public key from Supabase's JWKS endpoint to verify ES256 tokens.
+    Restricts access to ALLOWED_EMAIL.
     """
     token = credentials.credentials
-    logger.info("Auth attempt — token length: %d, starts: %s...", len(token), token[:20])
 
     try:
+        # Get the signing key that matches the token's `kid` header
+        signing_key = _jwks_client.get_signing_key_from_jwt(token)
+
         payload = jwt.decode(
             token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
+            signing_key.key,
+            algorithms=["ES256"],
             audience="authenticated",
         )
     except jwt.ExpiredSignatureError:
@@ -34,36 +43,24 @@ def require_auth(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session expired — please sign in again",
         )
-    except jwt.InvalidAudienceError as e:
-        logger.warning("Audience mismatch: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token audience error: {e}",
-        )
-    except jwt.InvalidSignatureError:
-        logger.warning("Signature verification failed — check SUPABASE_JWT_SECRET")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token signature invalid — JWT secret may be wrong",
-        )
-    except jwt.DecodeError as e:
-        logger.warning("Token decode error: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token decode error: {e}",
-        )
     except jwt.InvalidTokenError as e:
-        logger.warning("Invalid token: %s — %s", type(e).__name__, e)
+        logger.warning("Token verification failed: %s — %s", type(e).__name__, e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token ({type(e).__name__}): {e}",
+            detail=f"Invalid token: {e}",
+        )
+    except Exception as e:
+        logger.error("Unexpected auth error: %s — %s", type(e).__name__, e)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed",
         )
 
     email = payload.get("email", "")
-    logger.info("Token valid — email: %s", email)
+    logger.info("Authenticated: %s", email)
 
     if email != settings.ALLOWED_EMAIL:
-        logger.warning("Unauthorized email: %s (allowed: %s)", email, settings.ALLOWED_EMAIL)
+        logger.warning("Unauthorized email: %s", email)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This account is not authorized",

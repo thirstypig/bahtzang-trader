@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     SCHWAB_CLIENT_SECRET: str
     ALPHA_VANTAGE_KEY: str
     DATABASE_URL: str
-    SUPABASE_JWT_SECRET: str
+    SUPABASE_URL: str  # e.g. https://xxx.supabase.co
     ALLOWED_EMAIL: str
     CORS_ORIGINS: str = "http://localhost:3060"  # comma-separated
 

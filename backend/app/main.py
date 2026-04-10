@@ -48,48 +48,6 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/auth/debug")
-def auth_debug(body: dict):
-    """TEMPORARY: diagnose JWT verification issues. Remove after debugging."""
-    import jwt as pyjwt
-
-    token = body.get("token", "")
-    results = {}
-
-    # Step 1: decode without verification to see the payload
-    try:
-        unverified = pyjwt.decode(token, options={"verify_signature": False})
-        results["unverified_payload"] = {
-            k: v for k, v in unverified.items()
-            if k in ("aud", "role", "email", "iss", "exp", "iat")
-        }
-    except Exception as e:
-        results["unverified_error"] = str(e)
-
-    # Step 2: try with our secret, no audience check
-    try:
-        pyjwt.decode(token, settings.SUPABASE_JWT_SECRET, algorithms=["HS256"],
-                      options={"verify_aud": False})
-        results["signature_valid"] = True
-    except pyjwt.InvalidSignatureError:
-        results["signature_valid"] = False
-        results["signature_error"] = "Signature mismatch — wrong JWT secret"
-    except Exception as e:
-        results["signature_error"] = f"{type(e).__name__}: {e}"
-
-    # Step 3: try full verification
-    try:
-        pyjwt.decode(token, settings.SUPABASE_JWT_SECRET, algorithms=["HS256"],
-                      audience="authenticated")
-        results["full_verify"] = "OK"
-    except Exception as e:
-        results["full_verify_error"] = f"{type(e).__name__}: {e}"
-
-    results["jwt_secret_length"] = len(settings.SUPABASE_JWT_SECRET)
-
-    return results
-
-
 # ---------------------------------------------------------------------------
 # Protected — all require valid Supabase JWT
 # ---------------------------------------------------------------------------
