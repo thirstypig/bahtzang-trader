@@ -2,18 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { getTrades } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { Trade } from "@/lib/types";
 import TradeTable from "@/components/TradeTable";
 
 export default function TradesPage() {
+  const { user } = useAuth();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
     getTrades(200)
       .then(setTrades)
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">

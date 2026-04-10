@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getPortfolio, getTrades } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { Balance, Position, Trade } from "@/lib/types";
 import PortfolioCard from "@/components/PortfolioCard";
 import DecisionCard from "@/components/DecisionCard";
@@ -9,6 +10,7 @@ import AllocationChart from "@/components/AllocationChart";
 import ValueChart from "@/components/ValueChart";
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [positions, setPositions] = useState<Position[]>([]);
   const [balance, setBalance] = useState<Balance | null>(null);
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -16,6 +18,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user) return;
     async function load() {
       try {
         const [portfolio, tradeHistory] = await Promise.all([
@@ -32,7 +35,7 @@ export default function DashboardPage() {
       }
     }
     load();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (

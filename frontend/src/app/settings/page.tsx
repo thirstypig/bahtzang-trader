@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { getGuardrails, triggerRun, updateGuardrails } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { Guardrails } from "@/lib/types";
 import KillSwitchButton from "@/components/KillSwitchButton";
 import ConfirmModal from "@/components/ConfirmModal";
 
 export default function SettingsPage() {
+  const { user } = useAuth();
   const [guardrails, setGuardrails] = useState<Guardrails | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -16,10 +18,11 @@ export default function SettingsPage() {
   const [showRunModal, setShowRunModal] = useState(false);
 
   useEffect(() => {
+    if (!user) return;
     getGuardrails()
       .then(setGuardrails)
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
