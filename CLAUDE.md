@@ -74,17 +74,24 @@ Pages call `useAuth()` and only fetch data when `user` is truthy.
 ```
 backend/
   app/
-    main.py           # FastAPI app, all endpoints, lifespan (create tables + scheduler)
+    main.py           # App setup + router registration (65 lines)
     auth.py           # JWKS-based JWT verification, require_auth dependency
     config.py         # Pydantic Settings (all env vars)
-    database.py       # SQLAlchemy engine + SessionLocal
-    models.py         # Trade model (11 columns)
-    claude_brain.py   # Structured prompt → Claude Sonnet → JSON decision
-    guardrails.py     # Policy gate: kill switch, limits, stop loss
-    trade_executor.py # Full cycle orchestrator
-    scheduler.py      # APScheduler cron
-    schwab_client.py  # Schwab OAuth + positions + orders
-    market_data.py    # Alpha Vantage quotes + news
+    database.py       # SQLAlchemy engine + SessionLocal (pool_pre_ping=True)
+    models.py         # Trade model (11 columns + 2 indexes)
+    routes/           # API route modules (feature-isolated)
+      portfolio.py    # GET /portfolio (uses BrokerInterface)
+      trades.py       # GET /trades
+      guardrails.py   # GET/POST /guardrails, POST /killswitch
+      bot.py          # POST /run
+    brokers/          # Broker abstraction layer
+      base.py         # BrokerInterface ABC (get_positions, get_balance, place_order)
+      schwab.py       # SchwabBroker (token cache with expiry, shared httpx client)
+    claude_brain.py   # AsyncAnthropic → Claude Sonnet → JSON decision
+    guardrails.py     # GuardrailsUpdate Pydantic model + policy gate
+    trade_executor.py # Pipeline orchestrator (asyncio.gather, Lock, BrokerInterface)
+    market_data.py    # Alpha Vantage quotes + news (shared httpx, parallel fetch)
+    scheduler.py      # APScheduler cron (9:35 AM ET, Mon-Fri)
     logger.py         # Trade logging to PostgreSQL
   guardrails.json     # Runtime config (editable via API)
   railway.toml        # Railway deploy config
@@ -112,7 +119,7 @@ frontend/
       auth.tsx        # AuthProvider, useAuth hook
       supabase.ts     # Lazy Supabase client singleton
       types.ts        # TypeScript interfaces
-      utils.ts        # formatCurrency, formatDate, etc.
+      utils.ts        # formatCurrency, formatDateTime
     data/             # Static data (roadmap, changelog, todos)
   railway.toml        # Railway deploy config (HOSTNAME=0.0.0.0)
 ```
