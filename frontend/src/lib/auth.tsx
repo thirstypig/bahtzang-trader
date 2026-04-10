@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Session } from "@supabase/supabase-js";
+import { setApiToken } from "./api";
 import { getSupabase } from "./supabase";
 
 interface User {
@@ -51,20 +52,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    function applySession(session: Session | null) {
+      setUser(extractUser(session));
+      const token = session?.access_token || null;
+      setAccessToken(token);
+      setApiToken(token);
+      setLoading(false);
+    }
+
     // Check for existing session on mount
     getSupabase().auth.getSession().then(({ data: { session } }) => {
-      setUser(extractUser(session));
-      setAccessToken(session?.access_token || null);
-      setLoading(false);
+      applySession(session);
     });
 
     // Listen for auth state changes (login, logout, token refresh)
     const {
       data: { subscription },
     } = getSupabase().auth.onAuthStateChange((_event, session) => {
-      setUser(extractUser(session));
-      setAccessToken(session?.access_token || null);
-      setLoading(false);
+      applySession(session);
     });
 
     return () => subscription.unsubscribe();

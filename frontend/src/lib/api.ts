@@ -1,20 +1,22 @@
 import { CycleResult, Guardrails, Portfolio, Trade } from "./types";
-import { getSupabase } from "./supabase";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4060";
 
-async function getToken(): Promise<string | null> {
-  const { data } = await getSupabase().auth.getSession();
-  return data.session?.access_token || null;
+// Token is set by the AuthProvider via setApiToken() whenever the
+// Supabase session changes. This avoids calling getSession() which
+// can return stale data.
+let _accessToken: string | null = null;
+
+export function setApiToken(token: string | null) {
+  _accessToken = token;
 }
 
 async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = await getToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  if (_accessToken) {
+    headers["Authorization"] = `Bearer ${_accessToken}`;
   }
 
   const res = await fetch(`${API}${path}`, { headers, ...options });
