@@ -20,6 +20,7 @@ const MORE_LINKS = [
     { href: "/audit-log", label: "Audit Log" },
   ]},
   { section: "Admin", items: [
+    { href: "/todos", label: "To-Do List" },
     { href: "/status", label: "Status" },
     { href: "/changelog", label: "Changelog" },
     { href: "/about", label: "About" },
