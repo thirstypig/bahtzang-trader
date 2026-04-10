@@ -52,40 +52,6 @@ export const todos: Todo[] = [
     addedDate: "2026-04-10",
   },
   {
-    id: "schwab-api-creds",
-    title: "Get Schwab API credentials (for treasuries/bonds)",
-    description: "Schwab is the safe harbor broker for parking cash in T-bills when market is risky.",
-    steps: [
-      "Go to developer.schwab.com",
-      "Click 'Register' and create a developer account",
-      "Create a new app → name it 'bahtzang-trader'",
-      "Set callback URL to https://www.bahtzang.com",
-      "Submit for API access approval (may take 1-2 weeks)",
-      "Once approved, copy Client ID and Client Secret",
-      "In Railway → bahtzang-backend → Variables, update SCHWAB_CLIENT_ID and SCHWAB_CLIENT_SECRET",
-    ],
-    status: "todo",
-    priority: "medium",
-    category: "setup",
-    addedDate: "2026-04-10",
-  },
-  {
-    id: "alpha-vantage-key",
-    title: "Get Alpha Vantage API key",
-    description: "Provides live stock quotes and news sentiment for Claude's analysis.",
-    steps: [
-      "Go to alphavantage.co/support/#api-key",
-      "Enter your email and get a free API key instantly",
-      "Free tier: 25 requests/day (enough for testing, not production)",
-      "In Railway → bahtzang-backend → Variables, set ALPHA_VANTAGE_KEY",
-      "For production: upgrade to Premium ($49/mo) for 75 requests/min",
-    ],
-    status: "todo",
-    priority: "high",
-    category: "setup",
-    addedDate: "2026-04-10",
-  },
-  {
     id: "test-manual-cycle",
     title: "Test a manual bot cycle",
     description: "After Alpaca + Alpha Vantage keys are set, trigger one cycle to verify the full pipeline.",
@@ -215,6 +181,26 @@ export const todos: Todo[] = [
   // DONE — completed items
   // =====================================================
 
+  {
+    id: "schwab-api-creds",
+    title: "Get Schwab API credentials",
+    description: "Schwab Developer API access approved. Client ID and Secret configured in Railway.",
+    status: "done",
+    priority: "high",
+    category: "setup",
+    addedDate: "2026-04-10",
+    completedDate: "2026-04-10",
+  },
+  {
+    id: "alpha-vantage-key",
+    title: "Get Alpha Vantage API key",
+    description: "API key obtained and configured in Railway backend variables.",
+    status: "done",
+    priority: "high",
+    category: "setup",
+    addedDate: "2026-04-10",
+    completedDate: "2026-04-10",
+  },
   {
     id: "deploy-railway",
     title: "Deploy backend + frontend to Railway",

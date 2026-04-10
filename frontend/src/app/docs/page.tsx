@@ -11,6 +11,12 @@ const DOCS = [
         icon: "📖",
       },
       {
+        title: "CLAUDE.md",
+        description: "Project conventions, architecture, patterns, and deployment notes for Claude Code",
+        href: "https://github.com/thirstypig/bahtzang-trader/blob/main/CLAUDE.md",
+        icon: "🤖",
+      },
+      {
         title: "Environment Variables",
         description: "All required env vars for backend and frontend",
         href: "https://github.com/thirstypig/bahtzang-trader/blob/main/backend/.env.example",
