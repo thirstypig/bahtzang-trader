@@ -5,42 +5,45 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from app import claude_brain, guardrails, market_data, schwab_client
+from app import claude_brain, guardrails, market_data
+from app.brokers.schwab import SchwabBroker
 from app.logger import log_trade
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_ACCOUNT_ID = "default"
 
-# 011-fix: Mutex prevents race conditions in concurrent /run requests
+# Broker instance — swap to AlpacaBroker when ready
+broker = SchwabBroker()
+
+# Mutex prevents race conditions in concurrent /run requests
 _cycle_lock = asyncio.Lock()
 
 
 async def run_cycle(db: Session, account_id: str = DEFAULT_ACCOUNT_ID) -> dict:
     """
     Execute one full trading cycle:
-    1. Fetch portfolio + balances from Schwab
+    1. Fetch portfolio + balances from broker
     2. Fetch market data + news from Alpha Vantage
     3. Ask Claude for a trade decision
     4. Run decision through guardrails
-    5. Execute on Schwab if approved
+    5. Execute on broker if approved
     6. Log everything to PostgreSQL
     """
-    # 011-fix: Lock prevents two concurrent cycles from bypassing guardrails
     async with _cycle_lock:
         return await _execute_cycle(db, account_id)
 
 
 async def _execute_cycle(db: Session, account_id: str) -> dict:
-    # 1. Gather portfolio state — 006-fix: parallel fetch
+    # 1. Gather portfolio state — parallel fetch
     positions, balance = await asyncio.gather(
-        schwab_client.get_positions(account_id),
-        schwab_client.get_account_balance(account_id),
+        broker.get_positions(account_id),
+        broker.get_account_balance(account_id),
     )
     cash_available = balance["cash_available"]
     total_invested = balance["total_value"] - cash_available
 
-    # 2. Gather market data — 006-fix: parallel fetch
+    # 2. Gather market data — parallel fetch
     held_tickers = [p.get("instrument", {}).get("symbol", "") for p in positions]
     quotes_task = market_data.get_quotes(held_tickers) if held_tickers else asyncio.sleep(0, result=[])
     news_task = market_data.get_news(held_tickers if held_tickers else None)
@@ -56,7 +59,7 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
         guardrails_config=guardrails_config,
     )
 
-    # Look up current price — 006-fix: check cached quotes first
+    # Look up current price — check cached quotes first
     price = None
     if decision["ticker"] and decision["action"] != "hold":
         cached = next((q for q in quotes if q["ticker"] == decision["ticker"]), None)
@@ -67,7 +70,7 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
             price = quote["price"]
         decision["price"] = price
 
-    # 4. Run through guardrails — pass config to avoid redundant file read
+    # 4. Run through guardrails
     passed, block_reason = guardrails.check_guardrails(
         decision=decision,
         cash_available=cash_available,
@@ -80,7 +83,7 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
     executed = False
     if passed and decision["action"] in ("buy", "sell"):
         try:
-            await schwab_client.place_order(
+            await broker.place_order(
                 account_id=account_id,
                 ticker=decision["ticker"],
                 action=decision["action"],
