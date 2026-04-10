@@ -5,15 +5,15 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth import require_auth
-from app.brokers.schwab import SchwabBroker
+from app.brokers.alpaca import AlpacaBroker
 
 router = APIRouter()
-broker = SchwabBroker()
+broker = AlpacaBroker()
 
 
 @router.get("/portfolio")
 async def get_portfolio(user: dict = Depends(require_auth)):
-    """Current holdings and cash balance."""
+    """Current holdings and cash balance from Alpaca."""
     try:
         account_id = "default"
         positions = await broker.get_positions(account_id)

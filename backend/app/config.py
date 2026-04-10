@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     SUPABASE_URL: str  # e.g. https://xxx.supabase.co
     ALLOWED_EMAIL: str
     CORS_ORIGINS: str = "http://localhost:3060"  # comma-separated
+    ALPACA_API_KEY: str = ""
+    ALPACA_SECRET_KEY: str = ""
+    ALPACA_PAPER: bool = True
 
 
 settings = Settings()

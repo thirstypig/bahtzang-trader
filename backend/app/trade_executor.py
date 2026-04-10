@@ -6,15 +6,16 @@ import logging
 from sqlalchemy.orm import Session
 
 from app import claude_brain, guardrails, market_data
-from app.brokers.schwab import SchwabBroker
+from app.brokers.alpaca import AlpacaBroker
+from app.config import settings
 from app.logger import log_trade
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_ACCOUNT_ID = "default"
 
-# Broker instance — swap to AlpacaBroker when ready
-broker = SchwabBroker()
+# Primary broker — Alpaca (zero-commission stocks, ETFs, options, crypto)
+broker = AlpacaBroker()
 
 # Mutex prevents race conditions in concurrent /run requests
 _cycle_lock = asyncio.Lock()
