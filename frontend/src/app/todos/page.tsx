@@ -139,11 +139,30 @@ export default function TodosPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              {expanded && todo.description && (
+              {expanded && (todo.description || todo.steps) && (
                 <div className="border-t border-zinc-800 px-5 py-3">
-                  <p className="text-sm text-zinc-400 leading-relaxed">
-                    {todo.description}
-                  </p>
+                  {todo.description && (
+                    <p className="text-sm text-zinc-400 leading-relaxed">
+                      {todo.description}
+                    </p>
+                  )}
+                  {todo.steps && (
+                    <ol className="mt-3 space-y-1.5">
+                      {todo.steps.map((step, i) => (
+                        <li key={i} className="flex gap-2.5 text-sm">
+                          <span className="shrink-0 text-xs font-mono text-zinc-600 mt-0.5 w-5 text-right">
+                            {i + 1}.
+                          </span>
+                          <span className="text-zinc-400">{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                  {todo.completedDate && (
+                    <p className="mt-2 text-xs text-emerald-600">
+                      Completed {todo.completedDate}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
