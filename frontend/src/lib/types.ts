@@ -35,10 +35,13 @@ export interface Portfolio {
 }
 
 export interface Guardrails {
+  risk_profile: "conservative" | "moderate" | "aggressive";
   max_total_invested: number;
   max_single_trade_size: number;
   stop_loss_threshold: number;
   daily_order_limit: number;
+  min_confidence: number;
+  max_positions: number;
   kill_switch: boolean;
 }
 

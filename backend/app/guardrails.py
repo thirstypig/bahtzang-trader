@@ -15,30 +15,75 @@ logger = logging.getLogger(__name__)
 GUARDRAILS_PATH = Path(__file__).resolve().parent.parent / "guardrails.json"
 
 
-# 002-fix: Pydantic model for validated guardrails updates
+# Risk profile presets — all values are percentages of portfolio or absolute limits
+RISK_PRESETS = {
+    "conservative": {
+        "max_portfolio_pct": 0.30,       # invest max 30% of portfolio
+        "max_single_trade_pct": 0.05,    # max 5% per trade
+        "stop_loss_threshold": 0.03,     # 3% stop loss
+        "daily_order_limit": 3,
+        "min_confidence": 0.75,          # Claude must be 75%+ confident
+        "max_positions": 5,
+    },
+    "moderate": {
+        "max_portfolio_pct": 0.60,       # invest max 60% of portfolio
+        "max_single_trade_pct": 0.10,    # max 10% per trade
+        "stop_loss_threshold": 0.05,     # 5% stop loss
+        "daily_order_limit": 5,
+        "min_confidence": 0.60,          # Claude must be 60%+ confident
+        "max_positions": 10,
+    },
+    "aggressive": {
+        "max_portfolio_pct": 0.90,       # invest max 90% of portfolio
+        "max_single_trade_pct": 0.20,    # max 20% per trade
+        "stop_loss_threshold": 0.08,     # 8% stop loss
+        "daily_order_limit": 10,
+        "min_confidence": 0.45,          # Claude can trade at 45%+ confidence
+        "max_positions": 20,
+    },
+}
+
+
 class GuardrailsUpdate(BaseModel):
     """Validated guardrails update — prevents arbitrary config injection."""
+    risk_profile: str | None = Field(None, pattern="^(conservative|moderate|aggressive)$")
     max_total_invested: float | None = Field(None, gt=0, le=10_000_000)
     max_single_trade_size: float | None = Field(None, gt=0, le=1_000_000)
     stop_loss_threshold: float | None = Field(None, gt=0, lt=1)
     daily_order_limit: int | None = Field(None, gt=0, le=100)
+    min_confidence: float | None = Field(None, gt=0, le=1)
+    max_positions: int | None = Field(None, gt=0, le=100)
     # kill_switch deliberately omitted — only settable via /killswitch
+
+
+def apply_risk_preset(profile: str, portfolio_value: float = 100000) -> dict:
+    """Generate guardrail values from a risk profile preset."""
+    preset = RISK_PRESETS.get(profile, RISK_PRESETS["moderate"])
+    return {
+        "risk_profile": profile,
+        "max_total_invested": round(portfolio_value * preset["max_portfolio_pct"]),
+        "max_single_trade_size": round(portfolio_value * preset["max_single_trade_pct"]),
+        "stop_loss_threshold": preset["stop_loss_threshold"],
+        "daily_order_limit": preset["daily_order_limit"],
+        "min_confidence": preset["min_confidence"],
+        "max_positions": preset["max_positions"],
+        "kill_switch": False,
+    }
 
 
 def load_guardrails() -> dict:
     """Load guardrails config from guardrails.json."""
     try:
         with open(GUARDRAILS_PATH) as f:
-            return json.load(f)
+            config = json.load(f)
+            # Ensure new fields have defaults
+            config.setdefault("risk_profile", "moderate")
+            config.setdefault("min_confidence", 0.60)
+            config.setdefault("max_positions", 10)
+            return config
     except (FileNotFoundError, json.JSONDecodeError) as e:
         logger.warning("Failed to load guardrails, using defaults: %s", e)
-        return {
-            "max_total_invested": 50000,
-            "max_single_trade_size": 5000,
-            "stop_loss_threshold": 0.05,
-            "daily_order_limit": 10,
-            "kill_switch": False,
-        }
+        return apply_risk_preset("moderate")
 
 
 def save_guardrails(config: dict) -> dict:
@@ -62,7 +107,6 @@ def check_guardrails(
     Validate a trade decision against all guardrail rules.
     Returns (passed, block_reason).
     """
-    # 013-fix: Accept config as parameter to avoid redundant file read
     if config is None:
         config = load_guardrails()
 
@@ -73,6 +117,12 @@ def check_guardrails(
     # Hold actions always pass (no trade to validate)
     if decision.get("action") == "hold":
         return True, None
+
+    # Minimum confidence check
+    min_conf = config.get("min_confidence", 0.60)
+    confidence = decision.get("confidence", 0)
+    if confidence < min_conf:
+        return False, f"Confidence {confidence:.0%} below minimum {min_conf:.0%}"
 
     price = decision.get("price", 0)
     quantity = decision.get("quantity", 0)
@@ -109,6 +159,16 @@ def check_guardrails(
     if todays_trades >= daily_limit:
         return False, f"Daily order limit reached ({daily_limit} trades today)"
 
-    # 014-fix: Removed dead stop-loss code (loss_pct was never set by anything)
+    # Max positions check
+    max_positions = config.get("max_positions", 10)
+    if decision.get("action") == "buy":
+        current_positions = (
+            db.query(Trade.ticker)
+            .filter(Trade.executed.is_(True), Trade.action == "buy")
+            .distinct()
+            .count()
+        )
+        if current_positions >= max_positions:
+            return False, f"Max positions reached ({max_positions})"
 
     return True, None

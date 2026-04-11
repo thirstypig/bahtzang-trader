@@ -8,6 +8,48 @@ import KillSwitchButton from "@/components/KillSwitchButton";
 import Spinner from "@/components/Spinner";
 import ConfirmModal from "@/components/ConfirmModal";
 
+const RISK_PROFILES = [
+  {
+    id: "conservative" as const,
+    label: "Conservative",
+    icon: "🛡️",
+    color: "emerald",
+    description: "Preserve capital. Few trades, high conviction only.",
+    details: "30% max invested · 5% per trade · 3% stop loss · 75% min confidence · 3 trades/day · 5 positions max",
+    border: "border-emerald-800",
+    bg: "bg-emerald-900/20",
+    activeBorder: "border-emerald-500",
+    activeBg: "bg-emerald-900/40",
+    ring: "ring-emerald-500",
+  },
+  {
+    id: "moderate" as const,
+    label: "Moderate",
+    icon: "⚖️",
+    color: "blue",
+    description: "Balanced risk and reward. Steady growth.",
+    details: "60% max invested · 10% per trade · 5% stop loss · 60% min confidence · 5 trades/day · 10 positions max",
+    border: "border-blue-800",
+    bg: "bg-blue-900/20",
+    activeBorder: "border-blue-500",
+    activeBg: "bg-blue-900/40",
+    ring: "ring-blue-500",
+  },
+  {
+    id: "aggressive" as const,
+    label: "Aggressive",
+    icon: "🔥",
+    color: "amber",
+    description: "Maximize returns. More trades, higher risk.",
+    details: "90% max invested · 20% per trade · 8% stop loss · 45% min confidence · 10 trades/day · 20 positions max",
+    border: "border-amber-800",
+    bg: "bg-amber-900/20",
+    activeBorder: "border-amber-500",
+    activeBg: "bg-amber-900/40",
+    ring: "ring-amber-500",
+  },
+];
+
 export default function SettingsPage() {
   const { user } = useAuth();
   const [guardrails, setGuardrails] = useState<Guardrails | null>(null);
@@ -25,6 +67,22 @@ export default function SettingsPage() {
       .finally(() => setLoading(false));
   }, [user]);
 
+  async function handleProfileSelect(profile: "conservative" | "moderate" | "aggressive") {
+    if (!guardrails) return;
+    setSaving(true);
+    setSaved(false);
+    try {
+      const updated = await updateGuardrails({ risk_profile: profile } as Partial<Guardrails>);
+      setGuardrails(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error("Failed to apply profile:", err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!guardrails) return;
@@ -35,6 +93,8 @@ export default function SettingsPage() {
       setGuardrails(updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error("Failed to save:", err);
     } finally {
       setSaving(false);
     }
@@ -69,15 +129,54 @@ export default function SettingsPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">Settings</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Configure trading guardrails and bot controls
+          Configure risk profile and trading guardrails
         </p>
       </div>
 
-      {/* Guardrails Form */}
-      <form onSubmit={handleSave} className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold text-white">Guardrails</h2>
+      {/* Risk Profile Selector */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+        <h2 className="text-lg font-semibold text-white">Risk Profile</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Safety limits that override Claude&apos;s decisions
+          Select a preset — all guardrails auto-adjust. You can still fine-tune individual settings below.
+        </p>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          {RISK_PROFILES.map((profile) => {
+            const isActive = guardrails.risk_profile === profile.id;
+            return (
+              <button
+                key={profile.id}
+                onClick={() => handleProfileSelect(profile.id)}
+                disabled={saving}
+                className={`rounded-xl border p-4 text-left transition-all ${
+                  isActive
+                    ? `${profile.activeBorder} ${profile.activeBg} ring-1 ${profile.ring}`
+                    : `${profile.border} ${profile.bg} hover:${profile.activeBg}`
+                } disabled:opacity-50`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{profile.icon}</span>
+                  <span className="text-sm font-semibold text-white">{profile.label}</span>
+                  {isActive && (
+                    <span className="ml-auto text-[10px] font-medium text-emerald-400">ACTIVE</span>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-zinc-400">{profile.description}</p>
+                <p className="mt-2 text-[10px] text-zinc-600 leading-relaxed">{profile.details}</p>
+              </button>
+            );
+          })}
+        </div>
+        {saved && (
+          <p className="mt-3 text-sm text-emerald-400">Profile applied successfully</p>
+        )}
+      </div>
+
+      {/* Fine-Tune Guardrails */}
+      <form onSubmit={handleSave} className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+        <h2 className="text-lg font-semibold text-white">Fine-Tune Guardrails</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Override individual settings from the selected profile
         </p>
 
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
@@ -118,6 +217,27 @@ export default function SettingsPage() {
             value={guardrails.daily_order_limit}
             onChange={(v) =>
               setGuardrails({ ...guardrails, daily_order_limit: Number(v) })
+            }
+          />
+          <Field
+            label="Min Confidence to Trade"
+            suffix="%"
+            type="number"
+            step="1"
+            value={(guardrails.min_confidence * 100).toFixed(0)}
+            onChange={(v) =>
+              setGuardrails({
+                ...guardrails,
+                min_confidence: Number(v) / 100,
+              })
+            }
+          />
+          <Field
+            label="Max Positions"
+            type="number"
+            value={guardrails.max_positions}
+            onChange={(v) =>
+              setGuardrails({ ...guardrails, max_positions: Number(v) })
             }
           />
         </div>
