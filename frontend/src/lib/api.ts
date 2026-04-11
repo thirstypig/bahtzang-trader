@@ -25,7 +25,9 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { ...headers, ...(options?.headers as Record<string, string>) },
   });
   if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
+    const body = await res.json().catch(() => ({}));
+    const detail = body.detail || res.statusText;
+    throw new Error(detail);
   }
   return res.json();
 }
