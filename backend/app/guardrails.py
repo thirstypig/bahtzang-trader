@@ -44,9 +44,47 @@ RISK_PRESETS = {
 }
 
 
+TRADING_GOALS = {
+    "maximize_returns": {
+        "label": "Maximize Returns",
+        "recommended_frequency": "3x",
+        "recommended_risk": "aggressive",
+    },
+    "steady_income": {
+        "label": "Steady Income",
+        "recommended_frequency": "1x",
+        "recommended_risk": "conservative",
+    },
+    "capital_preservation": {
+        "label": "Capital Preservation",
+        "recommended_frequency": "1x",
+        "recommended_risk": "conservative",
+    },
+    "beat_sp500": {
+        "label": "Beat S&P 500",
+        "recommended_frequency": "3x",
+        "recommended_risk": "moderate",
+    },
+    "swing_trading": {
+        "label": "Swing Trading",
+        "recommended_frequency": "5x",
+        "recommended_risk": "aggressive",
+    },
+    "passive_index": {
+        "label": "Passive Index",
+        "recommended_frequency": "1x",
+        "recommended_risk": "conservative",
+    },
+}
+
+VALID_GOALS = "|".join(TRADING_GOALS.keys())
+
+
 class GuardrailsUpdate(BaseModel):
     """Validated guardrails update — prevents arbitrary config injection."""
     risk_profile: str | None = Field(None, pattern="^(conservative|moderate|aggressive)$")
+    trading_goal: str | None = Field(None, pattern=f"^({VALID_GOALS})$")
+    trading_frequency: str | None = Field(None, pattern="^(1x|3x|5x)$")
     max_total_invested: float | None = Field(None, gt=0, le=10_000_000)
     max_single_trade_size: float | None = Field(None, gt=0, le=1_000_000)
     stop_loss_threshold: float | None = Field(None, gt=0, lt=1)
@@ -78,6 +116,8 @@ def load_guardrails() -> dict:
             config = json.load(f)
             # Ensure new fields have defaults
             config.setdefault("risk_profile", "moderate")
+            config.setdefault("trading_goal", "maximize_returns")
+            config.setdefault("trading_frequency", "1x")
             config.setdefault("min_confidence", 0.60)
             config.setdefault("max_positions", 10)
             return config

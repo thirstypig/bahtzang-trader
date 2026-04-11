@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getGuardrails, triggerRun, updateGuardrails } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Guardrails } from "@/lib/types";
+import { Guardrails, TradingGoal } from "@/lib/types";
 import KillSwitchButton from "@/components/KillSwitchButton";
 import Spinner from "@/components/Spinner";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -13,41 +13,100 @@ const RISK_PROFILES = [
     id: "conservative" as const,
     label: "Conservative",
     icon: "🛡️",
-    color: "emerald",
     description: "Preserve capital. Few trades, high conviction only.",
-    details: "30% max invested · 5% per trade · 3% stop loss · 75% min confidence · 3 trades/day · 5 positions max",
-    border: "border-emerald-800",
-    bg: "bg-emerald-900/20",
-    activeBorder: "border-emerald-500",
-    activeBg: "bg-emerald-900/40",
-    ring: "ring-emerald-500",
+    details: "30% invested · 3% stop · 75% confidence · 3/day",
+    border: "border-emerald-800", bg: "bg-emerald-900/20",
+    activeBorder: "border-emerald-500", activeBg: "bg-emerald-900/40", ring: "ring-emerald-500",
   },
   {
     id: "moderate" as const,
     label: "Moderate",
     icon: "⚖️",
-    color: "blue",
     description: "Balanced risk and reward. Steady growth.",
-    details: "60% max invested · 10% per trade · 5% stop loss · 60% min confidence · 5 trades/day · 10 positions max",
-    border: "border-blue-800",
-    bg: "bg-blue-900/20",
-    activeBorder: "border-blue-500",
-    activeBg: "bg-blue-900/40",
-    ring: "ring-blue-500",
+    details: "60% invested · 5% stop · 60% confidence · 5/day",
+    border: "border-blue-800", bg: "bg-blue-900/20",
+    activeBorder: "border-blue-500", activeBg: "bg-blue-900/40", ring: "ring-blue-500",
   },
   {
     id: "aggressive" as const,
     label: "Aggressive",
     icon: "🔥",
-    color: "amber",
     description: "Maximize returns. More trades, higher risk.",
-    details: "90% max invested · 20% per trade · 8% stop loss · 45% min confidence · 10 trades/day · 20 positions max",
-    border: "border-amber-800",
-    bg: "bg-amber-900/20",
-    activeBorder: "border-amber-500",
-    activeBg: "bg-amber-900/40",
-    ring: "ring-amber-500",
+    details: "90% invested · 8% stop · 45% confidence · 10/day",
+    border: "border-amber-800", bg: "bg-amber-900/20",
+    activeBorder: "border-amber-500", activeBg: "bg-amber-900/40", ring: "ring-amber-500",
   },
+];
+
+const TRADING_GOALS: {
+  id: TradingGoal;
+  label: string;
+  icon: string;
+  description: string;
+  returns: string;
+  frequency: string;
+  tickers: string;
+}[] = [
+  {
+    id: "maximize_returns",
+    label: "Maximize Returns",
+    icon: "📈",
+    description: "Aggressive growth through momentum and factor investing",
+    returns: "15-30%/yr",
+    frequency: "3x/day",
+    tickers: "NVDA, AAPL, QQQ, BTC",
+  },
+  {
+    id: "steady_income",
+    label: "Steady Income",
+    icon: "💰",
+    description: "Dividends and covered call premiums for passive income",
+    returns: "4-8%/yr",
+    frequency: "1x/day",
+    tickers: "SCHD, JEPI, O, VYM",
+  },
+  {
+    id: "capital_preservation",
+    label: "Capital Preservation",
+    icon: "🏦",
+    description: "Protect principal with treasuries and low-volatility stocks",
+    returns: "2-4%/yr",
+    frequency: "1x/day",
+    tickers: "SHV, BIL, USMV, XLU",
+  },
+  {
+    id: "beat_sp500",
+    label: "Beat S&P 500",
+    icon: "🏆",
+    description: "Outperform the benchmark through tactical sector rotation",
+    returns: "12-18%/yr",
+    frequency: "3x/day",
+    tickers: "XLK, XLV, XLF, XLE",
+  },
+  {
+    id: "swing_trading",
+    label: "Swing Trading",
+    icon: "⚡",
+    description: "Capture 2-5% moves on technical setups, hold 2-7 days",
+    returns: "20-40%/yr",
+    frequency: "5x/day",
+    tickers: "AAPL, TSLA, AMD, BTC",
+  },
+  {
+    id: "passive_index",
+    label: "Passive Index",
+    icon: "🌊",
+    description: "Buy and hold broad index ETFs. Rebalance quarterly.",
+    returns: "8-12%/yr",
+    frequency: "1x/week",
+    tickers: "VOO, VTI, VXUS",
+  },
+];
+
+const FREQUENCIES = [
+  { id: "1x" as const, label: "1x/day", times: "9:35 AM ET" },
+  { id: "3x" as const, label: "3x/day", times: "9:35 AM, 1:00 PM, 3:45 PM ET" },
+  { id: "5x" as const, label: "5x/day", times: "9:35, 10:30, 12:00, 1:30, 3:00 ET" },
 ];
 
 export default function SettingsPage() {
@@ -67,29 +126,11 @@ export default function SettingsPage() {
       .finally(() => setLoading(false));
   }, [user]);
 
-  async function handleProfileSelect(profile: "conservative" | "moderate" | "aggressive") {
-    if (!guardrails) return;
+  async function handleUpdate(partial: Partial<Guardrails>) {
     setSaving(true);
     setSaved(false);
     try {
-      const updated = await updateGuardrails({ risk_profile: profile } as Partial<Guardrails>);
-      setGuardrails(updated);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (err) {
-      console.error("Failed to apply profile:", err);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (!guardrails) return;
-    setSaving(true);
-    setSaved(false);
-    try {
-      const updated = await updateGuardrails(guardrails);
+      const updated = await updateGuardrails(partial);
       setGuardrails(updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -98,6 +139,12 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!guardrails) return;
+    await handleUpdate(guardrails);
   }
 
   async function handleRunBot() {
@@ -129,47 +176,105 @@ export default function SettingsPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">Settings</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Configure risk profile and trading guardrails
+          Configure your trading strategy, risk, and frequency
         </p>
       </div>
 
-      {/* Risk Profile Selector */}
+      {/* Trading Goal */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+        <h2 className="text-lg font-semibold text-white">Trading Goal</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          What should Claude optimize for? This shapes which stocks it considers, how long it holds, and how often it trades.
+        </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {TRADING_GOALS.map((goal) => {
+            const isActive = guardrails.trading_goal === goal.id;
+            return (
+              <button
+                key={goal.id}
+                onClick={() => handleUpdate({ trading_goal: goal.id } as Partial<Guardrails>)}
+                disabled={saving}
+                className={`rounded-xl border p-4 text-left transition-all ${
+                  isActive
+                    ? "border-emerald-500 bg-emerald-900/30 ring-1 ring-emerald-500"
+                    : "border-zinc-800 bg-zinc-950 hover:border-zinc-700"
+                } disabled:opacity-50`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{goal.icon}</span>
+                  <span className="text-sm font-semibold text-white">{goal.label}</span>
+                </div>
+                <p className="mt-2 text-xs text-zinc-400">{goal.description}</p>
+                <div className="mt-3 flex items-center gap-3 text-[10px] text-zinc-500">
+                  <span className="text-emerald-400">{goal.returns}</span>
+                  <span>{goal.frequency}</span>
+                </div>
+                <p className="mt-1 font-mono text-[10px] text-zinc-600">{goal.tickers}</p>
+              </button>
+            );
+          })}
+        </div>
+        {saved && <p className="mt-3 text-sm text-emerald-400">Goal applied</p>}
+      </div>
+
+      {/* Trading Frequency */}
+      <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+        <h2 className="text-lg font-semibold text-white">Trading Frequency</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          How many times per day should the bot run?
+        </p>
+        <div className="mt-5 flex gap-3">
+          {FREQUENCIES.map((freq) => {
+            const isActive = guardrails.trading_frequency === freq.id;
+            return (
+              <button
+                key={freq.id}
+                onClick={() => handleUpdate({ trading_frequency: freq.id } as Partial<Guardrails>)}
+                disabled={saving}
+                className={`flex-1 rounded-xl border p-4 text-center transition-all ${
+                  isActive
+                    ? "border-blue-500 bg-blue-900/30 ring-1 ring-blue-500"
+                    : "border-zinc-800 bg-zinc-950 hover:border-zinc-700"
+                } disabled:opacity-50`}
+              >
+                <p className="text-lg font-bold text-white">{freq.label}</p>
+                <p className="mt-1 text-[10px] text-zinc-500">{freq.times}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Risk Profile */}
+      <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
         <h2 className="text-lg font-semibold text-white">Risk Profile</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Select a preset — all guardrails auto-adjust. You can still fine-tune individual settings below.
+          Controls position sizing, stop losses, and confidence thresholds
         </p>
-
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           {RISK_PROFILES.map((profile) => {
             const isActive = guardrails.risk_profile === profile.id;
             return (
               <button
                 key={profile.id}
-                onClick={() => handleProfileSelect(profile.id)}
+                onClick={() => handleUpdate({ risk_profile: profile.id } as Partial<Guardrails>)}
                 disabled={saving}
                 className={`rounded-xl border p-4 text-left transition-all ${
                   isActive
                     ? `${profile.activeBorder} ${profile.activeBg} ring-1 ${profile.ring}`
-                    : `${profile.border} ${profile.bg} hover:${profile.activeBg}`
+                    : `${profile.border} ${profile.bg}`
                 } disabled:opacity-50`}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{profile.icon}</span>
                   <span className="text-sm font-semibold text-white">{profile.label}</span>
-                  {isActive && (
-                    <span className="ml-auto text-[10px] font-medium text-emerald-400">ACTIVE</span>
-                  )}
                 </div>
                 <p className="mt-2 text-xs text-zinc-400">{profile.description}</p>
-                <p className="mt-2 text-[10px] text-zinc-600 leading-relaxed">{profile.details}</p>
+                <p className="mt-2 text-[10px] text-zinc-600">{profile.details}</p>
               </button>
             );
           })}
         </div>
-        {saved && (
-          <p className="mt-3 text-sm text-emerald-400">Profile applied successfully</p>
-        )}
       </div>
 
       {/* Fine-Tune Guardrails */}
@@ -178,96 +283,50 @@ export default function SettingsPage() {
         <p className="mt-1 text-sm text-zinc-500">
           Override individual settings from the selected profile
         </p>
-
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
-          <Field
-            label="Max Total Investment"
-            prefix="$"
-            type="number"
+          <Field label="Max Total Investment" prefix="$" type="number"
             value={guardrails.max_total_invested}
-            onChange={(v) =>
-              setGuardrails({ ...guardrails, max_total_invested: Number(v) })
-            }
+            onChange={(v) => setGuardrails({ ...guardrails, max_total_invested: Number(v) })}
           />
-          <Field
-            label="Max Single Trade Size"
-            prefix="$"
-            type="number"
+          <Field label="Max Single Trade Size" prefix="$" type="number"
             value={guardrails.max_single_trade_size}
-            onChange={(v) =>
-              setGuardrails({ ...guardrails, max_single_trade_size: Number(v) })
-            }
+            onChange={(v) => setGuardrails({ ...guardrails, max_single_trade_size: Number(v) })}
           />
-          <Field
-            label="Stop Loss Threshold"
-            suffix="%"
-            type="number"
-            step="0.1"
+          <Field label="Stop Loss Threshold" suffix="%" type="number" step="0.1"
             value={(guardrails.stop_loss_threshold * 100).toFixed(1)}
-            onChange={(v) =>
-              setGuardrails({
-                ...guardrails,
-                stop_loss_threshold: Number(v) / 100,
-              })
-            }
+            onChange={(v) => setGuardrails({ ...guardrails, stop_loss_threshold: Number(v) / 100 })}
           />
-          <Field
-            label="Daily Order Limit"
-            type="number"
+          <Field label="Daily Order Limit" type="number"
             value={guardrails.daily_order_limit}
-            onChange={(v) =>
-              setGuardrails({ ...guardrails, daily_order_limit: Number(v) })
-            }
+            onChange={(v) => setGuardrails({ ...guardrails, daily_order_limit: Number(v) })}
           />
-          <Field
-            label="Min Confidence to Trade"
-            suffix="%"
-            type="number"
-            step="1"
+          <Field label="Min Confidence to Trade" suffix="%" type="number" step="1"
             value={(guardrails.min_confidence * 100).toFixed(0)}
-            onChange={(v) =>
-              setGuardrails({
-                ...guardrails,
-                min_confidence: Number(v) / 100,
-              })
-            }
+            onChange={(v) => setGuardrails({ ...guardrails, min_confidence: Number(v) / 100 })}
           />
-          <Field
-            label="Max Positions"
-            type="number"
+          <Field label="Max Positions" type="number"
             value={guardrails.max_positions}
-            onChange={(v) =>
-              setGuardrails({ ...guardrails, max_positions: Number(v) })
-            }
+            onChange={(v) => setGuardrails({ ...guardrails, max_positions: Number(v) })}
           />
         </div>
-
         <div className="mt-6 flex items-center gap-4">
-          <button
-            type="submit"
-            disabled={saving}
+          <button type="submit" disabled={saving}
             className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save Guardrails"}
           </button>
-          {saved && (
-            <span className="text-sm text-emerald-400">Saved successfully</span>
-          )}
+          {saved && <span className="text-sm text-emerald-400">Saved</span>}
         </div>
       </form>
 
       {/* Kill Switch */}
       <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
         <h2 className="text-lg font-semibold text-white">Emergency Controls</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Immediately halt all automated trading activity
-        </p>
-        <div className="mt-6 flex items-center gap-6">
+        <p className="mt-1 text-sm text-zinc-500">Immediately halt all automated trading</p>
+        <div className="mt-6">
           <KillSwitchButton
             isActive={guardrails.kill_switch}
-            onActivated={() =>
-              setGuardrails({ ...guardrails, kill_switch: true })
-            }
+            onActivated={() => setGuardrails({ ...guardrails, kill_switch: true })}
           />
         </div>
       </div>
@@ -275,9 +334,7 @@ export default function SettingsPage() {
       {/* Manual Run */}
       <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
         <h2 className="text-lg font-semibold text-white">Manual Trigger</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Run one full trading cycle manually
-        </p>
+        <p className="mt-1 text-sm text-zinc-500">Run one full trading cycle manually</p>
         <div className="mt-6">
           <button
             onClick={() => setShowRunModal(true)}
@@ -294,9 +351,7 @@ export default function SettingsPage() {
             )}
           </button>
           {guardrails.kill_switch && (
-            <p className="mt-2 text-xs text-red-400">
-              Kill switch is active — disable it before running
-            </p>
+            <p className="mt-2 text-xs text-red-400">Kill switch active — disable first</p>
           )}
           {runResult && (
             <div className="mt-4 rounded-lg bg-zinc-950 px-4 py-3">
@@ -306,55 +361,30 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <ConfirmModal
-        open={showRunModal}
-        title="Run Trading Cycle"
+      <ConfirmModal open={showRunModal} title="Run Trading Cycle"
         message="This will trigger one full bot cycle: fetch market data, ask Claude for a decision, and potentially execute a trade. Continue?"
-        confirmLabel="Run Cycle"
-        confirmClassName="bg-blue-600 hover:bg-blue-700"
-        onConfirm={handleRunBot}
-        onCancel={() => setShowRunModal(false)}
+        confirmLabel="Run Cycle" confirmClassName="bg-blue-600 hover:bg-blue-700"
+        onConfirm={handleRunBot} onCancel={() => setShowRunModal(false)}
       />
     </div>
   );
 }
 
-function Field({
-  label,
-  prefix,
-  suffix,
-  value,
-  onChange,
-  ...inputProps
-}: {
-  label: string;
-  prefix?: string;
-  suffix?: string;
-  value: string | number;
-  onChange: (value: string) => void;
+function Field({ label, prefix, suffix, value, onChange, ...inputProps }: {
+  label: string; prefix?: string; suffix?: string;
+  value: string | number; onChange: (value: string) => void;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div>
       <label className="block text-sm font-medium text-zinc-300">{label}</label>
       <div className="relative mt-1.5">
-        {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">
-            {prefix}
-          </span>
-        )}
-        <input
-          {...inputProps}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">{prefix}</span>}
+        <input {...inputProps} value={value} onChange={(e) => onChange(e.target.value)}
           className={`w-full rounded-lg border border-zinc-700 bg-zinc-800 py-2.5 text-sm text-white placeholder-zinc-500 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
             prefix ? "pl-7 pr-3" : suffix ? "pl-3 pr-7" : "px-3"
           }`}
         />
-        {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">
-            {suffix}
-          </span>
-        )}
+        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">{suffix}</span>}
       </div>
     </div>
   );

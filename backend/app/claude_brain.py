@@ -43,6 +43,60 @@ RISK_PROMPTS = {
     ),
 }
 
+GOAL_PROMPTS = {
+    "maximize_returns": (
+        "TRADING GOAL: MAXIMIZE RETURNS (target 15-30% annual). "
+        "Seek highest risk-adjusted returns through momentum and factor investing. "
+        "Focus on: AAPL, NVDA, MSFT, TSLA, GOOGL, AMZN, META, QQQ, XLK, BTC, ETH. "
+        "Look for RSI oversold bounces, MACD positive crossovers, sector momentum leaders. "
+        "Hold positions 5-30 days. Maintain 60% buy bias when technicals align. "
+        "Keep 20% cash for dip purchases."
+    ),
+    "steady_income": (
+        "TRADING GOAL: STEADY INCOME (target 4-8% annual yield). "
+        "Generate income through dividends and covered call premiums. "
+        "Focus on: SCHD (3.2%), VYM (2.8%), JEPI (7.8%), O (3.6%), JNJ (2.5%), PG (2.3%). "
+        "Only buy stocks with yield > 3% and payout ratio < 65%. "
+        "HOLD 75% of the time. Only trade 1-2x per month. "
+        "Never sell within 2 weeks of ex-dividend date. "
+        "Sell only when yield falls below 2% or dividend is cut."
+    ),
+    "capital_preservation": (
+        "TRADING GOAL: CAPITAL PRESERVATION (target 2-4% annual, minimize losses). "
+        "Preserve capital above all. Focus on treasury ETFs and low-volatility stocks. "
+        "Focus on: SHV (5.1%), BIL (5.2%), XLU (2.8%), USMV (2.1%), PG, JNJ. "
+        "Maintain minimum 20% cash reserve at all times. "
+        "If any position drops > 8%, sell immediately. "
+        "Require 80% confidence minimum. HOLD 80% of the time. "
+        "Avoid any stock with annualized volatility > 30%."
+    ),
+    "beat_sp500": (
+        "TRADING GOAL: BEAT S&P 500 (outperform SPY by 2-8% annually). "
+        "Use tactical sector rotation across 10 sector ETFs. "
+        "Focus on: XLK, XLV, XLF, XLE, XLI, XLY, XLP, XLB, XLRE, XLU. "
+        "Overweight sectors beating SPY on 3-month relative performance. "
+        "Underweight sectors trailing SPY. Rotate once per month, max 3x per month. "
+        "Track performance vs SPY daily. Maximum 35% in any single sector."
+    ),
+    "swing_trading": (
+        "TRADING GOAL: SWING TRADING (target 20-40% annual, 2-7 day holds). "
+        "Capture 2-5% moves on technical setups. Trade frequently. "
+        "Focus on: AAPL, MSFT, NVDA, TSLA, GOOGL, AMD, QQQ, BTC, ETH. "
+        "Setups: RSI oversold bounce (<30), MACD bullish crossover, Bollinger breakout. "
+        "Take profits at 3-5%. Cut losses at 5% hard stop. "
+        "Exit by day 6 regardless (time decay). Max 5 simultaneous positions. "
+        "Volume must be 20% above 20-day average for entry."
+    ),
+    "passive_index": (
+        "TRADING GOAL: PASSIVE INDEX (match S&P 500, 8-12% annual). "
+        "Buy and hold broad index ETFs. HOLD 99% of the time. "
+        "Target allocation: VOO (65%), VTI (25%), VXUS (10%). "
+        "Only rebalance when allocation drifts > 5% from target. "
+        "Never time the market. Never hold cash (always fully invested). "
+        "Ignore VIX, ignore news. Rebalance quarterly at most."
+    ),
+}
+
 
 async def get_trade_decision(
     positions: list[dict],
@@ -53,7 +107,10 @@ async def get_trade_decision(
 ) -> dict:
     """Send portfolio context to Claude and get a structured trade decision."""
     risk_profile = guardrails_config.get("risk_profile", "moderate")
+    trading_goal = guardrails_config.get("trading_goal", "maximize_returns")
+
     risk_instruction = RISK_PROMPTS.get(risk_profile, RISK_PROMPTS["moderate"])
+    goal_instruction = GOAL_PROMPTS.get(trading_goal, GOAL_PROMPTS["maximize_returns"])
 
     user_prompt = json.dumps(
         {
@@ -63,6 +120,7 @@ async def get_trade_decision(
             "recent_news": news,
             "guardrails": guardrails_config,
             "risk_instruction": risk_instruction,
+            "goal_instruction": goal_instruction,
             "instruction": (
                 "Analyze the current portfolio, market data, and news. "
                 "Decide on ONE action: buy, sell, or hold. "

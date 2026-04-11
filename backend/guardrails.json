@@ -1,5 +1,7 @@
 {
   "risk_profile": "moderate",
+  "trading_goal": "maximize_returns",
+  "trading_frequency": "1x",
   "max_total_invested": 60000,
   "max_single_trade_size": 10000,
   "stop_loss_threshold": 0.05,

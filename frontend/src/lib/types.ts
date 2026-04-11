@@ -34,8 +34,18 @@ export interface Portfolio {
   balance: Balance;
 }
 
+export type TradingGoal =
+  | "maximize_returns"
+  | "steady_income"
+  | "capital_preservation"
+  | "beat_sp500"
+  | "swing_trading"
+  | "passive_index";
+
 export interface Guardrails {
   risk_profile: "conservative" | "moderate" | "aggressive";
+  trading_goal: TradingGoal;
+  trading_frequency: "1x" | "3x" | "5x";
   max_total_invested: number;
   max_single_trade_size: number;
   stop_loss_threshold: number;
