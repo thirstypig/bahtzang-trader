@@ -1,10 +1,13 @@
 """Claude Sonnet trading decision engine."""
 
 import json
+import logging
 
 import anthropic
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
 
@@ -14,6 +17,7 @@ whether to buy, sell, or hold.
 
 RULES:
 - You must respect all guardrails provided. Never suggest trades that violate them.
+- When the TRADING GOAL instruction and RISK PROFILE instruction conflict, the GOAL takes precedence.
 - Provide clear, concise reasoning for every decision.
 - Your confidence score (0.0-1.0) must honestly reflect your certainty.
 
@@ -55,16 +59,16 @@ GOAL_PROMPTS = {
     "steady_income": (
         "TRADING GOAL: STEADY INCOME (target 4-8% annual yield). "
         "Generate income through dividends and covered call premiums. "
-        "Focus on: SCHD (3.2%), VYM (2.8%), JEPI (7.8%), O (3.6%), JNJ (2.5%), PG (2.3%). "
-        "Only buy stocks with yield > 3% and payout ratio < 65%. "
+        "Focus on high-dividend ETFs and stocks: SCHD, VYM, JEPI, O, JNJ, PG. "
+        "Prefer stocks with strong dividend history and sustainable payout ratios. "
         "HOLD 75% of the time. Only trade 1-2x per month. "
         "Never sell within 2 weeks of ex-dividend date. "
-        "Sell only when yield falls below 2% or dividend is cut."
+        "Sell only when dividend is cut or fundamentals deteriorate."
     ),
     "capital_preservation": (
         "TRADING GOAL: CAPITAL PRESERVATION (target 2-4% annual, minimize losses). "
         "Preserve capital above all. Focus on treasury ETFs and low-volatility stocks. "
-        "Focus on: SHV (5.1%), BIL (5.2%), XLU (2.8%), USMV (2.1%), PG, JNJ. "
+        "Focus on: SHV, BIL, XLU, USMV, PG, JNJ. "
         "Maintain minimum 20% cash reserve at all times. "
         "If any position drops > 8%, sell immediately. "
         "Require 80% confidence minimum. HOLD 80% of the time. "
@@ -97,6 +101,12 @@ GOAL_PROMPTS = {
     ),
 }
 
+# Fail fast if goal definitions drift between modules
+from app.guardrails import TRADING_GOALS  # noqa: E402
+assert set(GOAL_PROMPTS.keys()) == set(TRADING_GOALS.keys()), (
+    f"GOAL_PROMPTS keys {set(GOAL_PROMPTS.keys())} != TRADING_GOALS keys {set(TRADING_GOALS.keys())}"
+)
+
 
 async def get_trade_decision(
     positions: list[dict],
@@ -112,13 +122,21 @@ async def get_trade_decision(
     risk_instruction = RISK_PROMPTS.get(risk_profile, RISK_PROMPTS["moderate"])
     goal_instruction = GOAL_PROMPTS.get(trading_goal, GOAL_PROMPTS["maximize_returns"])
 
+    # Whitelist guardrail keys passed to Claude to prevent prompt injection
+    _SAFE_KEYS = {
+        "risk_profile", "trading_goal", "max_total_invested",
+        "max_single_trade_size", "stop_loss_threshold", "daily_order_limit",
+        "min_confidence", "max_positions", "kill_switch",
+    }
+    safe_config = {k: v for k, v in guardrails_config.items() if k in _SAFE_KEYS}
+
     user_prompt = json.dumps(
         {
             "portfolio_positions": positions,
             "cash_available": cash_available,
             "market_data": market_data,
             "recent_news": news,
-            "guardrails": guardrails_config,
+            "guardrails": safe_config,
             "risk_instruction": risk_instruction,
             "goal_instruction": goal_instruction,
             "instruction": (
@@ -128,15 +146,25 @@ async def get_trade_decision(
                 "Respond with JSON: {action, ticker, quantity, reasoning, confidence}"
             ),
         },
-        indent=2,
     )
 
-    message = await client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_prompt}],
-    )
+    try:
+        message = await client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1024,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_prompt}],
+            timeout=30.0,
+        )
+    except anthropic.APITimeoutError:
+        logger.warning("Claude API timed out after 30s — defaulting to hold")
+        return {
+            "action": "hold",
+            "ticker": "",
+            "quantity": 0,
+            "reasoning": "Claude API timed out — holding as a safety measure",
+            "confidence": 0.0,
+        }
 
     response_text = message.content[0].text
 

@@ -62,8 +62,9 @@ Only ALLOWED_EMAIL can access (single-user app)
 
 ### Trading Pipeline (trade_executor.py)
 ```
-Gather (Schwab) → Think (Claude) → Validate (guardrails) → Act (Schwab) → Log (PostgreSQL)
+Gather (Alpaca) → Think (Claude, 30s timeout) → Validate (guardrails) → Act (Alpaca) → Log (PostgreSQL)
 Every decision logged — even holds and blocked trades
+Alpaca SDK calls wrapped in asyncio.to_thread() to avoid blocking the event loop
 ```
 
 ### Frontend Auth Guard
@@ -88,12 +89,12 @@ backend/
       base.py         # BrokerInterface ABC (get_positions, get_balance, place_order)
       schwab.py       # SchwabBroker (token cache with expiry, shared httpx client)
     claude_brain.py   # AsyncAnthropic → Claude Sonnet → JSON decision
-    guardrails.py     # GuardrailsUpdate Pydantic model + policy gate
+    guardrails.py     # GuardrailsUpdate Pydantic model + policy gate (DB-backed)
     trade_executor.py # Pipeline orchestrator (asyncio.gather, Lock, BrokerInterface)
     market_data.py    # Alpha Vantage quotes + news (shared httpx, parallel fetch)
-    scheduler.py      # APScheduler cron (9:35 AM ET, Mon-Fri)
+    scheduler.py      # APScheduler dynamic frequency (1x/3x/5x per day, Mon-Fri)
     logger.py         # Trade logging to PostgreSQL
-  guardrails.json     # Runtime config (editable via API)
+  guardrails.json     # Default config (runtime config is in PostgreSQL)
   railway.toml        # Railway deploy config
 
 frontend/
@@ -136,5 +137,8 @@ frontend/
 - Dark theme: zinc-950 background, zinc-900 cards, emerald-400 accents
 - All API calls go through `fetchAPI()` in `lib/api.ts`
 - Auth gating: `if (!user) return;` at top of `useEffect` in every page
-- Guardrails editable via JSON file on backend, API endpoints to read/write
+- Guardrails stored in PostgreSQL (persists across Railway deploys), API endpoints to read/write
+- Guardrails audit log: every config change logged with user, timestamp, and changes
+- Kill switch: activate via POST /killswitch, deactivate via POST /killswitch/deactivate
+- Rate limiting: slowapi (2/min on /run, 60/min global default)
 - Trade logging: every cycle logs to `trades` table regardless of outcome

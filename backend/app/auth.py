@@ -47,7 +47,7 @@ def require_auth(
         logger.warning("Token verification failed: %s — %s", type(e).__name__, e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token: {e}",
+            detail="Invalid token",
         )
     except Exception as e:
         logger.error("Unexpected auth error: %s — %s", type(e).__name__, e)

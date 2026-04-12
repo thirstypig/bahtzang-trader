@@ -1,18 +1,14 @@
 """Trading guardrails: safety limits that override Claude's decisions."""
 
-import json
 import logging
 from datetime import datetime, timezone
-from pathlib import Path
 
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.models import Trade
+from app.models import GuardrailsConfig, Trade
 
 logger = logging.getLogger(__name__)
-
-GUARDRAILS_PATH = Path(__file__).resolve().parent.parent / "guardrails.json"
 
 
 # Risk profile presets — all values are percentages of portfolio or absolute limits
@@ -99,6 +95,8 @@ def apply_risk_preset(profile: str, portfolio_value: float = 100000) -> dict:
     preset = RISK_PRESETS.get(profile, RISK_PRESETS["moderate"])
     return {
         "risk_profile": profile,
+        "trading_goal": "maximize_returns",
+        "trading_frequency": "1x",
         "max_total_invested": round(portfolio_value * preset["max_portfolio_pct"]),
         "max_single_trade_size": round(portfolio_value * preset["max_single_trade_pct"]),
         "stop_loss_threshold": preset["stop_loss_threshold"],
@@ -109,31 +107,21 @@ def apply_risk_preset(profile: str, portfolio_value: float = 100000) -> dict:
     }
 
 
-def load_guardrails() -> dict:
-    """Load guardrails config from guardrails.json."""
-    try:
-        with open(GUARDRAILS_PATH) as f:
-            config = json.load(f)
-            # Ensure new fields have defaults
-            config.setdefault("risk_profile", "moderate")
-            config.setdefault("trading_goal", "maximize_returns")
-            config.setdefault("trading_frequency", "1x")
-            config.setdefault("min_confidence", 0.60)
-            config.setdefault("max_positions", 10)
-            return config
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        logger.warning("Failed to load guardrails, using defaults: %s", e)
-        return apply_risk_preset("moderate")
+def load_guardrails(db: Session) -> dict:
+    """Load guardrails config from the database."""
+    config = GuardrailsConfig.get_or_create(db)
+    return config.to_dict()
 
 
-def save_guardrails(config: dict) -> dict:
-    """Save updated guardrails config to guardrails.json."""
-    try:
-        with open(GUARDRAILS_PATH, "w") as f:
-            json.dump(config, f, indent=2)
-    except OSError as e:
-        logger.error("Failed to save guardrails: %s", e)
-    return config
+def save_guardrails(db: Session, updates: dict) -> dict:
+    """Update guardrails config in the database. Returns the full config dict."""
+    config = GuardrailsConfig.get_or_create(db)
+    for key, value in updates.items():
+        if hasattr(config, key):
+            setattr(config, key, value)
+    db.commit()
+    db.refresh(config)
+    return config.to_dict()
 
 
 def check_guardrails(
@@ -142,13 +130,14 @@ def check_guardrails(
     total_invested: float,
     db: Session,
     config: dict | None = None,
+    current_position_count: int = 0,
 ) -> tuple[bool, str | None]:
     """
     Validate a trade decision against all guardrail rules.
     Returns (passed, block_reason).
     """
     if config is None:
-        config = load_guardrails()
+        config = load_guardrails(db)
 
     # Kill switch — block everything
     if config.get("kill_switch", False):
@@ -199,16 +188,10 @@ def check_guardrails(
     if todays_trades >= daily_limit:
         return False, f"Daily order limit reached ({daily_limit} trades today)"
 
-    # Max positions check
+    # Max positions check — uses actual broker position count
     max_positions = config.get("max_positions", 10)
     if decision.get("action") == "buy":
-        current_positions = (
-            db.query(Trade.ticker)
-            .filter(Trade.executed.is_(True), Trade.action == "buy")
-            .distinct()
-            .count()
-        )
-        if current_positions >= max_positions:
+        if current_position_count >= max_positions:
             return False, f"Max positions reached ({max_positions})"
 
     return True, None
