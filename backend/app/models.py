@@ -1,9 +1,10 @@
 """SQLAlchemy models for the trades database."""
 
+import json
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.database import Base
 
@@ -33,3 +34,74 @@ class Trade(Base):
         Index("ix_trades_timestamp_executed", "timestamp", "executed"),
         Index("ix_trades_timestamp_desc", timestamp.desc()),
     )
+
+
+class GuardrailsConfig(Base):
+    """Single-row table storing guardrails configuration.
+
+    Replaces the guardrails.json file so config persists across
+    Railway deploys and is safe under concurrent access.
+    """
+    __tablename__ = "guardrails_config"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    risk_profile: Mapped[str] = mapped_column(String(20), default="moderate")
+    trading_goal: Mapped[str] = mapped_column(String(30), default="maximize_returns")
+    trading_frequency: Mapped[str] = mapped_column(String(5), default="1x")
+    max_total_invested: Mapped[float] = mapped_column(Float, default=60000)
+    max_single_trade_size: Mapped[float] = mapped_column(Float, default=10000)
+    stop_loss_threshold: Mapped[float] = mapped_column(Float, default=0.05)
+    daily_order_limit: Mapped[int] = mapped_column(Integer, default=5)
+    min_confidence: Mapped[float] = mapped_column(Float, default=0.60)
+    max_positions: Mapped[int] = mapped_column(Integer, default=10)
+    kill_switch: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "risk_profile": self.risk_profile,
+            "trading_goal": self.trading_goal,
+            "trading_frequency": self.trading_frequency,
+            "max_total_invested": self.max_total_invested,
+            "max_single_trade_size": self.max_single_trade_size,
+            "stop_loss_threshold": self.stop_loss_threshold,
+            "daily_order_limit": self.daily_order_limit,
+            "min_confidence": self.min_confidence,
+            "max_positions": self.max_positions,
+            "kill_switch": self.kill_switch,
+        }
+
+    @staticmethod
+    def get_or_create(db: Session) -> "GuardrailsConfig":
+        """Get the single config row, creating it with defaults if missing."""
+        config = db.query(GuardrailsConfig).filter_by(id=1).first()
+        if config is None:
+            config = GuardrailsConfig(id=1)
+            db.add(config)
+            db.commit()
+            db.refresh(config)
+        return config
+
+
+class GuardrailsAudit(Base):
+    """Audit log for guardrails configuration changes."""
+    __tablename__ = "guardrails_audit"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    user_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    action: Mapped[str] = mapped_column(String(50), nullable=False)
+    changes: Mapped[str] = mapped_column(Text, nullable=False)
+
+    @staticmethod
+    def log(db: Session, email: str, action: str, changes: dict):
+        entry = GuardrailsAudit(
+            user_email=email,
+            action=action,
+            changes=json.dumps(changes),
+        )
+        db.add(entry)
+        db.commit()

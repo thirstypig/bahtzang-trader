@@ -57,6 +57,10 @@ export async function activateKillSwitch(): Promise<{ status: string }> {
   return fetchAPI<{ status: string }>("/killswitch", { method: "POST" });
 }
 
+export async function deactivateKillSwitch(): Promise<{ status: string }> {
+  return fetchAPI<{ status: string }>("/killswitch/deactivate", { method: "POST" });
+}
+
 export async function triggerRun(): Promise<CycleResult> {
   return fetchAPI<CycleResult>("/run", { method: "POST" });
 }

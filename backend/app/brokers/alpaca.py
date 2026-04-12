@@ -1,5 +1,6 @@
 """Alpaca Markets broker — zero-commission stocks, ETFs, options, crypto."""
 
+import asyncio
 import logging
 
 from alpaca.trading.client import TradingClient
@@ -32,7 +33,7 @@ class AlpacaBroker(BrokerInterface):
     async def get_positions(self, account_id: str) -> list[dict]:
         """Fetch all open positions from Alpaca."""
         client = _get_client()
-        positions = client.get_all_positions()
+        positions = await asyncio.to_thread(client.get_all_positions)
         return [
             {
                 "instrument": {
@@ -51,7 +52,7 @@ class AlpacaBroker(BrokerInterface):
     async def get_account_balance(self, account_id: str) -> dict:
         """Fetch account balances from Alpaca."""
         client = _get_client()
-        account = client.get_account()
+        account = await asyncio.to_thread(client.get_account)
         return {
             "cash_available": float(account.cash),
             "total_value": float(account.equity),
@@ -73,7 +74,7 @@ class AlpacaBroker(BrokerInterface):
             time_in_force=TimeInForce.DAY,
         )
 
-        order = client.submit_order(order_data=order_data)
+        order = await asyncio.to_thread(client.submit_order, order_data=order_data)
         logger.info(
             "Alpaca order submitted: %s %d %s — ID: %s, Status: %s",
             action, quantity, ticker, order.id, order.status,

@@ -51,15 +51,15 @@ bahtzang-trader/
 │   └── app/
 │       ├── main.py          # App setup + router registration
 │       ├── routes/          # API route modules (portfolio, trades, guardrails, bot)
-│       ├── brokers/         # Broker abstraction (base.py + schwab.py)
+│       ├── brokers/         # Broker abstraction (base.py + alpaca.py + schwab.py)
 │       ├── auth.py          # Supabase JWT verification via JWKS
-│       ├── claude_brain.py  # AI decision engine (AsyncAnthropic)
-│       ├── guardrails.py    # Safety limits + kill switch
+│       ├── claude_brain.py  # AI decision engine (AsyncAnthropic, 30s timeout)
+│       ├── guardrails.py    # Safety limits + kill switch (stored in PostgreSQL)
 │       ├── trade_executor.py # Pipeline: gather → think → validate → act → log
 │       ├── market_data.py   # Alpha Vantage quotes + news
-│       └── scheduler.py     # Cron at 9:35 AM ET, Mon-Fri
+│       └── scheduler.py     # Dynamic frequency: 1x/3x/5x per day, Mon-Fri
 ├── docs/plans/              # Architecture roadmap
-├── todos/                   # Code review findings (20 items, all resolved)
+├── todos/                   # Code review findings (44 items, all resolved)
 ├── CLAUDE.md                # Project conventions for Claude Code
 └── package.json             # Root scripts (npm run dev)
 ```
@@ -126,11 +126,11 @@ npm run dev:backend      # http://localhost:4060
 
 ## Trading Pipeline
 
-Every cycle (9:35 AM ET or manual trigger):
+Every cycle (configurable 1x/3x/5x per day, or manual trigger):
 
-1. **Gather** — fetch portfolio + balances from broker (Schwab/Alpaca)
-2. **Think** — send context to Claude Sonnet, get buy/sell/hold decision
-3. **Validate** — run decision through guardrails (kill switch, limits, daily cap)
+1. **Gather** — fetch portfolio + balances from Alpaca (async, non-blocking)
+2. **Think** — send context to Claude Sonnet, get buy/sell/hold decision (30s timeout)
+3. **Validate** — run decision through guardrails (kill switch, limits, daily cap, position count)
 4. **Act** — execute order on broker if approved
 5. **Log** — write decision + reasoning to PostgreSQL (every cycle, even holds)
 
@@ -138,11 +138,15 @@ Every cycle (9:35 AM ET or manual trigger):
 
 - Single-user app (email allowlist: `ALLOWED_EMAIL`)
 - Supabase Google OAuth with ES256 JWT verified via JWKS
-- HSTS enforced (max-age 2 years, preload)
+- Security headers: HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
 - CORS restricted to production domain
+- Rate limiting via slowapi (2/min on `/run`, 60/min global)
 - Guardrails validated with Pydantic (prevents config injection)
-- Kill switch cannot be deactivated via API
+- Guardrails config stored in PostgreSQL (persists across deploys)
+- Prompt injection protection: whitelisted keys sent to Claude
+- Kill switch with activate/deactivate endpoints + audit trail
 - Race condition protection via asyncio.Lock on trade cycles
+- Error responses sanitized (no internal details leaked)
 
 ## Deployment
 

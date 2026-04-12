@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getGuardrails, triggerRun, updateGuardrails } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Guardrails, TradingGoal } from "@/lib/types";
@@ -114,10 +114,11 @@ export default function SettingsPage() {
   const [guardrails, setGuardrails] = useState<Guardrails | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "saved" | "error"; message: string } | null>(null);
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<string | null>(null);
   const [showRunModal, setShowRunModal] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -127,18 +128,28 @@ export default function SettingsPage() {
   }, [user]);
 
   async function handleUpdate(partial: Partial<Guardrails>) {
+    // Debounce: cancel pending save if user clicks another option quickly
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+
     setSaving(true);
-    setSaved(false);
-    try {
-      const updated = await updateGuardrails(partial);
-      setGuardrails(updated);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (err) {
-      console.error("Failed to save:", err);
-    } finally {
-      setSaving(false);
-    }
+    setFeedback(null);
+
+    // Optimistically update UI
+    if (guardrails) setGuardrails({ ...guardrails, ...partial });
+
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const updated = await updateGuardrails(partial);
+        setGuardrails(updated);
+        setFeedback({ type: "saved", message: "Settings saved" });
+        setTimeout(() => setFeedback(null), 2000);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to save settings";
+        setFeedback({ type: "error", message });
+      } finally {
+        setSaving(false);
+      }
+    }, 300);
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -180,6 +191,16 @@ export default function SettingsPage() {
         </p>
       </div>
 
+      {feedback && (
+        <div className={`mb-4 rounded-lg px-4 py-3 text-sm ${
+          feedback.type === "saved"
+            ? "border border-emerald-800 bg-emerald-950/30 text-emerald-400"
+            : "border border-red-800 bg-red-950/30 text-red-400"
+        }`}>
+          {feedback.message}
+        </div>
+      )}
+
       {/* Trading Goal */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
         <h2 className="text-lg font-semibold text-white">Trading Goal</h2>
@@ -192,7 +213,7 @@ export default function SettingsPage() {
             return (
               <button
                 key={goal.id}
-                onClick={() => handleUpdate({ trading_goal: goal.id } as Partial<Guardrails>)}
+                onClick={() => handleUpdate({ trading_goal: goal.id })}
                 disabled={saving}
                 className={`rounded-xl border p-4 text-left transition-all ${
                   isActive
@@ -214,7 +235,6 @@ export default function SettingsPage() {
             );
           })}
         </div>
-        {saved && <p className="mt-3 text-sm text-emerald-400">Goal applied</p>}
       </div>
 
       {/* Trading Frequency */}
@@ -229,7 +249,7 @@ export default function SettingsPage() {
             return (
               <button
                 key={freq.id}
-                onClick={() => handleUpdate({ trading_frequency: freq.id } as Partial<Guardrails>)}
+                onClick={() => handleUpdate({ trading_frequency: freq.id })}
                 disabled={saving}
                 className={`flex-1 rounded-xl border p-4 text-center transition-all ${
                   isActive
@@ -257,7 +277,7 @@ export default function SettingsPage() {
             return (
               <button
                 key={profile.id}
-                onClick={() => handleUpdate({ risk_profile: profile.id } as Partial<Guardrails>)}
+                onClick={() => handleUpdate({ risk_profile: profile.id })}
                 disabled={saving}
                 className={`rounded-xl border p-4 text-left transition-all ${
                   isActive
@@ -315,7 +335,8 @@ export default function SettingsPage() {
           >
             {saving ? "Saving..." : "Save Guardrails"}
           </button>
-          {saved && <span className="text-sm text-emerald-400">Saved</span>}
+          {feedback?.type === "saved" && <span className="text-sm text-emerald-400">{feedback.message}</span>}
+          {feedback?.type === "error" && <span className="text-sm text-red-400">{feedback.message}</span>}
         </div>
       </form>
 
@@ -326,7 +347,7 @@ export default function SettingsPage() {
         <div className="mt-6">
           <KillSwitchButton
             isActive={guardrails.kill_switch}
-            onActivated={() => setGuardrails({ ...guardrails, kill_switch: true })}
+            onToggled={() => setGuardrails({ ...guardrails, kill_switch: !guardrails.kill_switch })}
           />
         </div>
       </div>

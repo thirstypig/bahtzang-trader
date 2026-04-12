@@ -21,4 +21,4 @@ async def get_portfolio(user: dict = Depends(require_auth)):
         return {"positions": positions, "balance": balance}
     except Exception as e:
         logging.error("Portfolio fetch failed: %s", e)
-        raise HTTPException(status_code=503, detail=f"Portfolio unavailable: {e}")
+        raise HTTPException(status_code=503, detail="Portfolio temporarily unavailable.")

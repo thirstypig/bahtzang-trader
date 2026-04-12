@@ -51,7 +51,7 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
     quotes, news = await asyncio.gather(quotes_task, news_task)
 
     # 3. Get Claude's decision
-    guardrails_config = guardrails.load_guardrails()
+    guardrails_config = guardrails.load_guardrails(db)
     decision = await claude_brain.get_trade_decision(
         positions=positions,
         cash_available=cash_available,
@@ -78,6 +78,7 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
         total_invested=total_invested,
         db=db,
         config=guardrails_config,
+        current_position_count=len(positions),
     )
 
     # 5. Execute if approved

@@ -5,8 +5,8 @@ class Settings(BaseSettings):
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
     ANTHROPIC_API_KEY: str
-    SCHWAB_CLIENT_ID: str
-    SCHWAB_CLIENT_SECRET: str
+    SCHWAB_CLIENT_ID: str = ""
+    SCHWAB_CLIENT_SECRET: str = ""
     ALPHA_VANTAGE_KEY: str
     DATABASE_URL: str
     SUPABASE_URL: str  # e.g. https://xxx.supabase.co
