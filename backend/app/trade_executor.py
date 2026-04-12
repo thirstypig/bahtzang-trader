@@ -5,7 +5,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from app import claude_brain, guardrails, market_data
+from app import claude_brain, guardrails, market_data, notifier
 from app.brokers.alpaca import AlpacaBroker
 from app.config import settings
 from app.logger import log_trade
@@ -117,7 +117,7 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
         executed=executed,
     )
 
-    return {
+    result = {
         "trade_id": trade.id,
         "action": decision["action"],
         "ticker": decision.get("ticker", ""),
@@ -129,3 +129,8 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
         "reasoning": decision.get("reasoning", ""),
         "confidence": decision.get("confidence", 0),
     }
+
+    # 7. Notify (fire-and-forget — never blocks trading)
+    await notifier.notify_trade(result)
+
+    return result
