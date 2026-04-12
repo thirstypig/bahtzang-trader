@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     ALPACA_API_KEY: str = ""
     ALPACA_SECRET_KEY: str = ""
     ALPACA_PAPER: bool = True
+    SLACK_WEBHOOK_URL: str = ""
 
 
 settings = Settings()

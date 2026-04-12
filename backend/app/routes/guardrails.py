@@ -16,6 +16,7 @@ from app.guardrails import (
     save_guardrails,
 )
 from app.models import GuardrailsAudit
+from app import notifier
 from app.scheduler import apply_schedule
 
 logger = logging.getLogger(__name__)
@@ -80,7 +81,7 @@ def update_guardrails(
 
 
 @router.post("/killswitch")
-def killswitch(
+async def killswitch(
     db: Session = Depends(get_db),
     user: dict = Depends(require_auth),
 ):
@@ -88,11 +89,12 @@ def killswitch(
     save_guardrails(db, {"kill_switch": True})
     GuardrailsAudit.log(db, user.get("email", ""), "kill_switch_activated", {})
     logger.warning("Kill switch ACTIVATED by %s", user.get("email"))
+    await notifier.notify_kill_switch(activated=True, email=user.get("email", ""))
     return {"status": "Kill switch activated", "kill_switch": True}
 
 
 @router.post("/killswitch/deactivate")
-def killswitch_deactivate(
+async def killswitch_deactivate(
     db: Session = Depends(get_db),
     user: dict = Depends(require_auth),
 ):
@@ -100,4 +102,5 @@ def killswitch_deactivate(
     save_guardrails(db, {"kill_switch": False})
     GuardrailsAudit.log(db, user.get("email", ""), "kill_switch_deactivated", {})
     logger.warning("Kill switch DEACTIVATED by %s", user.get("email"))
+    await notifier.notify_kill_switch(activated=False, email=user.get("email", ""))
     return {"status": "Kill switch deactivated — trading resumed", "kill_switch": False}
