@@ -6,6 +6,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from app import claude_brain, guardrails, market_data, notifier
+from app.circuit_breaker import check_circuit_breakers, YELLOW, ORANGE, RED
 from app.technical_analysis import get_indicators, format_indicators_csv
 from app.sector_rotation import get_sector_signals, format_sector_csv
 from app.brokers.alpaca import AlpacaBroker
@@ -46,6 +47,32 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
     cash_available = balance["cash_available"]
     total_invested = balance["total_value"] - cash_available
 
+    # 1b. Check circuit breakers (before spending Claude API credits)
+    guardrails_config = guardrails.load_guardrails(db)
+    cb_level, cb_reason = check_circuit_breakers(
+        db=db,
+        portfolio_value=balance["total_value"],
+        config=guardrails_config,
+    )
+    if cb_level == RED:
+        logger.warning("Circuit breaker RED: %s — activating kill switch", cb_reason)
+        guardrails.save_guardrails(db, {"kill_switch": True})
+        await notifier.notify_kill_switch(activated=True)
+        return {
+            "trade_id": 0,
+            "action": "hold",
+            "ticker": "",
+            "quantity": 0,
+            "price": None,
+            "executed": False,
+            "guardrail_passed": False,
+            "guardrail_block_reason": f"Circuit breaker RED: {cb_reason}",
+            "reasoning": cb_reason,
+            "confidence": 0,
+        }
+    if cb_level:
+        logger.info("Circuit breaker %s: %s", cb_level, cb_reason)
+
     # 2. Gather market data + technicals — parallel fetch
     held_tickers = [p.get("instrument", {}).get("symbol", "") for p in positions]
     quotes_task = market_data.get_quotes(held_tickers) if held_tickers else asyncio.sleep(0, result=[])
@@ -60,8 +87,7 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
     technicals_csv = format_indicators_csv(indicators)
     sector_csv = format_sector_csv(sector_signals)
 
-    # 3. Get Claude's decision
-    guardrails_config = guardrails.load_guardrails(db)
+    # 3. Get Claude's decision (guardrails_config already loaded in step 1b)
     decision = await claude_brain.get_trade_decision(
         positions=positions,
         cash_available=cash_available,

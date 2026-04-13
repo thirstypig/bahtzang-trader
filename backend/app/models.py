@@ -84,6 +84,12 @@ class GuardrailsConfig(Base):
     min_confidence: Mapped[float] = mapped_column(Float, default=0.60)
     max_positions: Mapped[int] = mapped_column(Integer, default=10)
     kill_switch: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Risk management fields (Phase D)
+    kelly_fraction: Mapped[float] = mapped_column(Float, default=0.25)
+    circuit_breaker_daily_pct: Mapped[float] = mapped_column(Float, default=0.05)
+    circuit_breaker_weekly_pct: Mapped[float] = mapped_column(Float, default=0.10)
+    respect_wash_sale: Mapped[bool] = mapped_column(Boolean, default=True)
+    pdt_protection: Mapped[bool] = mapped_column(Boolean, default=True)
 
     def to_dict(self) -> dict:
         return {
@@ -97,6 +103,11 @@ class GuardrailsConfig(Base):
             "min_confidence": self.min_confidence,
             "max_positions": self.max_positions,
             "kill_switch": self.kill_switch,
+            "kelly_fraction": self.kelly_fraction,
+            "circuit_breaker_daily_pct": self.circuit_breaker_daily_pct,
+            "circuit_breaker_weekly_pct": self.circuit_breaker_weekly_pct,
+            "respect_wash_sale": self.respect_wash_sale,
+            "pdt_protection": self.pdt_protection,
         }
 
     @staticmethod
