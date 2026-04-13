@@ -43,22 +43,25 @@ AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. 
 bahtzang-trader/
 ├── frontend/                # Next.js 14 (App Router)
 │   └── src/
-│       ├── app/             # 12 pages (dashboard, trades, settings, roadmap, etc.)
-│       ├── components/      # Reusable UI (Navbar, charts, tables, modals)
-│       ├── lib/             # API client, auth, Supabase, types, utils
-│       └── data/            # Static data (roadmap, changelog, todos)
+│       ├── app/             # 13 pages (dashboard, trades, settings, concepts, etc.)
+│       ├── components/      # Reusable UI (Navbar, AdminNav, CrossLink, charts)
+│       ├── lib/             # API client, auth, Supabase, types, useHashScroll
+│       └── data/            # Static data (roadmap, changelog, concepts)
 ├── backend/                 # Python FastAPI
 │   └── app/
-│       ├── main.py          # App setup + router registration
-│       ├── routes/          # API route modules (portfolio, trades, guardrails, bot)
+│       ├── main.py          # App setup + router registration + rate limiting
+│       ├── routes/          # API route modules (portfolio, trades, guardrails, bot, todos)
 │       ├── brokers/         # Broker abstraction (base.py + alpaca.py + schwab.py)
 │       ├── auth.py          # Supabase JWT verification via JWKS
 │       ├── claude_brain.py  # AI decision engine (AsyncAnthropic, 30s timeout)
 │       ├── guardrails.py    # Safety limits + kill switch (stored in PostgreSQL)
-│       ├── trade_executor.py # Pipeline: gather → think → validate → act → log
+│       ├── notifier.py      # Slack webhook notifications (fire-and-forget)
+│       ├── trade_executor.py # Pipeline: gather → think → validate → act → log → notify
 │       ├── market_data.py   # Alpha Vantage quotes + news
-│       └── scheduler.py     # Dynamic frequency: 1x/3x/5x per day, Mon-Fri
-├── docs/plans/              # Architecture roadmap
+│       └── scheduler.py     # Dynamic frequency (1x/3x/5x) + daily summary
+│   └── data/
+│       └── todo-tasks.json  # Admin todo tasks (runtime, file-based)
+├── docs/plans/              # Architecture roadmap + feature plans
 ├── todos/                   # Code review findings (44 items, all resolved)
 ├── CLAUDE.md                # Project conventions for Claude Code
 └── package.json             # Root scripts (npm run dev)
@@ -72,12 +75,13 @@ bahtzang-trader/
 | `/trades` | Trade history with sortable columns |
 | `/settings` | Guardrails, kill switch, manual bot trigger |
 | `/analytics` | Performance metrics (confidence rate, trade counts) |
-| `/roadmap` | Kanban board — planned / in-progress / done |
-| `/changelog` | Version history with feat/fix badges |
+| `/roadmap` | Kanban board — planned / in-progress / done, cross-link anchors |
+| `/concepts` | Future ideas — tabbed (Strategic / SEO / Integrations / UX) |
+| `/changelog` | Version history with feat/fix/security badges, cross-links |
 | `/about` | Architecture diagram and tech stack |
 | `/status` | Live service health checks |
 | `/docs` | Documentation links (GitHub, Swagger, Supabase) |
-| `/todos` | Step-by-step task list for setup |
+| `/todos` | API-backed task tracker — categories, progress bars, CRUD |
 | `/audit-log` | Expandable trade decision trail |
 | `/login` | Google Sign-In via Supabase |
 
