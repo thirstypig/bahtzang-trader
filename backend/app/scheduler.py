@@ -179,6 +179,33 @@ async def _take_snapshot():
         db.close()
 
 
+EARNINGS_JOB_ID = "daily_earnings_refresh"
+
+
+async def _refresh_earnings():
+    """Fetch upcoming earnings for all held symbols."""
+    logger.info("Refreshing earnings calendar")
+    db = SessionLocal()
+    try:
+        from app.brokers.alpaca import AlpacaBroker
+        from app.earnings.client import refresh_earnings
+
+        b = AlpacaBroker()
+        positions = await b.get_positions("default")
+        symbols = [p.get("instrument", {}).get("symbol", "") for p in positions]
+        symbols = [s for s in symbols if s]
+
+        if symbols:
+            count = await refresh_earnings(db, symbols)
+            logger.info("Earnings refresh: %d events for %d symbols", count, len(symbols))
+        else:
+            logger.info("No positions — skipping earnings refresh")
+    except Exception as e:
+        logger.exception("Earnings refresh failed: %s", e)
+    finally:
+        db.close()
+
+
 SUMMARY_JOB_ID = "daily_summary"
 
 
@@ -205,6 +232,17 @@ def start_scheduler():
     scheduler.add_job(
         _take_snapshot, snapshot_trigger,
         id=SNAPSHOT_JOB_ID, replace_existing=True,
+    )
+
+    # Daily earnings refresh at 7:00 AM ET (before first trading cycle)
+    earnings_trigger = CronTrigger(
+        day_of_week="mon-fri",
+        hour=7, minute=0,
+        timezone=ET,
+    )
+    scheduler.add_job(
+        _refresh_earnings, earnings_trigger,
+        id=EARNINGS_JOB_ID, replace_existing=True,
     )
 
     # Daily summary at 4:10 PM ET (after snapshot)

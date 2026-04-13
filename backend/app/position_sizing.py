@@ -55,6 +55,7 @@ def kelly_position_size(
     db: Session,
     kelly_fraction: float = 0.25,
     max_position_pct: float = 0.10,
+    earnings_days: int | None = None,
 ) -> float:
     """
     Quarter-Kelly position sizing with confidence^2 modifier.
@@ -86,6 +87,15 @@ def kelly_position_size(
     # At 1.0 confidence → multiplier = 1.0
     confidence_modifier = min(confidence, 1.0) ** 2
     fraction *= confidence_modifier
+
+    # Earnings proximity reduction: halve position size near earnings
+    if earnings_days is not None:
+        if earnings_days <= 1:
+            fraction *= 0.50
+            logger.info("Earnings in %d days — reducing position to 50%%", earnings_days)
+        elif earnings_days == 2:
+            fraction *= 0.70
+            logger.info("Earnings in %d days — reducing position to 70%%", earnings_days)
 
     # Hard cap
     fraction = min(fraction, max_position_pct)

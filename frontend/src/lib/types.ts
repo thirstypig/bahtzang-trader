@@ -67,3 +67,74 @@ export interface CycleResult {
   reasoning: string;
   confidence: number;
 }
+
+// ---------------------------------------------------------------------------
+// Backtest
+// ---------------------------------------------------------------------------
+
+export interface StrategyInfo {
+  id: string;
+  name: string;
+  description: string;
+  params: { key: string; label: string; type: string; default: unknown }[];
+}
+
+export interface BacktestItem {
+  id: number;
+  config_id: number;
+  name: string;
+  strategy: string;
+  tickers: string[];
+  start_date: string;
+  end_date: string;
+  initial_capital: number;
+  params: Record<string, unknown>;
+  max_position_pct: number;
+  max_positions: number;
+  stop_loss_pct: number;
+  status: "pending" | "running" | "completed" | "failed";
+  total_return_pct: number | null;
+  sharpe_ratio: number | null;
+  sortino_ratio: number | null;
+  max_drawdown_pct: number | null;
+  win_rate_pct: number | null;
+  profit_factor: number | null;
+  total_trades: number | null;
+  error_message: string | null;
+}
+
+export interface BacktestDetail extends BacktestItem {
+  equity_curve: { date: string; equity: number }[];
+  trades_log: {
+    date: string;
+    ticker: string;
+    action: string;
+    quantity: number;
+    price: number;
+    reason: string;
+    confidence: number;
+  }[];
+  config: {
+    id: number;
+    name: string;
+    strategy: string;
+    tickers: string[];
+    start_date: string;
+    end_date: string;
+    initial_capital: number;
+    params: Record<string, unknown>;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Earnings
+// ---------------------------------------------------------------------------
+
+export interface EarningsEvent {
+  symbol: string;
+  report_date: string;
+  fiscal_quarter: string | null;
+  eps_estimate: number | null;
+  revenue_estimate: number | null;
+  hour: string | null;
+}

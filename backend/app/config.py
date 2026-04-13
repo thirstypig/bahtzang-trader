@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     ALPACA_SECRET_KEY: str = ""
     ALPACA_PAPER: bool = True
     SLACK_WEBHOOK_URL: str = ""
+    FINNHUB_API_KEY: str = ""
 
 
 settings = Settings()
