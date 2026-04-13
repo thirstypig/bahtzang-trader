@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.compliance import check_pdt_compliance, check_wash_sale
 from app.models import GuardrailsConfig, Trade
 
 logger = logging.getLogger(__name__)
@@ -193,5 +194,29 @@ def check_guardrails(
     if decision.get("action") == "buy":
         if current_position_count >= max_positions:
             return False, f"Max positions reached ({max_positions})"
+
+    # PDT compliance (accounts under $25k)
+    if config.get("pdt_protection", True):
+        pdt_ok, pdt_msg = check_pdt_compliance(
+            db=db,
+            account_equity=total_invested + cash_available,
+            proposed_action=decision.get("action", "hold"),
+            proposed_ticker=decision.get("ticker", ""),
+        )
+        if not pdt_ok:
+            return False, pdt_msg
+        if pdt_msg:
+            logger.info("PDT: %s", pdt_msg)
+
+    # Wash sale check (warning only, does not block)
+    if config.get("respect_wash_sale", True):
+        _, wash_msg = check_wash_sale(
+            db=db,
+            ticker=decision.get("ticker", ""),
+            action=decision.get("action", "hold"),
+            current_price=decision.get("price"),
+        )
+        if wash_msg:
+            logger.warning("Wash sale: %s", wash_msg)
 
     return True, None
