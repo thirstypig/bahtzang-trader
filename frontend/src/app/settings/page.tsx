@@ -356,8 +356,15 @@ export default function SettingsPage() {
 
       {/* Manual Run */}
       <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold text-white">Manual Trigger</h2>
-        <p className="mt-1 text-sm text-zinc-500">Run one full trading cycle manually</p>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-white">Manual Trigger</h2>
+          <span className="rounded bg-amber-900/30 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-400">
+            Testing Only
+          </span>
+        </div>
+        <p className="mt-1 text-sm text-zinc-500">
+          Run one full trading cycle manually. The bot runs automatically on your configured schedule — this is for testing only.
+        </p>
         <div className="mt-6">
           <button
             onClick={() => setShowRunModal(true)}
@@ -396,6 +403,30 @@ export default function SettingsPage() {
               )}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Alpaca Account */}
+      <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+        <h2 className="text-lg font-semibold text-white">Broker Account</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Manage your Alpaca account, deposit/withdraw funds, and view order history
+        </p>
+        <div className="mt-4">
+          <a
+            href="https://app.alpaca.markets"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-4.5-4.5h6m0 0v6m0-6L10.5 13.5" />
+            </svg>
+            Open Alpaca Dashboard
+          </a>
+          <p className="mt-2 text-xs text-zinc-600">
+            Deposits, withdrawals, and order history are managed directly on Alpaca
+          </p>
         </div>
       </div>
 

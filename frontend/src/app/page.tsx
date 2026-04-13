@@ -7,6 +7,7 @@ import { Balance, Position, Trade } from "@/lib/types";
 import PortfolioCard from "@/components/PortfolioCard";
 import DecisionCard from "@/components/DecisionCard";
 import AllocationChart from "@/components/AllocationChart";
+import BotStatusBanner from "@/components/BotStatusBanner";
 import Spinner from "@/components/Spinner";
 import ValueChart from "@/components/ValueChart";
 
@@ -64,12 +65,14 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
         <p className="mt-1 text-sm text-zinc-500">
           Real-time portfolio overview and AI trading decisions
         </p>
       </div>
+
+      <BotStatusBanner />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <PortfolioCard balance={balance} positions={positions} />

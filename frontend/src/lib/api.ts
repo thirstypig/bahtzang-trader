@@ -60,6 +60,29 @@ export async function updateGuardrails(
   });
 }
 
+export interface BotStatus {
+  running: boolean;
+  frequency: string;
+  schedule_times: string[];
+  kill_switch: boolean;
+  risk_profile: string;
+  trading_goal: string;
+  last_run: string | null;
+  last_action: string | null;
+  last_ticker: string | null;
+  next_run: string | null;
+  total_trades: number;
+  recent_changes: {
+    action: string;
+    timestamp: string;
+    changes: string;
+  }[];
+}
+
+export async function getBotStatus(): Promise<BotStatus> {
+  return fetchAPI<BotStatus>("/bot/status");
+}
+
 export async function activateKillSwitch(): Promise<{ status: string }> {
   return fetchAPI<{ status: string }>("/killswitch", { method: "POST" });
 }

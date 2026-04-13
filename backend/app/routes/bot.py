@@ -2,6 +2,7 @@
 
 import logging
 import traceback
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -10,6 +11,9 @@ from slowapi.util import get_remote_address
 
 from app.auth import require_auth
 from app.database import get_db
+from app.guardrails import load_guardrails
+from app.models import GuardrailsAudit, Trade
+from app.scheduler import scheduler, FREQUENCY_SCHEDULES
 from app.trade_executor import run_cycle
 
 router = APIRouter()
@@ -66,6 +70,64 @@ def _classify_error(e: Exception) -> dict:
         "error_code": code,
         "error_type": exc_type,
         "message": message,
+    }
+
+
+@router.get("/bot/status")
+def get_bot_status(
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
+    """Return bot operational status: last run, next run, frequency, recent changes."""
+    config = load_guardrails(db)
+    frequency = config.get("trading_frequency", "1x")
+    times = FREQUENCY_SCHEDULES.get(frequency, FREQUENCY_SCHEDULES["1x"])
+    time_strs = [f"{h}:{m:02d} ET" for h, m in times]
+
+    # Last trade (most recent cycle)
+    last_trade = (
+        db.query(Trade)
+        .order_by(Trade.timestamp.desc())
+        .first()
+    )
+
+    # Next scheduled run
+    next_run = None
+    jobs = scheduler.get_jobs()
+    trading_jobs = [j for j in jobs if j.id.startswith("trading_cycle_")]
+    if trading_jobs:
+        next_runs = [j.next_run_time for j in trading_jobs if j.next_run_time]
+        if next_runs:
+            next_run = min(next_runs).isoformat()
+
+    # Recent settings changes (last 5)
+    recent_changes = (
+        db.query(GuardrailsAudit)
+        .order_by(GuardrailsAudit.timestamp.desc())
+        .limit(5)
+        .all()
+    )
+
+    return {
+        "running": scheduler.running,
+        "frequency": frequency,
+        "schedule_times": time_strs,
+        "kill_switch": config.get("kill_switch", False),
+        "risk_profile": config.get("risk_profile", "moderate"),
+        "trading_goal": config.get("trading_goal", "maximize_returns"),
+        "last_run": last_trade.timestamp.isoformat() if last_trade else None,
+        "last_action": last_trade.action if last_trade else None,
+        "last_ticker": last_trade.ticker if last_trade else None,
+        "next_run": next_run,
+        "total_trades": db.query(Trade).filter(Trade.executed.is_(True)).count(),
+        "recent_changes": [
+            {
+                "action": c.action,
+                "timestamp": c.timestamp.isoformat(),
+                "changes": c.changes,
+            }
+            for c in recent_changes
+        ],
     }
 
 
