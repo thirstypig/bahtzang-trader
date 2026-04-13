@@ -62,9 +62,10 @@ Only ALLOWED_EMAIL can access (single-user app)
 
 ### Trading Pipeline (trade_executor.py)
 ```
-Gather (Alpaca) → Think (Claude, 30s timeout) → Validate (guardrails) → Act (Alpaca) → Log (PostgreSQL)
+Gather (Alpaca) → Earnings (Finnhub cache) → Think (Claude, 30s timeout) → Validate (guardrails) → Act (Alpaca) → Log (PostgreSQL)
 Every decision logged — even holds and blocked trades
 Alpaca SDK calls wrapped in asyncio.to_thread() to avoid blocking the event loop
+Earnings data: position sizing reduced 50% at 0-1 days, 70% at 2 days before earnings
 ```
 
 ### Frontend Auth Guard
@@ -79,7 +80,7 @@ backend/
     auth.py           # JWKS-based JWT verification, require_auth dependency
     config.py         # Pydantic Settings (all env vars)
     database.py       # SQLAlchemy engine + SessionLocal (pool_pre_ping=True)
-    models.py         # Trade, PortfolioSnapshot, GuardrailsConfig, GuardrailsAudit
+    models.py         # Trade, PortfolioSnapshot, GuardrailsConfig, GuardrailsAudit + feature model imports
     routes/           # API route modules (feature-isolated)
       portfolio.py    # GET /portfolio, /portfolio/snapshots, /portfolio/metrics, POST /portfolio/snapshot
       trades.py       # GET /trades
@@ -90,18 +91,28 @@ backend/
       base.py         # BrokerInterface ABC (get_positions, get_balance, place_order)
       alpaca.py       # AlpacaBroker (async via to_thread, primary broker)
       schwab.py       # SchwabBroker (backup, optional credentials)
+    backtest/         # Feature module: backtesting framework (Phase F)
+      models.py       # BacktestConfig, BacktestResult, OHLCVCache tables
+      data.py         # Alpaca OHLCV fetch + PostgreSQL cache with gap-fill
+      engine.py       # Day-by-day simulation with lookahead bias prevention
+      strategies.py   # BaseStrategy + SMA Crossover, RSI Mean Reversion, Buy & Hold
+      routes.py       # CRUD /backtest + background run
+    earnings/         # Feature module: earnings calendar (Phase F)
+      models.py       # EarningsEvent table (Finnhub cache)
+      client.py       # Finnhub API + DB cache + format_csv() + days_until_earnings()
+      routes.py       # GET /earnings, POST /earnings/refresh
     analytics.py      # Portfolio metrics: Sharpe, Sortino, drawdown, win rate, profit factor
-    claude_brain.py   # AsyncAnthropic → Claude Sonnet → CSV prompt (30s timeout)
+    claude_brain.py   # AsyncAnthropic → Claude Sonnet → CSV prompt (30s timeout) + earnings context
     circuit_breaker.py # 3-tier staged halts (YELLOW/ORANGE/RED) on portfolio P&L
     compliance.py     # PDT day trade tracking + wash sale 30-day cooling detection
     guardrails.py     # GuardrailsUpdate Pydantic model + policy gate (DB-backed)
     notifier.py       # Slack webhook notifications (fire-and-forget)
-    position_sizing.py # Quarter-Kelly with confidence^2 modifier
+    position_sizing.py # Quarter-Kelly with confidence^2 + earnings proximity reduction
     sector_rotation.py # 11 sector ETFs relative strength vs SPY
     technical_analysis.py # pandas-ta indicators (RSI/MACD/BB/SMA/ATR) + Alpaca Data API
-    trade_executor.py # Pipeline: gather → indicators → think → validate → act → log → notify
+    trade_executor.py # Pipeline: gather → indicators → earnings → think → validate → act → log → notify
     market_data.py    # Alpha Vantage news (quotes moved to Alpaca Data API)
-    scheduler.py      # Trading frequency + daily snapshot (4:05 PM) + daily summary (4:10 PM)
+    scheduler.py      # Trading frequency + daily snapshot (4:05 PM) + summary (4:10 PM) + earnings refresh (7 AM)
     logger.py         # Trade logging to PostgreSQL
   data/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
@@ -122,6 +133,8 @@ frontend/
       status/         # /status
       docs/           # /docs
       analytics/      # /analytics
+      backtest/       # /backtest (configure + run backtests, view results)
+      earnings/       # /earnings (upcoming earnings calendar, color-coded proximity)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       providers.tsx   # AuthProvider + AppShell (conditional Navbar)
@@ -158,3 +171,11 @@ frontend/
 - Kill switch: activate via POST /killswitch, deactivate via POST /killswitch/deactivate
 - Rate limiting: slowapi (2/min on /run, 60/min global default)
 - Trade logging: every cycle logs to `trades` table regardless of outcome
+
+### Feature Module Isolation
+New features go in their own Python packages under `backend/app/`:
+- Each module has its own `models.py`, business logic, and `routes.py`
+- Models imported in root `models.py` so `create_all()` picks them up
+- Router registered in `main.py` with a single `include_router()` line
+- Integration with the trading pipeline kept to minimal touchpoints
+- Example: `backtest/` and `earnings/` are fully self-contained packages
