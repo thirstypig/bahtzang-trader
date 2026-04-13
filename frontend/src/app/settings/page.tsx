@@ -169,8 +169,9 @@ export default function SettingsPage() {
       );
     } catch (err: any) {
       const code = err?.code || "UNKNOWN";
+      const ref = err?.ref || "";
       const message = err instanceof Error ? err.message : "Unknown error";
-      setRunResult(`ERROR [${code}]: ${message}`);
+      setRunResult(`ERROR [${code}]${ref ? ` ${ref}` : ""}: ${message}`);
     } finally {
       setRunning(false);
     }

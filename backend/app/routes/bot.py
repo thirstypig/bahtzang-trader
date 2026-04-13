@@ -11,6 +11,7 @@ from slowapi.util import get_remote_address
 
 from app.auth import require_auth
 from app.database import get_db
+from app.error_tracker import record_error, get_recent_errors, get_error_by_ref, get_error_count
 from app.guardrails import load_guardrails
 from app.models import GuardrailsAudit, Trade
 from app.scheduler import scheduler, FREQUENCY_SCHEDULES
@@ -131,6 +132,30 @@ def get_bot_status(
     }
 
 
+@router.get("/admin/errors")
+def list_errors(
+    limit: int = 20,
+    user: dict = Depends(require_auth),
+):
+    """Return recent errors (most recent first, no stack traces)."""
+    return {
+        "total": get_error_count(),
+        "errors": get_recent_errors(limit),
+    }
+
+
+@router.get("/admin/errors/{ref}")
+def get_error(
+    ref: str,
+    user: dict = Depends(require_auth),
+):
+    """Look up a specific error by reference code (includes full stack trace)."""
+    error = get_error_by_ref(ref)
+    if error is None:
+        raise HTTPException(status_code=404, detail=f"Error {ref} not found or expired")
+    return error
+
+
 @router.post("/run")
 @limiter.limit("2/minute")
 async def manual_run(
@@ -145,6 +170,14 @@ async def manual_run(
     except Exception as e:
         logger.error("Trading cycle failed: %s\n%s", e, traceback.format_exc())
         error_info = _classify_error(e)
+        ref = record_error(
+            exception=e,
+            path="/run",
+            method="POST",
+            user_email=user.get("email", ""),
+            error_code=error_info["error_code"],
+        )
+        error_info["ref"] = ref
         raise HTTPException(
             status_code=500,
             detail=error_info,

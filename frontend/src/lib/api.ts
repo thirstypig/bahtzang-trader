@@ -27,11 +27,12 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const detail = body.detail;
-    // Handle structured error responses (object with error_code + message)
+    // Handle structured error responses (object with error_code + message + ref)
     if (detail && typeof detail === "object" && detail.message) {
       const err = new Error(detail.message);
       (err as any).code = detail.error_code;
       (err as any).errorType = detail.error_type;
+      (err as any).ref = detail.ref;
       throw err;
     }
     throw new Error(typeof detail === "string" ? detail : res.statusText);
@@ -81,6 +82,29 @@ export interface BotStatus {
 
 export async function getBotStatus(): Promise<BotStatus> {
   return fetchAPI<BotStatus>("/bot/status");
+}
+
+export interface ErrorSummary {
+  ref: string;
+  error_code: string;
+  message: string;
+  path: string;
+  method: string;
+  timestamp: string;
+}
+
+export interface ErrorDetail extends ErrorSummary {
+  error_type: string;
+  stack: string;
+  user_email: string;
+}
+
+export async function getRecentErrors(limit = 20): Promise<{ total: number; errors: ErrorSummary[] }> {
+  return fetchAPI<{ total: number; errors: ErrorSummary[] }>(`/admin/errors?limit=${limit}`);
+}
+
+export async function getErrorByRef(ref: string): Promise<ErrorDetail> {
+  return fetchAPI<ErrorDetail>(`/admin/errors/${ref}`);
 }
 
 export async function activateKillSwitch(): Promise<{ status: string }> {
