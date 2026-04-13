@@ -66,6 +66,47 @@ export async function triggerRun(): Promise<CycleResult> {
 }
 
 // ---------------------------------------------------------------------------
+// Portfolio Analytics
+// ---------------------------------------------------------------------------
+
+export interface SnapshotData {
+  date: string;
+  total_equity: number;
+  cash: number;
+  invested: number;
+  unrealized_pnl: number;
+  spy_close: number | null;
+  deposit_withdrawal: number;
+}
+
+export interface PortfolioMetrics {
+  total_return_pct: number;
+  sharpe_ratio: number | null;
+  sharpe_confidence: string;
+  sortino_ratio: number | null;
+  max_drawdown_pct: number;
+  max_drawdown_days: number;
+  win_rate_pct: number;
+  profit_factor: number | null;
+  best_day_pct: number;
+  worst_day_pct: number;
+  volatility_annual_pct: number;
+  num_trading_days: number;
+}
+
+export async function getSnapshots(days = 90): Promise<SnapshotData[]> {
+  return fetchAPI<SnapshotData[]>(`/portfolio/snapshots?days=${days}`);
+}
+
+export async function getPortfolioMetrics(days = 90): Promise<PortfolioMetrics> {
+  return fetchAPI<PortfolioMetrics>(`/portfolio/metrics?days=${days}`);
+}
+
+export async function takeSnapshot(): Promise<{ status: string }> {
+  return fetchAPI<{ status: string }>("/portfolio/snapshot", { method: "POST" });
+}
+
+// ---------------------------------------------------------------------------
 // Admin Todos
 // ---------------------------------------------------------------------------
 

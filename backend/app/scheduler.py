@@ -108,6 +108,77 @@ async def _daily_summary():
         db.close()
 
 
+SNAPSHOT_JOB_ID = "daily_snapshot"
+
+
+async def _take_snapshot():
+    """Capture end-of-day portfolio state and SPY close."""
+    from datetime import date as date_type
+
+    logger.info("Taking daily portfolio snapshot")
+    db = SessionLocal()
+    try:
+        from app.brokers.alpaca import AlpacaBroker
+        from app.models import PortfolioSnapshot
+
+        broker = AlpacaBroker()
+        balance = await broker.get_account_balance("default")
+        positions = await broker.get_positions("default")
+
+        invested = sum(p.get("marketValue", 0) for p in positions)
+        unrealized = sum(p.get("currentDayProfitLoss", 0) for p in positions)
+
+        # Get SPY close via Alpaca Data API
+        spy_close = None
+        try:
+            from alpaca.data.historical import StockHistoricalDataClient
+            from alpaca.data.requests import StockBarsRequest
+            from alpaca.data.timeframe import TimeFrame
+            from app.config import settings
+            import asyncio
+            from datetime import timedelta
+
+            data_client = StockHistoricalDataClient(
+                settings.ALPACA_API_KEY, settings.ALPACA_SECRET_KEY
+            )
+            today = date_type.today()
+            bars = await asyncio.to_thread(
+                data_client.get_stock_bars,
+                StockBarsRequest(
+                    symbol_or_symbols="SPY",
+                    timeframe=TimeFrame.Day,
+                    start=today - timedelta(days=5),
+                    end=today,
+                ),
+            )
+            spy_bars = bars.get("SPY", bars.data.get("SPY", []))
+            if spy_bars:
+                spy_close = float(spy_bars[-1].close)
+        except Exception as e:
+            logger.warning("Failed to fetch SPY close: %s", e)
+
+        today = date_type.today()
+        snapshot = PortfolioSnapshot(
+            date=today,
+            total_equity=balance["total_value"],
+            cash=balance["cash_available"],
+            invested=invested,
+            unrealized_pnl=unrealized,
+            spy_close=spy_close,
+        )
+        db.merge(snapshot)
+        db.commit()
+        logger.info(
+            "Snapshot saved: equity=$%.2f, SPY=$%.2f",
+            balance["total_value"],
+            spy_close or 0,
+        )
+    except Exception as e:
+        logger.exception("Snapshot failed: %s", e)
+    finally:
+        db.close()
+
+
 SUMMARY_JOB_ID = "daily_summary"
 
 
@@ -125,10 +196,21 @@ def start_scheduler():
 
     apply_schedule(frequency)
 
-    # Daily summary at 4:05 PM ET
-    summary_trigger = CronTrigger(
+    # Daily snapshot at 4:05 PM ET (after market close settles)
+    snapshot_trigger = CronTrigger(
         day_of_week="mon-fri",
         hour=16, minute=5,
+        timezone=ET,
+    )
+    scheduler.add_job(
+        _take_snapshot, snapshot_trigger,
+        id=SNAPSHOT_JOB_ID, replace_existing=True,
+    )
+
+    # Daily summary at 4:10 PM ET (after snapshot)
+    summary_trigger = CronTrigger(
+        day_of_week="mon-fri",
+        hour=16, minute=10,
         timezone=ET,
     )
     scheduler.add_job(
