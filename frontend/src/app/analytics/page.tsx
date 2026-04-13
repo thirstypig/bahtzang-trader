@@ -13,6 +13,7 @@ import {
 import { Trade } from "@/lib/types";
 import Spinner from "@/components/Spinner";
 import EquityCurveChart from "@/components/EquityCurveChart";
+import ReturnDistributionChart from "@/components/ReturnDistributionChart";
 import DrawdownChart from "@/components/DrawdownChart";
 
 export default function AnalyticsPage() {
@@ -154,6 +155,7 @@ export default function AnalyticsPage() {
       <div className="space-y-6">
         <EquityCurveChart snapshots={snapshots} />
         <DrawdownChart snapshots={snapshots} />
+        <ReturnDistributionChart snapshots={snapshots} />
       </div>
 
       {/* Additional metrics */}
