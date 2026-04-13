@@ -8,6 +8,7 @@ const ADMIN_LINKS = [
   { href: "/roadmap", label: "Roadmap" },
   { href: "/concepts", label: "Concepts" },
   { href: "/changelog", label: "Changelog" },
+  { href: "/errors", label: "Errors" },
 ];
 
 export default function AdminNav() {
