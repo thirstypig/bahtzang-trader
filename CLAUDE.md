@@ -79,21 +79,26 @@ backend/
     auth.py           # JWKS-based JWT verification, require_auth dependency
     config.py         # Pydantic Settings (all env vars)
     database.py       # SQLAlchemy engine + SessionLocal (pool_pre_ping=True)
-    models.py         # Trade model (11 columns + 2 indexes)
+    models.py         # Trade, GuardrailsConfig, GuardrailsAudit models
     routes/           # API route modules (feature-isolated)
       portfolio.py    # GET /portfolio (uses BrokerInterface)
       trades.py       # GET /trades
-      guardrails.py   # GET/POST /guardrails, POST /killswitch
-      bot.py          # POST /run
+      guardrails.py   # GET/POST /guardrails, POST /killswitch, POST /killswitch/deactivate
+      bot.py          # POST /run (rate-limited 2/min via slowapi)
+      todos.py        # CRUD /admin/todos (JSON file persistence, asyncio.Lock)
     brokers/          # Broker abstraction layer
       base.py         # BrokerInterface ABC (get_positions, get_balance, place_order)
-      schwab.py       # SchwabBroker (token cache with expiry, shared httpx client)
-    claude_brain.py   # AsyncAnthropic → Claude Sonnet → JSON decision
+      alpaca.py       # AlpacaBroker (async via to_thread, primary broker)
+      schwab.py       # SchwabBroker (backup, optional credentials)
+    claude_brain.py   # AsyncAnthropic → Claude Sonnet → JSON decision (30s timeout)
     guardrails.py     # GuardrailsUpdate Pydantic model + policy gate (DB-backed)
+    notifier.py       # Slack webhook notifications (fire-and-forget)
     trade_executor.py # Pipeline orchestrator (asyncio.gather, Lock, BrokerInterface)
     market_data.py    # Alpha Vantage quotes + news (shared httpx, parallel fetch)
-    scheduler.py      # APScheduler dynamic frequency (1x/3x/5x per day, Mon-Fri)
+    scheduler.py      # APScheduler dynamic frequency (1x/3x/5x) + daily summary
     logger.py         # Trade logging to PostgreSQL
+  data/
+    todo-tasks.json   # Admin todo tasks (runtime, file-based)
   guardrails.json     # Default config (runtime config is in PostgreSQL)
   railway.toml        # Railway deploy config
 
@@ -104,24 +109,29 @@ frontend/
       trades/         # /trades
       settings/       # /settings
       login/          # /login
-      roadmap/        # /roadmap
-      changelog/      # /changelog
+      roadmap/        # /roadmap (anchor IDs for cross-linking)
+      changelog/      # /changelog (stats header, cross-link badges)
+      concepts/       # /concepts (tabbed: Strategic/SEO/Integrations/UX)
       about/          # /about
       status/         # /status
       docs/           # /docs
       analytics/      # /analytics
       audit-log/      # /audit-log
-      todos/          # /todos
+      todos/          # /todos (API-backed CRUD, category grouping)
       providers.tsx   # AuthProvider + AppShell (conditional Navbar)
       layout.tsx      # Root layout (Server Component, no "use client")
     components/       # Reusable UI components
+      AdminNav.tsx    # Shared admin page navigation (Todo|Roadmap|Concepts|Changelog)
+      CrossLink.tsx   # Reusable cross-link badge (pill-shaped, color-coded by type)
+      KillSwitchButton.tsx # Kill switch with activate + deactivate
     lib/
-      api.ts          # fetchAPI with Bearer token from setApiToken()
+      api.ts          # fetchAPI with Bearer token + admin todo CRUD functions
       auth.tsx        # AuthProvider, useAuth hook
       supabase.ts     # Lazy Supabase client singleton
       types.ts        # TypeScript interfaces
       utils.ts        # formatCurrency, formatDateTime
-    data/             # Static data (roadmap, changelog, todos)
+      useHashScroll.ts # Scroll-to-anchor hook for cross-page linking
+    data/             # Static data (roadmap, changelog, concepts)
   railway.toml        # Railway deploy config (HOSTNAME=0.0.0.0)
 ```
 
