@@ -13,3 +13,5 @@ pytz==2025.2
 PyJWT[crypto]==2.10.1
 alpaca-py==0.36.0
 slowapi==0.1.9
+pandas==2.2.3
+pandas-ta==0.3.14b0

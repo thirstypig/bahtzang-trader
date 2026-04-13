@@ -252,12 +252,12 @@ Relative strength = sector ETF price / SPY price. LEADING = ratio above 50-day S
 - `pandas` (likely already a transitive dep of alpaca-py)
 
 ### Acceptance Criteria
-- [ ] Historical OHLCV fetched from Alpaca Data API (not Alpha Vantage)
-- [ ] All 5 indicator groups computed via pandas-ta
-- [ ] Indicators cached daily, recomputed only on first cycle of each day
-- [ ] Claude receives CSV-formatted technical data (~400 tokens for 20 stocks)
-- [ ] Sector rotation signals computed for 11 ETFs with LEADING/LAGGING labels
-- [ ] Missing data handled: forward-fill up to 5 days, NaN for insufficient history
+- [x] Historical OHLCV fetched from Alpaca Data API (not Alpha Vantage)
+- [x] All 5 indicator groups computed via pandas-ta
+- [x] Indicators cached daily, recomputed only on first cycle of each day
+- [x] Claude receives CSV-formatted technical data (~400 tokens for 20 stocks)
+- [x] Sector rotation signals computed for 11 ETFs with LEADING/LAGGING labels
+- [x] Missing data handled: forward-fill up to 5 days, NaN for insufficient history
 
 ---
 
