@@ -3,7 +3,7 @@
 import json
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.database import Base
@@ -34,6 +34,35 @@ class Trade(Base):
         Index("ix_trades_timestamp_executed", "timestamp", "executed"),
         Index("ix_trades_timestamp_desc", timestamp.desc()),
     )
+
+
+class PortfolioSnapshot(Base):
+    """Daily portfolio state captured at market close (4:05 PM ET)."""
+    __tablename__ = "portfolio_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    date: Mapped[datetime] = mapped_column(Date, unique=True, nullable=False)
+    total_equity: Mapped[float] = mapped_column(Float, nullable=False)
+    cash: Mapped[float] = mapped_column(Float, nullable=False)
+    invested: Mapped[float] = mapped_column(Float, nullable=False)
+    unrealized_pnl: Mapped[float] = mapped_column(Float, nullable=False)
+    spy_close: Mapped[float | None] = mapped_column(Float, nullable=True)
+    deposit_withdrawal: Mapped[float] = mapped_column(Float, default=0.0)
+
+    __table_args__ = (
+        Index("ix_snapshots_date", "date"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "date": str(self.date),
+            "total_equity": self.total_equity,
+            "cash": self.cash,
+            "invested": self.invested,
+            "unrealized_pnl": self.unrealized_pnl,
+            "spy_close": self.spy_close,
+            "deposit_withdrawal": self.deposit_withdrawal,
+        }
 
 
 class GuardrailsConfig(Base):
