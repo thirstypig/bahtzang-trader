@@ -167,11 +167,11 @@ class PortfolioSnapshot(Base):
 4. Handle missed snapshot days gracefully (leave gap, don't interpolate)
 
 ### Acceptance Criteria
-- [ ] Daily snapshot captured at 4:05 PM ET with equity, cash, invested, SPY close
-- [ ] Equity curve chart shows portfolio vs SPY normalized returns
-- [ ] Drawdown chart shows peak-to-trough losses
-- [ ] Sharpe/Sortino/drawdown/win rate displayed with confidence indicators
-- [ ] Duplicate snapshots handled via upsert
+- [x] Daily snapshot captured at 4:05 PM ET with equity, cash, invested, SPY close
+- [x] Equity curve chart shows portfolio vs SPY normalized returns
+- [x] Drawdown chart shows peak-to-trough losses
+- [x] Sharpe/Sortino/drawdown/win rate displayed with confidence indicators
+- [x] Duplicate snapshots handled via upsert
 
 ---
 
