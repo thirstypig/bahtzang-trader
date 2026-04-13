@@ -79,9 +79,9 @@ backend/
     auth.py           # JWKS-based JWT verification, require_auth dependency
     config.py         # Pydantic Settings (all env vars)
     database.py       # SQLAlchemy engine + SessionLocal (pool_pre_ping=True)
-    models.py         # Trade, GuardrailsConfig, GuardrailsAudit models
+    models.py         # Trade, PortfolioSnapshot, GuardrailsConfig, GuardrailsAudit
     routes/           # API route modules (feature-isolated)
-      portfolio.py    # GET /portfolio (uses BrokerInterface)
+      portfolio.py    # GET /portfolio, /portfolio/snapshots, /portfolio/metrics, POST /portfolio/snapshot
       trades.py       # GET /trades
       guardrails.py   # GET/POST /guardrails, POST /killswitch, POST /killswitch/deactivate
       bot.py          # POST /run (rate-limited 2/min via slowapi)
@@ -90,12 +90,18 @@ backend/
       base.py         # BrokerInterface ABC (get_positions, get_balance, place_order)
       alpaca.py       # AlpacaBroker (async via to_thread, primary broker)
       schwab.py       # SchwabBroker (backup, optional credentials)
-    claude_brain.py   # AsyncAnthropic → Claude Sonnet → JSON decision (30s timeout)
+    analytics.py      # Portfolio metrics: Sharpe, Sortino, drawdown, win rate, profit factor
+    claude_brain.py   # AsyncAnthropic → Claude Sonnet → CSV prompt (30s timeout)
+    circuit_breaker.py # 3-tier staged halts (YELLOW/ORANGE/RED) on portfolio P&L
+    compliance.py     # PDT day trade tracking + wash sale 30-day cooling detection
     guardrails.py     # GuardrailsUpdate Pydantic model + policy gate (DB-backed)
     notifier.py       # Slack webhook notifications (fire-and-forget)
-    trade_executor.py # Pipeline orchestrator (asyncio.gather, Lock, BrokerInterface)
-    market_data.py    # Alpha Vantage quotes + news (shared httpx, parallel fetch)
-    scheduler.py      # APScheduler dynamic frequency (1x/3x/5x) + daily summary
+    position_sizing.py # Quarter-Kelly with confidence^2 modifier
+    sector_rotation.py # 11 sector ETFs relative strength vs SPY
+    technical_analysis.py # pandas-ta indicators (RSI/MACD/BB/SMA/ATR) + Alpaca Data API
+    trade_executor.py # Pipeline: gather → indicators → think → validate → act → log → notify
+    market_data.py    # Alpha Vantage news (quotes moved to Alpaca Data API)
+    scheduler.py      # Trading frequency + daily snapshot (4:05 PM) + daily summary (4:10 PM)
     logger.py         # Trade logging to PostgreSQL
   data/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)

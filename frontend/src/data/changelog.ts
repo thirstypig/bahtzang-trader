@@ -10,6 +10,44 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.11.0",
+    date: "2026-04-13",
+    roadmapLink: "/roadmap#risk-management",
+    changes: [
+      { type: "feat", title: "Quarter-Kelly position sizing with confidence^2 modifier" },
+      { type: "feat", title: "3-tier circuit breakers (YELLOW/ORANGE/RED) based on portfolio P&L" },
+      { type: "feat", title: "PDT day trade compliance tracking (accounts <$25k)" },
+      { type: "feat", title: "Wash sale 30-day cooling period detection" },
+      { type: "feat", title: "5 new guardrails config fields for risk management" },
+    ],
+  },
+  {
+    version: "0.10.0",
+    date: "2026-04-13",
+    roadmapLink: "/roadmap#technical-indicators",
+    changes: [
+      { type: "feat", title: "Technical indicators via pandas-ta (RSI, MACD, BBands, SMA, ATR)" },
+      { type: "feat", title: "Alpaca Data API replaces Alpha Vantage for OHLCV (200 req/min)" },
+      { type: "feat", title: "Sector rotation signals for 11 ETFs vs SPY (LEADING/LAGGING)" },
+      { type: "perf", title: "CSV prompt format — 56% fewer tokens than JSON" },
+      { type: "feat", title: "Daily indicator caching (recompute once per trading day)" },
+    ],
+  },
+  {
+    version: "0.9.0",
+    date: "2026-04-13",
+    roadmapLink: "/roadmap#portfolio-analytics",
+    changes: [
+      { type: "feat", title: "Daily portfolio snapshots at 4:05 PM ET (Alpaca + SPY benchmark)" },
+      { type: "feat", title: "Analytics engine: Sharpe, Sortino, max drawdown, win rate, profit factor" },
+      { type: "feat", title: "Equity curve chart — portfolio vs SPY normalized returns" },
+      { type: "feat", title: "Drawdown chart with red gradient fill" },
+      { type: "feat", title: "Return distribution histogram" },
+      { type: "feat", title: "Manual 'Take Snapshot Now' button + API endpoint" },
+      { type: "feat", title: "Sharpe confidence indicator (low/moderate/high based on data quantity)" },
+    ],
+  },
+  {
     version: "0.8.0",
     date: "2026-04-12",
     changes: [
