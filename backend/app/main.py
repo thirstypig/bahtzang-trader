@@ -13,7 +13,7 @@ from slowapi.util import get_remote_address
 from app.auth import require_auth
 from app.config import settings
 from app.database import Base, engine
-from app.routes import bot, guardrails, portfolio, trades
+from app.routes import bot, guardrails, portfolio, todos, trades
 from app.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(
@@ -40,7 +40,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",")],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
@@ -71,3 +71,4 @@ app.include_router(portfolio.router)
 app.include_router(trades.router)
 app.include_router(guardrails.router)
 app.include_router(bot.router)
+app.include_router(todos.router)

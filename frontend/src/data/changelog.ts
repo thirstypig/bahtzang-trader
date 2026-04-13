@@ -2,12 +2,41 @@ export interface ChangelogEntry {
   version: string;
   date: string;
   changes: {
-    type: "feat" | "fix" | "docs" | "perf" | "refactor";
+    type: "feat" | "fix" | "docs" | "perf" | "refactor" | "security";
     title: string;
   }[];
+  roadmapLink?: string;
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "0.8.0",
+    date: "2026-04-12",
+    changes: [
+      { type: "feat", title: "Admin system: interconnected Todo + Concepts pages with cross-links" },
+      { type: "feat", title: "API-backed todo CRUD with JSON file persistence" },
+      { type: "feat", title: "Concepts page with URL-based tabs (Strategic/SEO/Integrations/UX)" },
+      { type: "feat", title: "CrossLink badge component + AdminNav shared navigation" },
+      { type: "feat", title: "Smooth scroll anchoring with fixed navbar offset" },
+    ],
+  },
+  {
+    version: "0.7.0",
+    date: "2026-04-12",
+    roadmapLink: "/roadmap#code-review",
+    changes: [
+      { type: "security", title: "Migrate guardrails from JSON file to PostgreSQL" },
+      { type: "feat", title: "Add kill switch deactivation endpoint + Resume Trading UI" },
+      { type: "feat", title: "Wire trading frequency to APScheduler (1x/3x/5x per day)" },
+      { type: "fix", title: "Fix max_positions counting all-time buys instead of current positions" },
+      { type: "feat", title: "Add Slack trade notifications (fire-and-forget)" },
+      { type: "security", title: "Add rate limiting, security headers, error response sanitization" },
+      { type: "feat", title: "Add guardrails audit trail with user + timestamp" },
+      { type: "perf", title: "Wrap Alpaca SDK in asyncio.to_thread() — non-blocking event loop" },
+      { type: "perf", title: "Add 30s timeout on Claude API call with graceful hold fallback" },
+      { type: "security", title: "Whitelist guardrail keys sent to Claude (prompt injection protection)" },
+    ],
+  },
   {
     version: "0.6.0",
     date: "2026-04-10",

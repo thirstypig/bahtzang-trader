@@ -1,4 +1,9 @@
+"use client";
+
 import { changelog } from "@/data/changelog";
+import { useHashScroll } from "@/lib/useHashScroll";
+import AdminNav from "@/components/AdminNav";
+import CrossLink from "@/components/CrossLink";
 
 const TYPE_STYLES: Record<string, string> = {
   feat: "bg-blue-900/30 text-blue-400",
@@ -6,24 +11,38 @@ const TYPE_STYLES: Record<string, string> = {
   docs: "bg-amber-900/30 text-amber-400",
   perf: "bg-emerald-900/30 text-emerald-400",
   refactor: "bg-purple-900/30 text-purple-400",
+  security: "bg-yellow-900/30 text-yellow-400",
 };
 
+const totalChanges = changelog.reduce((sum, e) => sum + e.changes.length, 0);
+
 export default function ChangelogPage() {
+  useHashScroll();
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
-      <div className="mb-8">
+      <AdminNav />
+
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Changelog</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Latest updates and improvements
+          {changelog.length} releases, {totalChanges} changes — latest v{changelog[0].version}
         </p>
       </div>
 
       <div className="space-y-10">
         {changelog.map((entry) => (
-          <div key={entry.version} className="border-l-2 border-zinc-800 pl-6">
-            <div className="flex items-baseline gap-3">
+          <div
+            key={entry.version}
+            id={`v${entry.version}`}
+            className="border-l-2 border-zinc-800 pl-6"
+          >
+            <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold text-white">v{entry.version}</h2>
               <time className="text-sm text-zinc-500">{entry.date}</time>
+              {entry.roadmapLink && (
+                <CrossLink type="roadmap" href={entry.roadmapLink} />
+              )}
             </div>
             <ul className="mt-4 space-y-2">
               {entry.changes.map((change, i) => (

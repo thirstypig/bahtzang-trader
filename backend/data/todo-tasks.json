@@ -1,0 +1,320 @@
+[
+  {
+    "id": "todo-001",
+    "title": "Set up Slack webhook for trade notifications",
+    "category": "infrastructure",
+    "status": "not_started",
+    "priority": "p1",
+    "owner": "jimmy",
+    "description": "Create a Slack app with incoming webhooks and add SLACK_WEBHOOK_URL to Railway.",
+    "target_date": "2026-04-15",
+    "roadmap_link": "/roadmap#notifications",
+    "concept_link": null,
+    "steps": [
+      "Go to api.slack.com/apps and create a new Slack app",
+      "Enable Incoming Webhooks in the app settings",
+      "Add the webhook to your #bahtzang-trades channel",
+      "Copy the webhook URL",
+      "Add SLACK_WEBHOOK_URL to Railway env vars for the backend service",
+      "Trigger a manual /run on bahtzang.com and verify the notification arrives in Slack"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-002",
+    "title": "Build portfolio snapshots endpoint",
+    "category": "analytics-setup",
+    "status": "not_started",
+    "priority": "p1",
+    "owner": "jimmy",
+    "description": "Add PortfolioSnapshot model, APScheduler job at 4:05 PM ET, and GET /portfolio/snapshots endpoint.",
+    "target_date": "2026-04-20",
+    "roadmap_link": "/roadmap#portfolio-analytics",
+    "concept_link": null,
+    "steps": [
+      "Add PortfolioSnapshot model to models.py (date, total_equity, cash, invested, spy_close)",
+      "Add snapshot scheduler job at 4:05 PM ET in scheduler.py",
+      "Use Alpaca Data API to fetch SPY close price",
+      "Add GET /portfolio/snapshots?days=90 endpoint",
+      "Add POST /portfolio/snapshot for manual trigger",
+      "Verify snapshot is created after market close"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-003",
+    "title": "Add equity curve chart component",
+    "category": "analytics-setup",
+    "status": "not_started",
+    "priority": "p2",
+    "owner": "jimmy",
+    "description": "LineChart showing portfolio vs SPY normalized returns over time.",
+    "target_date": "2026-04-22",
+    "roadmap_link": "/roadmap#portfolio-analytics",
+    "concept_link": null,
+    "steps": [
+      "Create EquityCurveChart.tsx with Recharts LineChart",
+      "Two lines: portfolio (emerald) and SPY (zinc-400, dashed)",
+      "Normalize both to percentage return from day 1",
+      "Add to /analytics page below existing metrics cards",
+      "Test with mock data until snapshots accumulate"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-004",
+    "title": "Migrate market data to Alpaca Data API",
+    "category": "infrastructure",
+    "status": "not_started",
+    "priority": "p2",
+    "owner": "jimmy",
+    "description": "Replace Alpha Vantage for OHLCV data (200 req/min vs 25/day). Keep Alpha Vantage for news only.",
+    "target_date": "2026-04-25",
+    "roadmap_link": "/roadmap#technical-indicators",
+    "concept_link": "/concepts#alpaca-data-api",
+    "steps": [
+      "Add StockHistoricalDataClient to brokers/alpaca.py",
+      "Create get_daily_bars(tickers, days) function",
+      "Update market_data.py to use Alpaca for quotes instead of Alpha Vantage",
+      "Keep Alpha Vantage get_news() function unchanged",
+      "Test with 20 tickers fetched in a single API call"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-005",
+    "title": "Implement pandas-ta technical indicators",
+    "category": "trading-brain",
+    "status": "not_started",
+    "priority": "p1",
+    "owner": "jimmy",
+    "description": "Compute RSI, MACD, BBands, SMA50/200, ATR for portfolio tickers. Feed to Claude in CSV format.",
+    "target_date": "2026-04-28",
+    "roadmap_link": "/roadmap#technical-indicators",
+    "concept_link": null,
+    "steps": [
+      "Add pandas-ta to requirements.txt",
+      "Create backend/app/technical_analysis.py with TechnicalAnalyzer class",
+      "Fetch 365 days of OHLCV from Alpaca Data API",
+      "Compute all 5 indicator groups via pandas-ta Strategy",
+      "Cache indicators daily (invalidate on date change)",
+      "Format as CSV for Claude prompt (~400 tokens for 20 stocks)",
+      "Wire into trade_executor.py between data gathering and Claude call"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-006",
+    "title": "Add sector rotation signals",
+    "category": "trading-brain",
+    "status": "not_started",
+    "priority": "p2",
+    "owner": "jimmy",
+    "description": "Track 11 sector ETFs relative strength vs SPY. Feed LEADING/LAGGING labels to Claude.",
+    "target_date": "2026-05-01",
+    "roadmap_link": "/roadmap#technical-indicators",
+    "concept_link": null,
+    "steps": [
+      "Create backend/app/sector_rotation.py",
+      "Compute relative strength ratio (sector/SPY) for 11 ETFs",
+      "Compare ratio to 50-day SMA to determine LEADING/LAGGING",
+      "Format as CSV: etf,rs_trend,perf_1m%,perf_3m%,rsi14",
+      "Append to Claude prompt after technicals section"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-007",
+    "title": "Implement Kelly criterion position sizing",
+    "category": "risk-management",
+    "status": "not_started",
+    "priority": "p2",
+    "owner": "jimmy",
+    "description": "Quarter-Kelly position sizing based on historical win rate + Claude confidence. Needs 30+ trades for calibration.",
+    "target_date": "2026-05-15",
+    "roadmap_link": "/roadmap#risk-management",
+    "concept_link": null,
+    "steps": [
+      "Create backend/app/position_sizing.py",
+      "Compute win_rate and avg_win_loss_ratio from trades table (rolling 60 trades)",
+      "Implement kelly_position_size() with quarter-Kelly default",
+      "Use confidence**2 as modifier (penalizes low-confidence trades)",
+      "Cap at 10% of portfolio per position regardless of Kelly output",
+      "Add kelly_fraction field to GuardrailsConfig model",
+      "Replace static max_single_trade_size with dynamic Kelly-derived cap"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-008",
+    "title": "Add circuit breakers (staged halts)",
+    "category": "risk-management",
+    "status": "not_started",
+    "priority": "p1",
+    "owner": "jimmy",
+    "description": "Three-tier circuit breaker: YELLOW (reduce sizing), ORANGE (halt buys), RED (full halt).",
+    "target_date": "2026-05-10",
+    "roadmap_link": "/roadmap#risk-management",
+    "concept_link": null,
+    "steps": [
+      "Create backend/app/circuit_breaker.py",
+      "YELLOW: daily loss > 3% -> halve Kelly fraction (auto-reset next day)",
+      "ORANGE: weekly loss > 7% or 3 consecutive losses -> halt new buys",
+      "RED: daily loss > 5% or 5 consecutive losses -> flip kill switch",
+      "Call check_circuit_breakers() at top of _execute_cycle() before Claude",
+      "Add notification on circuit breaker trigger"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-009",
+    "title": "Add PDT compliance tracking",
+    "category": "risk-management",
+    "status": "not_started",
+    "priority": "p2",
+    "owner": "jimmy",
+    "description": "Count day trades in rolling 5 business days. Block if approaching PDT limit for accounts <$25k.",
+    "target_date": "2026-05-05",
+    "roadmap_link": "/roadmap#risk-management",
+    "concept_link": null,
+    "steps": [
+      "Add count_day_trades(db) function to guardrails.py",
+      "A day trade = buy and sell of same ticker on same day",
+      "Add check_pdt_compliance() to check_guardrails()",
+      "Display day trade count on Settings page",
+      "Alpaca has built-in PDT protection, but we want visibility"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-010",
+    "title": "Compute and display Sharpe ratio",
+    "category": "analytics-setup",
+    "status": "not_started",
+    "priority": "p2",
+    "owner": "jimmy",
+    "description": "Annualized Sharpe from daily portfolio snapshots. Show confidence indicator (needs 60 days for significance).",
+    "target_date": "2026-05-01",
+    "roadmap_link": "/roadmap#portfolio-analytics",
+    "concept_link": null,
+    "steps": [
+      "Create backend/app/analytics.py with compute_metrics()",
+      "Compute Sharpe, Sortino, max drawdown, win rate, profit factor",
+      "Add confidence level: low (<30 days), moderate (<60), high (60+)",
+      "Add GET /portfolio/metrics endpoint",
+      "Display on /analytics page with color-coded stat cards",
+      "Show 'Sharpe: 1.24 (low confidence - 22/60 days)' format"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-011",
+    "title": "Add drawdown chart to analytics",
+    "category": "analytics-setup",
+    "status": "not_started",
+    "priority": "p3",
+    "owner": "jimmy",
+    "description": "AreaChart showing peak-to-trough portfolio drawdown over time.",
+    "target_date": "2026-05-05",
+    "roadmap_link": "/roadmap#portfolio-analytics",
+    "concept_link": null,
+    "steps": [
+      "Create DrawdownChart.tsx with Recharts AreaChart",
+      "Red gradient fill (always zero or negative values)",
+      "ReferenceLine at y=0",
+      "Add to /analytics page below equity curve"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-012",
+    "title": "Populate Concepts page with trading ideas",
+    "category": "content",
+    "status": "not_started",
+    "priority": "p3",
+    "owner": "jimmy",
+    "description": "Add strategic concepts, planned SEO pages, integration ideas, and UX mockup plans.",
+    "target_date": "2026-04-18",
+    "concept_link": null,
+    "roadmap_link": null,
+    "steps": [
+      "Create frontend/src/data/concepts.ts with initial data",
+      "Strategic: multi-model consensus, backtesting, options, crypto, sentiment",
+      "SEO: AI Trading Bot Guide, Claude for Trading, Paper Trading Tutorial",
+      "Integrations: Finnhub, TradingView, Alpaca Data, Discord",
+      "UX: Mobile PWA, theme toggle, allocation sunburst"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-013",
+    "title": "Update roadmap data to reflect current state",
+    "category": "content",
+    "status": "not_started",
+    "priority": "p2",
+    "owner": "jimmy",
+    "description": "Many roadmap items are now done. Update statuses and add new items for upcoming phases.",
+    "target_date": "2026-04-15",
+    "roadmap_link": null,
+    "concept_link": null,
+    "steps": [
+      "Mark completed items as done: broker abstraction, Alpaca integration, admin pages, goals/frequency",
+      "Add new items: portfolio snapshots, technical indicators, risk management, notifications",
+      "Update phase labels to match deepened roadmap plan"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-014",
+    "title": "Add v0.7.0 to changelog",
+    "category": "content",
+    "status": "not_started",
+    "priority": "p3",
+    "owner": "jimmy",
+    "description": "Document the 24-finding code review fixes + Slack notifications in a new changelog entry.",
+    "target_date": "2026-04-14",
+    "roadmap_link": "/roadmap#code-review",
+    "concept_link": null,
+    "steps": [
+      "Add v0.7.0 entry with 9 changes to changelog.ts",
+      "Include security type badge for guardrails migration and rate limiting",
+      "Add cross-link to code review roadmap section"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  {
+    "id": "todo-015",
+    "title": "Switch Claude prompt to CSV format",
+    "category": "trading-brain",
+    "status": "not_started",
+    "priority": "p2",
+    "owner": "jimmy",
+    "description": "CSV uses 56% fewer tokens than JSON. Restructure the Claude prompt to use CSV for portfolio positions, technicals, and sector data.",
+    "target_date": "2026-04-25",
+    "roadmap_link": "/roadmap#technical-indicators",
+    "concept_link": null,
+    "steps": [
+      "Format portfolio positions as CSV header + rows",
+      "Format technical indicators as CSV",
+      "Format sector rotation as CSV with LEADING/LAGGING labels",
+      "Remove json.dumps(indent=2) from prompt construction (already done)",
+      "Test that Claude still returns valid JSON decisions"
+    ],
+    "created_at": "2026-04-12T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  }
+]

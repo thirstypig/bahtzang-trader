@@ -7,6 +7,15 @@
   --foreground: #fafafa;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+/* Offset anchor targets below the fixed navbar (h-16 = 64px + 16px breathing room) */
+[id] {
+  scroll-margin-top: 5rem;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);

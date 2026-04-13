@@ -1,6 +1,8 @@
 "use client";
 
 import { roadmapItems, RoadmapItem } from "@/data/roadmap";
+import { useHashScroll } from "@/lib/useHashScroll";
+import AdminNav from "@/components/AdminNav";
 
 const STATUS_CONFIG = {
   planned: { label: "Planned", bg: "bg-zinc-800", text: "text-zinc-400", dot: "bg-zinc-500" },
@@ -27,6 +29,7 @@ function Column({ status, items }: { status: string; items: RoadmapItem[] }) {
         {items.map((item) => (
           <div
             key={item.id}
+            id={item.id}
             className="rounded-lg border border-zinc-800 bg-zinc-950 p-4 transition-colors hover:border-zinc-700"
           >
             <div className="flex items-start justify-between gap-2">
@@ -47,6 +50,8 @@ function Column({ status, items }: { status: string; items: RoadmapItem[] }) {
 }
 
 export default function RoadmapPage() {
+  useHashScroll();
+
   const grouped = {
     "in-progress": roadmapItems.filter((i) => i.status === "in-progress"),
     planned: roadmapItems.filter((i) => i.status === "planned"),
@@ -55,6 +60,8 @@ export default function RoadmapPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
+      <AdminNav />
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">Roadmap</h1>
         <p className="mt-1 text-sm text-zinc-500">
