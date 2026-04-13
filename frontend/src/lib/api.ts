@@ -26,8 +26,15 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    const detail = body.detail || res.statusText;
-    throw new Error(detail);
+    const detail = body.detail;
+    // Handle structured error responses (object with error_code + message)
+    if (detail && typeof detail === "object" && detail.message) {
+      const err = new Error(detail.message);
+      (err as any).code = detail.error_code;
+      (err as any).errorType = detail.error_type;
+      throw err;
+    }
+    throw new Error(typeof detail === "string" ? detail : res.statusText);
   }
   return res.json();
 }

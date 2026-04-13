@@ -167,8 +167,10 @@ export default function SettingsPage() {
       setRunResult(
         `${result.action.toUpperCase()} ${result.ticker || ""} — ${result.executed ? "Executed" : "Not executed"}${result.guardrail_block_reason ? ` (${result.guardrail_block_reason})` : ""}`
       );
-    } catch (err) {
-      setRunResult(`Error: ${err instanceof Error ? err.message : "Unknown"}`);
+    } catch (err: any) {
+      const code = err?.code || "UNKNOWN";
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setRunResult(`ERROR [${code}]: ${message}`);
     } finally {
       setRunning(false);
     }
@@ -375,8 +377,23 @@ export default function SettingsPage() {
             <p className="mt-2 text-xs text-red-400">Kill switch active — disable first</p>
           )}
           {runResult && (
-            <div className="mt-4 rounded-lg bg-zinc-950 px-4 py-3">
-              <p className="text-sm text-zinc-300">{runResult}</p>
+            <div className={`mt-4 rounded-lg px-4 py-3 ${
+              runResult.startsWith("ERROR")
+                ? "border border-red-800 bg-red-950/30"
+                : "bg-zinc-950"
+            }`}>
+              {runResult.startsWith("ERROR") ? (
+                <>
+                  <p className="text-sm font-medium text-red-400">
+                    {runResult.split("]: ")[0]}]
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-300">
+                    {runResult.split("]: ")[1]}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-zinc-300">{runResult}</p>
+              )}
             </div>
           )}
         </div>
