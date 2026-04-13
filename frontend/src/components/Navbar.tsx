@@ -23,6 +23,7 @@ const MORE_LINKS = [
     { href: "/concepts", label: "Concepts" },
     { href: "/status", label: "Status" },
     { href: "/changelog", label: "Changelog" },
+    { href: "/errors", label: "Error Log" },
     { href: "/about", label: "About" },
     { href: "/docs", label: "Docs" },
   ]},
