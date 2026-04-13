@@ -6,6 +6,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from app import claude_brain, guardrails, market_data, notifier
+from app.earnings.client import days_until_earnings, format_earnings_csv
 from app.circuit_breaker import check_circuit_breakers, YELLOW, ORANGE, RED
 from app.technical_analysis import get_indicators, format_indicators_csv
 from app.sector_rotation import get_sector_signals, format_sector_csv
@@ -86,6 +87,7 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
     # Format technicals as CSV for Claude
     technicals_csv = format_indicators_csv(indicators)
     sector_csv = format_sector_csv(sector_signals)
+    earnings_csv = format_earnings_csv(db, held_tickers) if held_tickers else ""
 
     # 3. Get Claude's decision (guardrails_config already loaded in step 1b)
     decision = await claude_brain.get_trade_decision(
@@ -96,6 +98,7 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
         guardrails_config=guardrails_config,
         technicals_csv=technicals_csv,
         sector_csv=sector_csv,
+        earnings_csv=earnings_csv,
     )
 
     # Look up current price — check cached quotes first
@@ -108,6 +111,25 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
             quote = await market_data.get_quote(decision["ticker"])
             price = quote["price"]
         decision["price"] = price
+
+        # Earnings-aware position sizing: cap quantity near earnings
+        if decision["action"] == "buy" and price:
+            from app.position_sizing import kelly_position_size
+            ed = days_until_earnings(db, decision["ticker"])
+            max_size = kelly_position_size(
+                confidence=decision.get("confidence", 0.5),
+                portfolio_value=balance["total_value"],
+                db=db,
+                earnings_days=ed,
+            )
+            if max_size > 0:
+                max_qty = int(max_size / price)
+                if max_qty > 0 and decision["quantity"] > max_qty:
+                    logger.info(
+                        "Position sizing capped %s from %d to %d shares (earnings in %s days)",
+                        decision["ticker"], decision["quantity"], max_qty, ed,
+                    )
+                    decision["quantity"] = max_qty
 
     # 4. Run through guardrails
     passed, block_reason = guardrails.check_guardrails(

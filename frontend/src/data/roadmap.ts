@@ -109,9 +109,9 @@ export const roadmapItems: RoadmapItem[] = [
   {
     id: "backtest",
     title: "Backtesting framework",
-    description: "Historical strategy validation with Backtrader, confidence calibration, lookahead bias prevention",
-    status: "planned",
-    priority: "medium",
+    description: "Lightweight simulation engine with pluggable strategies (SMA Crossover, RSI Mean Reversion, Buy & Hold), OHLCV caching, lookahead bias prevention",
+    status: "in-progress",
+    priority: "high",
     phase: "Phase F",
   },
   {
@@ -125,9 +125,9 @@ export const roadmapItems: RoadmapItem[] = [
   {
     id: "earnings-calendar",
     title: "Earnings calendar integration",
-    description: "Finnhub API for upcoming earnings, reduce position sizes near reporting dates",
-    status: "planned",
-    priority: "low",
+    description: "Finnhub API for upcoming earnings, reduces position sizes within 2 days of reporting — 50% at 0-1d, 70% at 2d",
+    status: "in-progress",
+    priority: "high",
     phase: "Phase F",
   },
 ];

@@ -1,4 +1,13 @@
-import { CycleResult, Guardrails, Portfolio, Trade } from "./types";
+import {
+  BacktestDetail,
+  BacktestItem,
+  CycleResult,
+  EarningsEvent,
+  Guardrails,
+  Portfolio,
+  StrategyInfo,
+  Trade,
+} from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4060";
 
@@ -205,4 +214,66 @@ export async function updateTodo(
 
 export async function deleteTodo(id: string): Promise<void> {
   await fetchAPI<void>(`/admin/todos/${id}`, { method: "DELETE" });
+}
+
+// ---------------------------------------------------------------------------
+// Backtest
+// ---------------------------------------------------------------------------
+
+export async function getStrategies(): Promise<StrategyInfo[]> {
+  return fetchAPI<StrategyInfo[]>("/backtest/strategies");
+}
+
+export async function createBacktest(config: {
+  name: string;
+  strategy: string;
+  tickers: string[];
+  start_date: string;
+  end_date: string;
+  initial_capital: number;
+  params: Record<string, unknown>;
+  max_position_pct: number;
+  max_positions: number;
+  stop_loss_pct: number;
+}): Promise<{ config_id: number; result_id: number; status: string }> {
+  return fetchAPI("/backtest", {
+    method: "POST",
+    body: JSON.stringify(config),
+  });
+}
+
+export async function listBacktests(): Promise<BacktestItem[]> {
+  return fetchAPI<BacktestItem[]>("/backtest");
+}
+
+export async function getBacktestResult(
+  resultId: number
+): Promise<BacktestDetail> {
+  return fetchAPI<BacktestDetail>(`/backtest/${resultId}`);
+}
+
+export async function deleteBacktest(configId: number): Promise<void> {
+  await fetchAPI(`/backtest/${configId}`, { method: "DELETE" });
+}
+
+// ---------------------------------------------------------------------------
+// Earnings Calendar
+// ---------------------------------------------------------------------------
+
+export async function getEarningsCalendar(
+  days = 30
+): Promise<{ earnings: EarningsEvent[]; count: number }> {
+  return fetchAPI<{ earnings: EarningsEvent[]; count: number }>(
+    `/earnings?days=${days}`
+  );
+}
+
+export async function refreshEarnings(): Promise<{
+  status: string;
+  events_cached: number;
+}> {
+  return fetchAPI<{ status: string; events_cached: number }>(
+    "/earnings/refresh",
+    { method: "POST" }
+  );
 }

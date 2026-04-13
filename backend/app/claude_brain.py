@@ -116,6 +116,7 @@ async def get_trade_decision(
     guardrails_config: dict,
     technicals_csv: str = "",
     sector_csv: str = "",
+    earnings_csv: str = "",
 ) -> dict:
     """Send portfolio context to Claude and get a structured trade decision."""
     risk_profile = guardrails_config.get("risk_profile", "moderate")
@@ -153,6 +154,11 @@ async def get_trade_decision(
         prompt_parts.append("")
         prompt_parts.append(sector_csv)
 
+    # Add earnings calendar if available
+    if earnings_csv:
+        prompt_parts.append("")
+        prompt_parts.append(earnings_csv)
+
     # Add news
     if news:
         prompt_parts.append("")
@@ -161,8 +167,10 @@ async def get_trade_decision(
 
     prompt_parts.append("")
     prompt_parts.append(
-        "Analyze the portfolio, technicals, sector rotation, and news. "
+        "Analyze the portfolio, technicals, sector rotation, earnings calendar, and news. "
         "Decide on ONE action: buy, sell, or hold. "
+        "IMPORTANT: If a held stock has earnings within 2 days, consider reducing exposure. "
+        "If buying a stock with earnings within 2 days, factor in binary event risk. "
         f"Minimum confidence to trade: {guardrails_config.get('min_confidence', 0.6)}. "
         "NaN means insufficient history for that indicator. "
         "Respond with JSON: {action, ticker, quantity, reasoning, confidence}"

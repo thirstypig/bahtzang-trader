@@ -11,10 +11,12 @@ const MAIN_LINKS = [
   { href: "/trades", label: "Trades" },
   { href: "/settings", label: "Settings" },
   { href: "/analytics", label: "Analytics" },
+  { href: "/backtest", label: "Backtest" },
 ];
 
 const MORE_LINKS = [
   { section: "Trading", items: [
+    { href: "/earnings", label: "Earnings" },
     { href: "/roadmap", label: "Roadmap" },
     { href: "/audit-log", label: "Audit Log" },
   ]},
