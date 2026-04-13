@@ -6,6 +6,8 @@ import logging
 from sqlalchemy.orm import Session
 
 from app import claude_brain, guardrails, market_data, notifier
+from app.technical_analysis import get_indicators, format_indicators_csv
+from app.sector_rotation import get_sector_signals, format_sector_csv
 from app.brokers.alpaca import AlpacaBroker
 from app.config import settings
 from app.logger import log_trade
@@ -44,11 +46,19 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
     cash_available = balance["cash_available"]
     total_invested = balance["total_value"] - cash_available
 
-    # 2. Gather market data — parallel fetch
+    # 2. Gather market data + technicals — parallel fetch
     held_tickers = [p.get("instrument", {}).get("symbol", "") for p in positions]
     quotes_task = market_data.get_quotes(held_tickers) if held_tickers else asyncio.sleep(0, result=[])
     news_task = market_data.get_news(held_tickers if held_tickers else None)
-    quotes, news = await asyncio.gather(quotes_task, news_task)
+    indicators_task = get_indicators(held_tickers) if held_tickers else asyncio.sleep(0, result={})
+    sector_task = get_sector_signals()
+    quotes, news, indicators, sector_signals = await asyncio.gather(
+        quotes_task, news_task, indicators_task, sector_task
+    )
+
+    # Format technicals as CSV for Claude
+    technicals_csv = format_indicators_csv(indicators)
+    sector_csv = format_sector_csv(sector_signals)
 
     # 3. Get Claude's decision
     guardrails_config = guardrails.load_guardrails(db)
@@ -58,6 +68,8 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
         market_data=quotes,
         news=news,
         guardrails_config=guardrails_config,
+        technicals_csv=technicals_csv,
+        sector_csv=sector_csv,
     )
 
     # Look up current price — check cached quotes first
