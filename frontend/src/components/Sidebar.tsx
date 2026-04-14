@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { useTheme } from "@/lib/theme";
 import { useSidebar } from "@/lib/sidebar";
+import ThemeToggle from "@/components/ThemeToggle";
 
 /* ── Navigation structure ────────────────────────────── */
 
@@ -53,7 +53,6 @@ const NAV: NavGroup[] = [
       { href: "/status", label: "Status", icon: icon("M9.348 14.651a3.75 3.75 0 010-5.303m5.304 0a3.75 3.75 0 010 5.303m-7.425 2.122a6.75 6.75 0 010-9.546m9.546 0a6.75 6.75 0 010 9.546M5.106 18.894c-3.808-3.808-3.808-9.98 0-13.789m13.788 0c3.808 3.808 3.808 9.981 0 13.79M12 12.75h.008v.008H12v-.008z") },
       { href: "/errors", label: "Errors", icon: icon("M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z") },
       { href: "/changelog", label: "Changelog", icon: icon("M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z") },
-      { href: "/concepts", label: "Concepts", icon: icon("M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18") },
       { href: "/about", label: "About", icon: icon("M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z") },
       { href: "/docs", label: "Docs", icon: icon("M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z") },
     ],
@@ -65,12 +64,11 @@ const NAV: NavGroup[] = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
-  const { theme, toggle } = useTheme();
   const { expanded, toggle: toggleSidebar } = useSidebar();
   const [profileOpen, setProfileOpen] = useState(false);
 
   function isActive(href: string) {
-    return href === "/" ? pathname === "/" : pathname.startsWith(href);
+    return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
   }
 
   return (
@@ -140,23 +138,9 @@ export default function Sidebar() {
 
       {/* ── Footer: theme toggle + profile ── */}
       <div className="border-t border-border p-3">
-        {/* Theme toggle */}
-        <button
-          onClick={toggle}
-          className="mb-2 flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-secondary transition-colors hover:bg-card-alt hover:text-primary"
-          title={expanded ? undefined : (theme === "dark" ? "Light mode" : "Dark mode")}
-        >
-          {theme === "dark" ? (
-            <svg className="h-5 w-5 shrink-0 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-            </svg>
-          ) : (
-            <svg className="h-5 w-5 shrink-0 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-            </svg>
-          )}
-          {expanded && <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>}
-        </button>
+        <div className="mb-2">
+          <ThemeToggle expanded={expanded} />
+        </div>
 
         {/* Profile */}
         <div className="relative">

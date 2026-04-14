@@ -201,6 +201,14 @@ async def get_trade_decision(
 
     response_text = message.content[0].text
 
+    # Strip markdown code fences if Claude wraps JSON in ```json ... ```
+    stripped = response_text.strip()
+    if stripped.startswith("```"):
+        stripped = stripped.split("\n", 1)[-1]  # remove first line (```json)
+        if stripped.endswith("```"):
+            stripped = stripped[:-3].strip()
+        response_text = stripped
+
     try:
         decision = json.loads(response_text)
     except json.JSONDecodeError:

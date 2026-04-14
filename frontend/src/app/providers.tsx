@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
-import { SidebarProvider, useSidebar } from "@/lib/sidebar";
+import { SidebarProvider, useSidebar, SIDEBAR_WIDTH_EXPANDED, SIDEBAR_WIDTH_COLLAPSED } from "@/lib/sidebar";
 import Sidebar from "@/components/Sidebar";
 import Spinner from "@/components/Spinner";
 
@@ -31,7 +31,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <main
         className="min-h-screen transition-[margin-left] duration-200"
-        style={{ marginLeft: expanded ? 240 : 68 }}
+        style={{ marginLeft: expanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED }}
       >
         {children}
       </main>
