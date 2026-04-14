@@ -2,7 +2,6 @@
 
 import { changelog } from "@/data/changelog";
 import { useHashScroll } from "@/lib/useHashScroll";
-import AdminNav from "@/components/AdminNav";
 import CrossLink from "@/components/CrossLink";
 
 const TYPE_STYLES: Record<string, string> = {
@@ -21,11 +20,9 @@ export default function ChangelogPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
-      <AdminNav />
-
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Changelog</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="text-2xl font-bold text-primary">Changelog</h1>
+        <p className="mt-1 text-sm text-muted">
           {changelog.length} releases, {totalChanges} changes — latest v{changelog[0].version}
         </p>
       </div>
@@ -35,11 +32,11 @@ export default function ChangelogPage() {
           <div
             key={entry.version}
             id={`v${entry.version}`}
-            className="border-l-2 border-zinc-800 pl-6"
+            className="border-l-2 border-border pl-6"
           >
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold text-white">v{entry.version}</h2>
-              <time className="text-sm text-zinc-500">{entry.date}</time>
+              <h2 className="text-xl font-bold text-primary">v{entry.version}</h2>
+              <time className="text-sm text-muted">{entry.date}</time>
               {entry.roadmapLink && (
                 <CrossLink type="roadmap" href={entry.roadmapLink} />
               )}
@@ -52,7 +49,7 @@ export default function ChangelogPage() {
                   >
                     {change.type}
                   </span>
-                  <span className="text-sm text-zinc-300">{change.title}</span>
+                  <span className="text-sm text-secondary">{change.title}</span>
                 </li>
               ))}
             </ul>

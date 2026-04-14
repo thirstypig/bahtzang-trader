@@ -18,8 +18,8 @@ interface Props {
 export default function EquityCurveChart({ snapshots }: Props) {
   if (snapshots.length < 2) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900">
-        <p className="text-sm text-zinc-500">
+      <div className="flex h-64 items-center justify-center rounded-xl border border-border bg-card">
+        <p className="text-sm text-muted">
           Need at least 2 snapshots for equity curve ({snapshots.length}/2)
         </p>
       </div>
@@ -38,8 +38,8 @@ export default function EquityCurveChart({ snapshots }: Props) {
   }));
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-      <h3 className="mb-4 text-sm font-semibold text-white">Equity Curve vs SPY</h3>
+    <div className="rounded-xl border border-border bg-card p-5">
+      <h3 className="mb-4 text-sm font-semibold text-primary">Equity Curve vs SPY</h3>
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data}>
           <XAxis

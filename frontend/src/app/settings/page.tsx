@@ -197,10 +197,10 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-3xl px-6 py-8">
       <div className="mb-8">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-white">Settings</h1>
+          <h1 className="text-2xl font-bold text-primary">Settings</h1>
           <Tip text="This is where you control the bot's behavior — what it trades, how often, and how much risk it takes. Changes take effect immediately." />
         </div>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-muted">
           Configure your trading strategy, risk, and frequency
         </p>
       </div>
@@ -208,7 +208,7 @@ export default function SettingsPage() {
       {feedback && (
         <div className={`mb-4 rounded-lg px-4 py-3 text-sm ${
           feedback.type === "saved"
-            ? "border border-emerald-800 bg-emerald-950/30 text-emerald-400"
+            ? "border border-emerald-800 bg-emerald-950/30 text-accent"
             : "border border-red-800 bg-red-950/30 text-red-400"
         }`}>
           {feedback.message}
@@ -216,12 +216,12 @@ export default function SettingsPage() {
       )}
 
       {/* Trading Goal */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-white">Trading Goal</h2>
+          <h2 className="text-lg font-semibold text-primary">Trading Goal</h2>
           <Tip text="This is the most important setting. It tells the AI what you're trying to achieve — steady income, maximum growth, or just matching the market. The goal determines which stocks Claude considers and how aggressively it trades." />
         </div>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-muted">
           What should Claude optimize for? This shapes which stocks it considers, how long it holds, and how often it trades.
         </p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -235,19 +235,19 @@ export default function SettingsPage() {
                 className={`rounded-xl border p-4 text-left transition-all ${
                   isActive
                     ? "border-emerald-500 bg-emerald-900/30 ring-1 ring-emerald-500"
-                    : "border-zinc-800 bg-zinc-950 hover:border-zinc-700"
+                    : "border-border bg-surface hover:border-border-strong"
                 } disabled:opacity-50`}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{goal.icon}</span>
-                  <span className="text-sm font-semibold text-white">{goal.label}</span>
+                  <span className="text-sm font-semibold text-primary">{goal.label}</span>
                 </div>
-                <p className="mt-2 text-xs text-zinc-400">{goal.description}</p>
-                <div className="mt-3 flex items-center gap-3 text-[10px] text-zinc-500">
-                  <span className="text-emerald-400">{goal.returns}</span>
+                <p className="mt-2 text-xs text-secondary">{goal.description}</p>
+                <div className="mt-3 flex items-center gap-3 text-[10px] text-muted">
+                  <span className="text-accent">{goal.returns}</span>
                   <span>{goal.frequency}</span>
                 </div>
-                <p className="mt-1 font-mono text-[10px] text-zinc-600">{goal.tickers}</p>
+                <p className="mt-1 font-mono text-[10px] text-muted">{goal.tickers}</p>
               </button>
             );
           })}
@@ -255,12 +255,12 @@ export default function SettingsPage() {
       </div>
 
       {/* Trading Frequency */}
-      <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="mt-6 rounded-xl border border-border bg-card p-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-white">Trading Frequency</h2>
+          <h2 className="text-lg font-semibold text-primary">Trading Frequency</h2>
           <Tip text="How often the bot analyzes the market and makes decisions. 1x/day is calm and conservative. 5x/day is active — more chances to catch opportunities but also more trading costs." />
         </div>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-muted">
           How many times per day should the bot run?
         </p>
         <div className="mt-5 flex gap-3">
@@ -274,11 +274,11 @@ export default function SettingsPage() {
                 className={`flex-1 rounded-xl border p-4 text-center transition-all ${
                   isActive
                     ? "border-blue-500 bg-blue-900/30 ring-1 ring-blue-500"
-                    : "border-zinc-800 bg-zinc-950 hover:border-zinc-700"
+                    : "border-border bg-surface hover:border-border-strong"
                 } disabled:opacity-50`}
               >
-                <p className="text-lg font-bold text-white">{freq.label}</p>
-                <p className="mt-1 text-[10px] text-zinc-500">{freq.times}</p>
+                <p className="text-lg font-bold text-primary">{freq.label}</p>
+                <p className="mt-1 text-[10px] text-muted">{freq.times}</p>
               </button>
             );
           })}
@@ -286,12 +286,12 @@ export default function SettingsPage() {
       </div>
 
       {/* Risk Profile */}
-      <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="mt-6 rounded-xl border border-border bg-card p-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-white">Risk Profile</h2>
+          <h2 className="text-lg font-semibold text-primary">Risk Profile</h2>
           <Tip text="How much risk you're comfortable with. Conservative = small positions, strict limits, rarely trades. Aggressive = larger positions, looser limits, trades more often. This overrides the fine-tune settings below with preset values." />
         </div>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-muted">
           Controls position sizing, stop losses, and confidence thresholds
         </p>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -310,10 +310,10 @@ export default function SettingsPage() {
               >
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{profile.icon}</span>
-                  <span className="text-sm font-semibold text-white">{profile.label}</span>
+                  <span className="text-sm font-semibold text-primary">{profile.label}</span>
                 </div>
-                <p className="mt-2 text-xs text-zinc-400">{profile.description}</p>
-                <p className="mt-2 text-[10px] text-zinc-600">{profile.details}</p>
+                <p className="mt-2 text-xs text-secondary">{profile.description}</p>
+                <p className="mt-2 text-[10px] text-muted">{profile.details}</p>
               </button>
             );
           })}
@@ -321,12 +321,12 @@ export default function SettingsPage() {
       </div>
 
       {/* Fine-Tune Guardrails */}
-      <form onSubmit={handleSave} className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <form onSubmit={handleSave} className="mt-6 rounded-xl border border-border bg-card p-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-white">Fine-Tune Guardrails</h2>
+          <h2 className="text-lg font-semibold text-primary">Fine-Tune Guardrails</h2>
           <Tip text="Guardrails are safety limits that prevent the bot from doing anything too risky. Even if Claude wants to make a big trade, guardrails can block it. Think of them as guard rails on a highway — they keep you from going off the edge." />
         </div>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-muted">
           Override individual settings from the selected profile
         </p>
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
@@ -357,22 +357,22 @@ export default function SettingsPage() {
         </div>
         <div className="mt-6 flex items-center gap-4">
           <button type="submit" disabled={saving}
-            className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-emerald-700 disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save Guardrails"}
           </button>
-          {feedback?.type === "saved" && <span className="text-sm text-emerald-400">{feedback.message}</span>}
+          {feedback?.type === "saved" && <span className="text-sm text-accent">{feedback.message}</span>}
           {feedback?.type === "error" && <span className="text-sm text-red-400">{feedback.message}</span>}
         </div>
       </form>
 
       {/* Kill Switch */}
-      <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="mt-6 rounded-xl border border-border bg-card p-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-white">Emergency Controls</h2>
+          <h2 className="text-lg font-semibold text-primary">Emergency Controls</h2>
           <Tip text="The kill switch immediately stops ALL automated trading. The bot won't buy or sell anything until you turn it back off. Use this if something seems wrong or you want to pause trading." />
         </div>
-        <p className="mt-1 text-sm text-zinc-500">Immediately halt all automated trading</p>
+        <p className="mt-1 text-sm text-muted">Immediately halt all automated trading</p>
         <div className="mt-6">
           <KillSwitchButton
             isActive={guardrails.kill_switch}
@@ -382,21 +382,21 @@ export default function SettingsPage() {
       </div>
 
       {/* Manual Run */}
-      <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+      <div className="mt-6 rounded-xl border border-border bg-card p-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-white">Manual Trigger</h2>
+          <h2 className="text-lg font-semibold text-primary">Manual Trigger</h2>
           <span className="rounded bg-amber-900/30 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-400">
             Testing Only
           </span>
         </div>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-muted">
           Run one full trading cycle manually. The bot runs automatically on your configured schedule — this is for testing only.
         </p>
         <div className="mt-6">
           <button
             onClick={() => setShowRunModal(true)}
             disabled={running || guardrails.kill_switch}
-            className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-primary transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
             {running ? (
               <span className="flex items-center gap-2">
@@ -414,19 +414,19 @@ export default function SettingsPage() {
             <div className={`mt-4 rounded-lg px-4 py-3 ${
               runResult.startsWith("ERROR")
                 ? "border border-red-800 bg-red-950/30"
-                : "bg-zinc-950"
+                : "bg-surface"
             }`}>
               {runResult.startsWith("ERROR") ? (
                 <>
                   <p className="text-sm font-medium text-red-400">
                     {runResult.split("]: ")[0]}]
                   </p>
-                  <p className="mt-1 text-sm text-zinc-300">
+                  <p className="mt-1 text-sm text-secondary">
                     {runResult.split("]: ")[1]}
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-zinc-300">{runResult}</p>
+                <p className="text-sm text-secondary">{runResult}</p>
               )}
             </div>
           )}
@@ -434,9 +434,9 @@ export default function SettingsPage() {
       </div>
 
       {/* Alpaca Account */}
-      <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold text-white">Broker Account</h2>
-        <p className="mt-1 text-sm text-zinc-500">
+      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+        <h2 className="text-lg font-semibold text-primary">Broker Account</h2>
+        <p className="mt-1 text-sm text-muted">
           Manage your Alpaca account, deposit/withdraw funds, and view order history
         </p>
         <div className="mt-4">
@@ -444,23 +444,23 @@ export default function SettingsPage() {
             href="https://app.alpaca.markets"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700"
+            className="inline-flex items-center gap-2 rounded-lg border border-border-strong bg-card-alt px-4 py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-border-strong"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-4.5-4.5h6m0 0v6m0-6L10.5 13.5" />
             </svg>
             Open Alpaca Dashboard
           </a>
-          <p className="mt-2 text-xs text-zinc-600">
+          <p className="mt-2 text-xs text-muted">
             Deposits, withdrawals, and order history are managed directly on Alpaca
           </p>
         </div>
       </div>
 
       {/* Display Timezone */}
-      <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold text-white">Display Timezone</h2>
-        <p className="mt-1 text-sm text-zinc-500">
+      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+        <h2 className="text-lg font-semibold text-primary">Display Timezone</h2>
+        <p className="mt-1 text-sm text-muted">
           All dates and times across the app will display in this timezone
         </p>
         <div className="mt-4 max-w-xs">
@@ -470,7 +470,7 @@ export default function SettingsPage() {
               setTz(e.target.value);
               setTimezone(e.target.value);
             }}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2.5 text-sm text-primary focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             <option value="America/New_York">Eastern (ET)</option>
             <option value="America/Chicago">Central (CT)</option>
@@ -480,7 +480,7 @@ export default function SettingsPage() {
             <option value="Pacific/Honolulu">Hawaii (HT)</option>
             <option value="UTC">UTC</option>
           </select>
-          <p className="mt-2 text-xs text-zinc-600">
+          <p className="mt-2 text-xs text-muted">
             Current: {new Date().toLocaleTimeString("en-US", { timeZone: timezone, hour: "numeric", minute: "2-digit", timeZoneName: "short" })}
           </p>
         </div>
@@ -501,15 +501,15 @@ function Field({ label, prefix, suffix, value, onChange, ...inputProps }: {
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div>
-      <label className="block text-sm font-medium text-zinc-300">{label}</label>
+      <label className="block text-sm font-medium text-secondary">{label}</label>
       <div className="relative mt-1.5">
-        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">{prefix}</span>}
+        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">{prefix}</span>}
         <input {...inputProps} value={value} onChange={(e) => onChange(e.target.value)}
-          className={`w-full rounded-lg border border-zinc-700 bg-zinc-800 py-2.5 text-sm text-white placeholder-zinc-500 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
+          className={`w-full rounded-lg border border-border-strong bg-card-alt py-2.5 text-sm text-primary placeholder-zinc-500 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
             prefix ? "pl-7 pr-3" : suffix ? "pl-3 pr-7" : "px-3"
           }`}
         />
-        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">{suffix}</span>}
+        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">{suffix}</span>}
       </div>
     </div>
   );

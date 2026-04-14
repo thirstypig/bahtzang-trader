@@ -17,7 +17,7 @@ const STATUS_STYLES = {
   operational: { dot: "bg-emerald-500", text: "text-emerald-400", label: "Operational" },
   degraded: { dot: "bg-amber-500", text: "text-amber-400", label: "Degraded" },
   down: { dot: "bg-red-500", text: "text-red-400", label: "Down" },
-  checking: { dot: "bg-zinc-500 animate-pulse", text: "text-zinc-400", label: "Checking..." },
+  checking: { dot: "bg-zinc-500 animate-pulse", text: "text-secondary", label: "Checking..." },
 };
 
 // 013-fix: Define service definitions as a constant (not in state)
@@ -88,8 +88,8 @@ export default function StatusPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">System Status</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="text-2xl font-bold text-primary">System Status</h1>
+        <p className="mt-1 text-sm text-muted">
           Real-time health of all services
         </p>
       </div>
@@ -121,15 +121,15 @@ export default function StatusPage() {
           return (
             <div
               key={service.name}
-              className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-4"
+              className="flex items-center justify-between rounded-xl border border-border bg-card px-6 py-4"
             >
               <div className="flex items-center gap-3">
                 <div className={`h-2.5 w-2.5 rounded-full ${style.dot}`} />
-                <span className="text-sm font-medium text-white">{service.name}</span>
+                <span className="text-sm font-medium text-primary">{service.name}</span>
               </div>
               <div className="flex items-center gap-4">
                 {service.responseTime !== null && (
-                  <span className="text-xs text-zinc-500">{service.responseTime}ms</span>
+                  <span className="text-xs text-muted">{service.responseTime}ms</span>
                 )}
                 <span className={`text-xs font-medium ${style.text}`}>{style.label}</span>
               </div>
@@ -138,7 +138,7 @@ export default function StatusPage() {
         })}
       </div>
 
-      <p className="mt-6 text-center text-xs text-zinc-600">Auto-refreshes every 5 minutes</p>
+      <p className="mt-6 text-center text-xs text-muted">Auto-refreshes every 5 minutes</p>
     </div>
   );
 }

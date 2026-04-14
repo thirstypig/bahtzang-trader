@@ -140,38 +140,38 @@ export default function BacktestPage() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-bold text-white">Backtest</h1>
+        <h1 className="text-2xl font-bold text-primary">Backtest</h1>
         <Tip text="Backtesting lets you test 'what would have happened?' by running a trading strategy on historical stock prices. It doesn't use real money — it simulates trades to see if a strategy would have been profitable." />
       </div>
-      <p className="mt-1 text-sm text-zinc-500">
+      <p className="mt-1 text-sm text-muted">
         Test trading strategies against historical data
       </p>
 
       {/* Config Form */}
-      <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="mb-4 text-sm font-semibold text-white">
+      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+        <h2 className="mb-4 text-sm font-semibold text-primary">
           New Backtest
         </h2>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">Name</label>
+            <label className="mb-1 block text-xs text-muted">Name</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="My backtest"
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder-zinc-600 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary placeholder-zinc-600 focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 flex items-center gap-1 text-xs text-zinc-500">
+            <label className="mb-1 flex items-center gap-1 text-xs text-muted">
               Strategy <Tip text="The rule set the simulation follows. SMA Crossover buys when short-term momentum beats long-term (bullish signal). RSI Mean Reversion buys oversold stocks and sells overbought ones. Buy &amp; Hold is the simplest benchmark — just buy and hold." />
             </label>
             <select
               value={strategy}
               onChange={(e) => setStrategy(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
             >
               {strategies.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -180,61 +180,61 @@ export default function BacktestPage() {
               ))}
             </select>
             {selectedStrategy && (
-              <p className="mt-1 text-xs text-zinc-600">
+              <p className="mt-1 text-xs text-muted">
                 {selectedStrategy.description}
               </p>
             )}
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">
+            <label className="mb-1 block text-xs text-muted">
               Tickers (comma-separated)
             </label>
             <input
               value={tickers}
               onChange={(e) => setTickers(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder-zinc-600 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary placeholder-zinc-600 focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">
+            <label className="mb-1 block text-xs text-muted">
               Start Date
             </label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">
+            <label className="mb-1 block text-xs text-muted">
               End Date
             </label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">
+            <label className="mb-1 block text-xs text-muted">
               Initial Capital ($)
             </label>
             <input
               type="number"
               value={capital}
               onChange={(e) => setCapital(Number(e.target.value))}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 flex items-center gap-1 text-xs text-zinc-500">
+            <label className="mb-1 flex items-center gap-1 text-xs text-muted">
               Max Position Size (%) <Tip text="The most you'll put into any single stock, as a fraction of your total portfolio. 0.10 means 10% — so with $100K, no single stock gets more than $10K." />
             </label>
             <input
@@ -242,24 +242,24 @@ export default function BacktestPage() {
               step="0.01"
               value={maxPosPct}
               onChange={(e) => setMaxPosPct(Number(e.target.value))}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">
+            <label className="mb-1 block text-xs text-muted">
               Max Positions
             </label>
             <input
               type="number"
               value={maxPositions}
               onChange={(e) => setMaxPositions(Number(e.target.value))}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 flex items-center gap-1 text-xs text-zinc-500">
+            <label className="mb-1 flex items-center gap-1 text-xs text-muted">
               Stop Loss (%) <Tip text="If a stock drops this much from your buy price, it auto-sells to limit your loss. 0.05 means 5% — if you bought at $100 and it drops to $95, it sells automatically." />
             </label>
             <input
@@ -267,7 +267,7 @@ export default function BacktestPage() {
               step="0.01"
               value={stopLoss}
               onChange={(e) => setStopLoss(Number(e.target.value))}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
             />
           </div>
         </div>
@@ -275,7 +275,7 @@ export default function BacktestPage() {
         <button
           onClick={handleRun}
           disabled={running}
-          className="mt-4 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+          className="mt-4 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-emerald-500 disabled:opacity-50"
         >
           {running ? (
             <span className="flex items-center gap-2">
@@ -289,14 +289,14 @@ export default function BacktestPage() {
 
       {/* Past Backtests */}
       {backtests.length > 0 && (
-        <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <h2 className="mb-4 text-sm font-semibold text-white">
+        <div className="mt-6 rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-4 text-sm font-semibold text-primary">
             Past Backtests
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-zinc-800 text-xs text-zinc-500">
+                <tr className="border-b border-border text-xs text-muted">
                   <th className="pb-2 pr-4">Name</th>
                   <th className="pb-2 pr-4">Strategy</th>
                   <th className="pb-2 pr-4">Status</th>
@@ -312,14 +312,14 @@ export default function BacktestPage() {
                   <tr
                     key={bt.config_id ?? bt.id}
                     onClick={() => handleViewResult(bt)}
-                    className={`border-b border-zinc-800/50 transition-colors ${
+                    className={`border-b border-border/50 transition-colors ${
                       bt.status === "completed"
-                        ? "cursor-pointer hover:bg-zinc-800/50"
+                        ? "cursor-pointer hover:bg-card-alt/50"
                         : ""
                     }`}
                   >
-                    <td className="py-2.5 pr-4 text-white">{bt.name}</td>
-                    <td className="py-2.5 pr-4 text-zinc-400">
+                    <td className="py-2.5 pr-4 text-primary">{bt.name}</td>
+                    <td className="py-2.5 pr-4 text-secondary">
                       {bt.strategy.replace(/_/g, " ")}
                     </td>
                     <td className="py-2.5 pr-4">
@@ -329,24 +329,24 @@ export default function BacktestPage() {
                       className={`py-2.5 pr-4 text-right ${
                         bt.total_return_pct !== null
                           ? bt.total_return_pct >= 0
-                            ? "text-emerald-400"
+                            ? "text-accent"
                             : "text-red-400"
-                          : "text-zinc-600"
+                          : "text-muted"
                       }`}
                     >
                       {bt.total_return_pct !== null
                         ? `${bt.total_return_pct >= 0 ? "+" : ""}${bt.total_return_pct}%`
                         : "—"}
                     </td>
-                    <td className="py-2.5 pr-4 text-right text-zinc-400">
+                    <td className="py-2.5 pr-4 text-right text-secondary">
                       {bt.sharpe_ratio ?? "—"}
                     </td>
-                    <td className="py-2.5 pr-4 text-right text-zinc-400">
+                    <td className="py-2.5 pr-4 text-right text-secondary">
                       {bt.max_drawdown_pct !== null
                         ? `${bt.max_drawdown_pct}%`
                         : "—"}
                     </td>
-                    <td className="py-2.5 pr-4 text-right text-zinc-400">
+                    <td className="py-2.5 pr-4 text-right text-secondary">
                       {bt.total_trades ?? "—"}
                     </td>
                     <td className="py-2.5">
@@ -355,7 +355,7 @@ export default function BacktestPage() {
                           e.stopPropagation();
                           handleDelete(bt.config_id ?? bt.id);
                         }}
-                        className="text-xs text-zinc-600 hover:text-red-400"
+                        className="text-xs text-muted hover:text-red-400"
                       >
                         Delete
                       </button>
@@ -378,7 +378,7 @@ export default function BacktestPage() {
               value={`${(detail.total_return_pct ?? 0) >= 0 ? "+" : ""}${detail.total_return_pct}%`}
               color={
                 (detail.total_return_pct ?? 0) >= 0
-                  ? "text-emerald-400"
+                  ? "text-accent"
                   : "text-red-400"
               }
               tip="How much the simulated portfolio gained or lost over the backtest period. Compare this to Buy & Hold to see if the strategy adds value."
@@ -388,9 +388,9 @@ export default function BacktestPage() {
               value={detail.sharpe_ratio?.toString() ?? "—"}
               color={
                 detail.sharpe_ratio === null
-                  ? "text-zinc-400"
+                  ? "text-secondary"
                   : detail.sharpe_ratio >= 1
-                    ? "text-emerald-400"
+                    ? "text-accent"
                     : detail.sharpe_ratio >= 0
                       ? "text-amber-400"
                       : "text-red-400"
@@ -407,7 +407,7 @@ export default function BacktestPage() {
               value={`${detail.win_rate_pct}%`}
               color={
                 (detail.win_rate_pct ?? 0) >= 55
-                  ? "text-emerald-400"
+                  ? "text-accent"
                   : "text-amber-400"
               }
             />
@@ -426,14 +426,14 @@ export default function BacktestPage() {
             <MetricCard
               label="Total Trades"
               value={detail.total_trades?.toString() ?? "0"}
-              color="text-white"
+              color="text-primary"
             />
           </div>
 
           {/* Equity Curve */}
           {detail.equity_curve.length > 1 && (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-              <h3 className="mb-4 text-sm font-semibold text-white">
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="mb-4 text-sm font-semibold text-primary">
                 Equity Curve
               </h3>
               <ResponsiveContainer width="100%" height={280}>
@@ -482,14 +482,14 @@ export default function BacktestPage() {
 
           {/* Trades Table */}
           {detail.trades_log.length > 0 && (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-              <h3 className="mb-4 text-sm font-semibold text-white">
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h3 className="mb-4 text-sm font-semibold text-primary">
                 Simulated Trades ({detail.trades_log.length})
               </h3>
               <div className="max-h-96 overflow-y-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-zinc-800 text-xs text-zinc-500">
+                    <tr className="border-b border-border text-xs text-muted">
                       <th className="pb-2 pr-4">Date</th>
                       <th className="pb-2 pr-4">Ticker</th>
                       <th className="pb-2 pr-4">Action</th>
@@ -502,32 +502,32 @@ export default function BacktestPage() {
                     {detail.trades_log.map((t, i) => (
                       <tr
                         key={i}
-                        className="border-b border-zinc-800/50"
+                        className="border-b border-border/50"
                       >
-                        <td className="py-2 pr-4 text-zinc-400">
+                        <td className="py-2 pr-4 text-secondary">
                           {t.date}
                         </td>
-                        <td className="py-2 pr-4 font-medium text-white">
+                        <td className="py-2 pr-4 font-medium text-primary">
                           {t.ticker}
                         </td>
                         <td className="py-2 pr-4">
                           <span
                             className={`rounded px-2 py-0.5 text-xs font-medium ${
                               t.action === "buy"
-                                ? "bg-emerald-500/10 text-emerald-400"
+                                ? "bg-accent/10 text-accent"
                                 : "bg-red-500/10 text-red-400"
                             }`}
                           >
                             {t.action.toUpperCase()}
                           </span>
                         </td>
-                        <td className="py-2 pr-4 text-right text-zinc-400">
+                        <td className="py-2 pr-4 text-right text-secondary">
                           {t.quantity}
                         </td>
-                        <td className="py-2 pr-4 text-right text-zinc-400">
+                        <td className="py-2 pr-4 text-right text-secondary">
                           ${t.price.toFixed(2)}
                         </td>
-                        <td className="py-2 text-xs text-zinc-500">
+                        <td className="py-2 text-xs text-muted">
                           {t.reason}
                         </td>
                       </tr>
@@ -544,7 +544,7 @@ export default function BacktestPage() {
       {detail && detail.status === "failed" && (
         <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/5 p-6">
           <p className="text-sm font-medium text-red-400">Backtest Failed</p>
-          <p className="mt-1 text-xs text-zinc-400">
+          <p className="mt-1 text-xs text-secondary">
             {detail.error_message}
           </p>
         </div>
@@ -565,8 +565,8 @@ function MetricCard({
   tip?: string;
 }) {
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-      <p className="flex items-center gap-1 text-xs text-zinc-500">
+    <div className="rounded-xl border border-border bg-card p-6">
+      <p className="flex items-center gap-1 text-xs text-muted">
         {label}
         {tip && <Tip text={tip} />}
       </p>
@@ -577,9 +577,9 @@ function MetricCard({
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    pending: "bg-zinc-500/10 text-zinc-400",
+    pending: "bg-zinc-500/10 text-secondary",
     running: "bg-blue-500/10 text-blue-400",
-    completed: "bg-emerald-500/10 text-emerald-400",
+    completed: "bg-accent/10 text-accent",
     failed: "bg-red-500/10 text-red-400",
   };
   return (

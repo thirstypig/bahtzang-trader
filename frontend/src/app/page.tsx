@@ -53,7 +53,7 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-7xl px-6 py-8">
         <div className="rounded-xl border border-red-900/50 bg-red-950/20 p-6">
           <p className="text-red-400">{error}</p>
-          <p className="mt-2 text-sm text-zinc-500">
+          <p className="mt-2 text-sm text-muted">
             Make sure the backend is running at{" "}
             {process.env.NEXT_PUBLIC_API_URL || "http://localhost:4060"}
           </p>
@@ -68,10 +68,10 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-6">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-primary">Dashboard</h1>
           <Tip text="This is your home base. It shows your current portfolio value, what the AI decided to do most recently, and how your money is allocated across stocks." />
         </div>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-muted">
           Real-time portfolio overview and AI trading decisions
         </p>
       </div>

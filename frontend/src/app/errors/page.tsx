@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { getRecentErrors, getErrorByRef, ErrorSummary, ErrorDetail } from "@/lib/api";
-import AdminNav from "@/components/AdminNav";
 import Spinner from "@/components/Spinner";
 import { getTimezone } from "@/lib/utils";
 
@@ -66,19 +65,17 @@ export default function ErrorsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
-      <AdminNav />
-
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Error Log</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="text-2xl font-bold text-primary">Error Log</h1>
+        <p className="mt-1 text-sm text-muted">
           {total} errors in buffer (last 100 kept) — click any error to see the full stack trace
         </p>
       </div>
 
       {errors.length === 0 ? (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-8 text-center">
-          <p className="text-emerald-400 text-sm font-medium">No errors recorded</p>
-          <p className="mt-1 text-xs text-zinc-500">Errors from /run and other endpoints will appear here</p>
+        <div className="rounded-xl border border-border bg-card p-8 text-center">
+          <p className="text-accent text-sm font-medium">No errors recorded</p>
+          <p className="mt-1 text-xs text-muted">Errors from /run and other endpoints will appear here</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -86,65 +83,65 @@ export default function ErrorsPage() {
             <div key={err.ref}>
               <button
                 onClick={() => handleSelectError(err.ref)}
-                className={`w-full rounded-xl border bg-zinc-900 px-5 py-3 text-left transition-colors hover:border-zinc-700 ${
-                  selectedRef === err.ref ? "border-red-800" : "border-zinc-800"
+                className={`w-full rounded-xl border bg-card px-5 py-3 text-left transition-colors hover:border-border-strong ${
+                  selectedRef === err.ref ? "border-red-800" : "border-border"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <span className="shrink-0 rounded bg-red-900/40 px-2 py-0.5 text-[10px] font-bold text-red-400 font-mono">
                     {err.ref}
                   </span>
-                  <span className="shrink-0 rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold uppercase text-zinc-400">
+                  <span className="shrink-0 rounded bg-card-alt px-2 py-0.5 text-[10px] font-semibold uppercase text-secondary">
                     {err.error_code}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-sm text-zinc-300">
+                  <span className="min-w-0 flex-1 truncate text-sm text-secondary">
                     {err.message}
                   </span>
-                  <span className="shrink-0 text-[10px] text-zinc-600">
+                  <span className="shrink-0 text-[10px] text-muted">
                     {err.method} {err.path}
                   </span>
-                  <span className="shrink-0 text-[10px] text-zinc-600">
+                  <span className="shrink-0 text-[10px] text-muted">
                     {timeAgo(err.timestamp)}
                   </span>
                 </div>
               </button>
 
               {selectedRef === err.ref && (
-                <div className="mt-1 rounded-lg border border-red-900/30 bg-zinc-950 p-4">
+                <div className="mt-1 rounded-lg border border-red-900/30 bg-surface p-4">
                   {detailLoading ? (
-                    <p className="text-xs text-zinc-500">Loading stack trace...</p>
+                    <p className="text-xs text-muted">Loading stack trace...</p>
                   ) : detail ? (
                     <>
                       <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
                         <div>
-                          <span className="text-zinc-600">Type:</span>{" "}
-                          <span className="text-zinc-400">{detail.error_type}</span>
+                          <span className="text-muted">Type:</span>{" "}
+                          <span className="text-secondary">{detail.error_type}</span>
                         </div>
                         <div>
-                          <span className="text-zinc-600">Code:</span>{" "}
-                          <span className="text-zinc-400">{detail.error_code}</span>
+                          <span className="text-muted">Code:</span>{" "}
+                          <span className="text-secondary">{detail.error_code}</span>
                         </div>
                         <div>
-                          <span className="text-zinc-600">Path:</span>{" "}
-                          <span className="text-zinc-400">{detail.method} {detail.path}</span>
+                          <span className="text-muted">Path:</span>{" "}
+                          <span className="text-secondary">{detail.method} {detail.path}</span>
                         </div>
                         <div>
-                          <span className="text-zinc-600">Time:</span>{" "}
-                          <span className="text-zinc-400">{new Date(detail.timestamp).toLocaleString("en-US", { timeZone: getTimezone() })}</span>
+                          <span className="text-muted">Time:</span>{" "}
+                          <span className="text-secondary">{new Date(detail.timestamp).toLocaleString("en-US", { timeZone: getTimezone() })}</span>
                         </div>
                       </div>
                       <p className="mb-3 text-sm text-red-400">{detail.message}</p>
                       <details open>
-                        <summary className="cursor-pointer text-xs text-zinc-600 hover:text-zinc-400">
+                        <summary className="cursor-pointer text-xs text-muted hover:text-secondary">
                           Stack Trace
                         </summary>
-                        <pre className="mt-2 max-h-64 overflow-auto rounded bg-zinc-900 p-3 text-[11px] leading-relaxed text-zinc-400 font-mono">
+                        <pre className="mt-2 max-h-64 overflow-auto rounded bg-card p-3 text-[11px] leading-relaxed text-secondary font-mono">
                           {detail.stack}
                         </pre>
                       </details>
                     </>
                   ) : (
-                    <p className="text-xs text-zinc-500">Error detail not found</p>
+                    <p className="text-xs text-muted">Error detail not found</p>
                   )}
                 </div>
               )}

@@ -19,8 +19,8 @@ interface Props {
 export default function ReturnDistributionChart({ snapshots }: Props) {
   if (snapshots.length < 5) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900">
-        <p className="text-sm text-zinc-500">
+      <div className="flex h-48 items-center justify-center rounded-xl border border-border bg-card">
+        <p className="text-sm text-muted">
           Need at least 5 snapshots for distribution ({snapshots.length}/5)
         </p>
       </div>
@@ -54,8 +54,8 @@ export default function ReturnDistributionChart({ snapshots }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-      <h3 className="mb-4 text-sm font-semibold text-white">Daily Return Distribution</h3>
+    <div className="rounded-xl border border-border bg-card p-5">
+      <h3 className="mb-4 text-sm font-semibold text-primary">Daily Return Distribution</h3>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={bins}>
           <XAxis

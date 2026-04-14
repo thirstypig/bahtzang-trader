@@ -18,8 +18,8 @@ interface Props {
 export default function DrawdownChart({ snapshots }: Props) {
   if (snapshots.length < 2) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900">
-        <p className="text-sm text-zinc-500">
+      <div className="flex h-48 items-center justify-center rounded-xl border border-border bg-card">
+        <p className="text-sm text-muted">
           Need at least 2 snapshots for drawdown chart ({snapshots.length}/2)
         </p>
       </div>
@@ -37,8 +37,8 @@ export default function DrawdownChart({ snapshots }: Props) {
   });
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-      <h3 className="mb-4 text-sm font-semibold text-white">Drawdown</h3>
+    <div className="rounded-xl border border-border bg-card p-5">
+      <h3 className="mb-4 text-sm font-semibold text-primary">Drawdown</h3>
       <ResponsiveContainer width="100%" height={200}>
         <AreaChart data={data}>
           <defs>

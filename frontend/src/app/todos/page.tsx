@@ -4,13 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { getTodos, createTodo, updateTodo, deleteTodo, TodoTask } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useHashScroll } from "@/lib/useHashScroll";
-import AdminNav from "@/components/AdminNav";
 import CrossLink from "@/components/CrossLink";
 import Spinner from "@/components/Spinner";
 
 const STATUS_ORDER: TodoTask["status"][] = ["not_started", "in_progress", "done"];
 const STATUS_STYLES: Record<string, { dot: string; text: string; label: string }> = {
-  not_started: { dot: "bg-zinc-500", text: "text-zinc-400", label: "To Do" },
+  not_started: { dot: "bg-zinc-500", text: "text-secondary", label: "To Do" },
   in_progress: { dot: "bg-blue-500", text: "text-blue-400", label: "In Progress" },
   done: { dot: "bg-emerald-500", text: "text-emerald-400", label: "Done" },
 };
@@ -19,7 +18,7 @@ const PRIORITY_STYLES: Record<string, string> = {
   p0: "bg-red-900/40 text-red-400 border-red-800",
   p1: "bg-amber-900/30 text-amber-400 border-amber-800",
   p2: "bg-blue-900/30 text-blue-400 border-blue-800",
-  p3: "bg-zinc-800 text-zinc-500 border-zinc-700",
+  p3: "bg-card-alt text-muted border-border-strong",
 };
 
 const CATEGORY_STYLES: Record<string, string> = {
@@ -28,7 +27,7 @@ const CATEGORY_STYLES: Record<string, string> = {
   "trading-brain": "text-purple-400",
   "risk-management": "text-red-400",
   content: "text-amber-400",
-  "code-quality": "text-zinc-400",
+  "code-quality": "text-secondary",
 };
 
 type FilterStatus = "all" | "active" | "done";
@@ -118,11 +117,9 @@ export default function TodosPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
-      <AdminNav />
-
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">To-Do List</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="text-2xl font-bold text-primary">To-Do List</h1>
+        <p className="mt-1 text-sm text-muted">
           {totalDone}/{todos.length} tasks done across {Object.keys(grouped).length} categories
         </p>
       </div>
@@ -134,7 +131,7 @@ export default function TodosPage() {
               key={f}
               onClick={() => setFilter(f)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                filter === f ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"
+                filter === f ? "bg-card-alt text-primary" : "text-muted hover:text-secondary"
               }`}
             >
               {f === "active" ? "Active" : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -143,7 +140,7 @@ export default function TodosPage() {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-primary hover:bg-emerald-700"
         >
           + Add Task
         </button>
@@ -166,8 +163,8 @@ export default function TodosPage() {
           />
         ))}
         {sortedCategories.length === 0 && (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-8 text-center">
-            <p className="text-zinc-500">No tasks match filter</p>
+          <div className="rounded-xl border border-border bg-card p-8 text-center">
+            <p className="text-muted">No tasks match filter</p>
           </div>
         )}
       </div>
@@ -192,18 +189,18 @@ function CategorySection({
 }) {
   const done = items.filter((t) => t.status === "done").length;
   const pct = items.length > 0 ? Math.round((done / items.length) * 100) : 0;
-  const categoryColor = CATEGORY_STYLES[category] || "text-zinc-400";
+  const categoryColor = CATEGORY_STYLES[category] || "text-secondary";
 
   return (
     <details open>
-      <summary className="flex cursor-pointer select-none list-none items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-5 py-3 hover:border-zinc-700">
+      <summary className="flex cursor-pointer select-none list-none items-center gap-3 rounded-lg border border-border bg-card px-5 py-3 hover:border-border-strong">
         <span className={`text-xs font-semibold uppercase tracking-wider ${categoryColor}`}>
           {category.replace(/-/g, " ")}
         </span>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-muted">
           {done}/{items.length}
         </span>
-        <div className="ml-auto h-1.5 w-24 overflow-hidden rounded-full bg-zinc-800">
+        <div className="ml-auto h-1.5 w-24 overflow-hidden rounded-full bg-card-alt">
           <div
             className="h-full rounded-full bg-emerald-500 transition-all duration-300"
             style={{ width: `${pct}%` }}
@@ -244,7 +241,7 @@ function TodoRow({
   return (
     <div
       id={todo.id}
-      className="rounded-xl border border-zinc-800 bg-zinc-900 transition-colors hover:border-zinc-700"
+      className="rounded-xl border border-border bg-card transition-colors hover:border-border-strong"
     >
       <button
         onClick={onToggleExpand}
@@ -264,7 +261,7 @@ function TodoRow({
           {statusStyle.label}
         </span>
 
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-primary">
           {todo.title}
         </span>
 
@@ -275,7 +272,7 @@ function TodoRow({
         </span>
 
         <svg
-          className={`h-4 w-4 shrink-0 text-zinc-600 transition-transform ${expanded ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 text-muted transition-transform ${expanded ? "rotate-180" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -286,33 +283,33 @@ function TodoRow({
       </button>
 
       {expanded && (
-        <div id={`details-${todo.id}`} className="border-t border-zinc-800 px-5 py-3">
-          <div className="flex items-center gap-3 text-[10px] text-zinc-500">
+        <div id={`details-${todo.id}`} className="border-t border-border px-5 py-3">
+          <div className="flex items-center gap-3 text-[10px] text-muted">
             {todo.owner && <span>@{todo.owner}</span>}
             {todo.target_date && <span>Due {todo.target_date}</span>}
             <span>Created {todo.created_at.split("T")[0]}</span>
           </div>
 
           {todo.description && (
-            <p className="mt-2 text-sm leading-relaxed text-zinc-400">{todo.description}</p>
+            <p className="mt-2 text-sm leading-relaxed text-secondary">{todo.description}</p>
           )}
 
           {todo.steps && todo.steps.length > 0 && (
             <ol className="mt-3 space-y-1.5">
               {todo.steps.map((step, i) => (
                 <li key={i} className="flex gap-2.5 text-sm">
-                  <span className="mt-0.5 w-5 shrink-0 text-right font-mono text-xs text-zinc-600">
+                  <span className="mt-0.5 w-5 shrink-0 text-right font-mono text-xs text-muted">
                     {i + 1}.
                   </span>
-                  <span className="text-zinc-400">{step}</span>
+                  <span className="text-secondary">{step}</span>
                 </li>
               ))}
             </ol>
           )}
 
           {(todo.roadmap_link || todo.concept_link) && (
-            <div className="mt-3 flex items-center gap-2 border-t border-zinc-800/50 pt-3">
-              <span className="shrink-0 text-[10px] text-zinc-600">Related:</span>
+            <div className="mt-3 flex items-center gap-2 border-t border-border/50 pt-3">
+              <span className="shrink-0 text-[10px] text-muted">Related:</span>
               <div className="flex flex-wrap gap-1.5">
                 {todo.roadmap_link && <CrossLink type="roadmap" href={todo.roadmap_link} />}
                 {todo.concept_link && <CrossLink type="concept" href={todo.concept_link} />}
@@ -320,7 +317,7 @@ function TodoRow({
             </div>
           )}
 
-          <div className="mt-3 border-t border-zinc-800/50 pt-3">
+          <div className="mt-3 border-t border-border/50 pt-3">
             <button onClick={onDelete} className="text-[10px] text-red-500 hover:text-red-400">
               Delete task
             </button>
@@ -353,7 +350,7 @@ function AddTaskForm({
   }
 
   return (
-    <div className="mb-4 rounded-xl border border-emerald-800/50 bg-zinc-900 p-5">
+    <div className="mb-4 rounded-xl border border-emerald-800/50 bg-card p-5">
       <div className="mb-3 flex items-center gap-2">
         <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
         <span className="text-sm font-medium text-emerald-400">New Task</span>
@@ -363,7 +360,7 @@ function AddTaskForm({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Task title..."
-        className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+        className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary placeholder-zinc-500 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
         onKeyDown={(e) => {
           if (e.key === "Enter") handleSubmit();
           if (e.key === "Escape") onCancel();
@@ -373,7 +370,7 @@ function AddTaskForm({
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-lg border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-xs text-zinc-300"
+          className="rounded-lg border border-border-strong bg-card-alt px-2 py-1.5 text-xs text-secondary"
         >
           {Object.keys(CATEGORY_STYLES).map((c) => (
             <option key={c} value={c}>
@@ -384,7 +381,7 @@ function AddTaskForm({
         <select
           value={priority}
           onChange={(e) => setPriority(e.target.value as TodoTask["priority"])}
-          className="rounded-lg border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-xs text-zinc-300"
+          className="rounded-lg border border-border-strong bg-card-alt px-2 py-1.5 text-xs text-secondary"
         >
           <option value="p0">P0 - Critical</option>
           <option value="p1">P1 - High</option>
@@ -392,12 +389,12 @@ function AddTaskForm({
           <option value="p3">P3 - Low</option>
         </select>
         <div className="ml-auto flex gap-2">
-          <button onClick={onCancel} className="rounded-lg px-3 py-1.5 text-xs text-zinc-400 hover:text-white">
+          <button onClick={onCancel} className="rounded-lg px-3 py-1.5 text-xs text-secondary hover:text-primary">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-primary hover:bg-emerald-700"
           >
             Add
           </button>

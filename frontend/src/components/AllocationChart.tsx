@@ -42,15 +42,15 @@ export default function AllocationChart({
 
   if (data.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <p className="text-sm text-zinc-500">No positions to chart</p>
+      <div className="flex h-64 items-center justify-center rounded-xl border border-border bg-card p-6">
+        <p className="text-sm text-muted">No positions to chart</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-      <h2 className="text-sm font-medium text-zinc-400">
+    <div className="rounded-xl border border-border bg-card p-6">
+      <h2 className="text-sm font-medium text-secondary">
         Portfolio Allocation
       </h2>
       <div className="mt-4 h-64">
