@@ -2,15 +2,15 @@ const TECH_STACK = {
   Frontend: [
     { name: "Next.js 14", desc: "App Router + Server Components" },
     { name: "React 18", desc: "Client-side interactivity" },
-    { name: "Tailwind CSS", desc: "Dark-themed utility-first styling" },
+    { name: "Tailwind CSS", desc: "Light/dark theme via CSS custom properties" },
     { name: "Recharts", desc: "Portfolio charts and analytics" },
     { name: "Supabase JS", desc: "Auth + session management" },
   ],
   Backend: [
     { name: "Python FastAPI", desc: "Async API framework" },
-    { name: "Claude Sonnet", desc: "AI trading decision engine" },
+    { name: "Claude Sonnet", desc: "AI trading decision engine (30s timeout)" },
     { name: "SQLAlchemy 2.0", desc: "Database ORM with Mapped types" },
-    { name: "APScheduler", desc: "9:35 AM ET cron on market days" },
+    { name: "APScheduler", desc: "Configurable 1x/3x/5x daily on market days" },
     { name: "PyJWT + JWKS", desc: "Supabase ES256 token verification" },
   ],
   Infrastructure: [
@@ -19,11 +19,12 @@ const TECH_STACK = {
     { name: "Squarespace", desc: "DNS for bahtzang.com" },
     { name: "GitHub", desc: "Source control + CI/CD trigger" },
   ],
-  "Data Sources": [
-    { name: "Schwab API", desc: "Portfolio positions + order execution" },
-    { name: "Alpha Vantage", desc: "Live quotes + news sentiment" },
-    { name: "Alpaca (planned)", desc: "Zero-commission multi-asset trading" },
-    { name: "Finnhub (planned)", desc: "Earnings calendar integration" },
+  "Brokers & Data": [
+    { name: "Alpaca", desc: "Primary broker — zero-commission stocks, ETFs, options, crypto" },
+    { name: "Schwab", desc: "Backup broker — stocks, ETFs, treasuries" },
+    { name: "Alpaca Data API", desc: "OHLCV bars, live quotes, technical indicators" },
+    { name: "Alpha Vantage", desc: "News sentiment analysis" },
+    { name: "Finnhub", desc: "Earnings calendar with position sizing integration" },
   ],
 };
 
@@ -44,9 +45,9 @@ export default function AboutPage() {
           <pre>{`
 ┌─────────────────────────────────────────────────────────────┐
 │                    www.bahtzang.com                          │
-│                  Next.js 14 (Railway)                        │
+│               Next.js 14 (Railway) · 15 pages               │
 │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-│   │Dashboard │  │ Trades   │  │ Settings │  │  Admin   │  │
+│   │Dashboard │  │ Trades   │  │ Settings │  │ Backtest │  │
 │   └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  │
 └────────┼──────────────┼──────────────┼──────────────┼───────┘
          │              │              │              │
@@ -56,20 +57,21 @@ export default function AboutPage() {
 │                   FastAPI Backend (Railway)                   │
 │  ┌───────────┐  ┌───────────┐  ┌───────────┐               │
 │  │Claude Brain│  │Guardrails │  │ Scheduler │               │
-│  │  (Sonnet) │  │+ Kill SW  │  │ 9:35 AM ET│               │
+│  │  (Sonnet) │  │+ Kill SW  │  │ 1x/3x/5x │               │
 │  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘               │
 │        │              │              │                       │
 │  ┌─────┴──────────────┴──────────────┴─────┐                │
 │  │           Trade Executor Pipeline        │                │
 │  │  Gather → Think → Validate → Act → Log  │                │
-│  └─────┬──────────┬──────────────────┬─────┘                │
-└────────┼──────────┼──────────────────┼──────────────────────┘
-         │          │                  │
-    ┌────┴────┐ ┌───┴────┐      ┌─────┴─────┐
-    │Schwab/  │ │Alpha   │      │ Supabase  │
-    │Alpaca   │ │Vantage │      │ PostgreSQL│
-    │(orders) │ │(quotes)│      │ (trades)  │
-    └─────────┘ └────────┘      └───────────┘`}</pre>
+│  └──┬──────────┬──────────┬────────────┬───┘                │
+└─────┼──────────┼──────────┼────────────┼────────────────────┘
+      │          │          │            │
+ ┌────┴────┐ ┌──┴───┐ ┌────┴────┐ ┌─────┴─────┐
+ │ Alpaca  │ │Alpha │ │Finnhub  │ │ Supabase  │
+ │(primary)│ │Vantage│ │(earnings│ │ PostgreSQL│
+ │ Schwab  │ │(news) │ │calendar)│ │ (trades)  │
+ │(backup) │ └──────┘ └─────────┘ └───────────┘
+ └─────────┘`}</pre>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 # bahtzang-trader
 
-AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. Dark-themed Next.js dashboard with real-time portfolio tracking, trade history, and guardrail controls.
+AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. Next.js dashboard (light/dark theme) with portfolio tracking, trade history, backtesting, earnings calendar, and guardrail controls.
 
 **Live at:** [www.bahtzang.com](https://www.bahtzang.com)
 
@@ -9,8 +9,8 @@ AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. 
 ```
 ┌─────────────────────────────────┐
 │  Next.js 14 Frontend (Railway)  │  www.bahtzang.com
-│  Dashboard · Trades · Settings  │  12 pages + login
-│  + 9 admin pages                │
+│  Dashboard · Trades · Analytics  │  15 pages + login
+│  Backtest · Earnings · Settings │
 └──────────────┬──────────────────┘
                │ REST API + Bearer JWT
 ┌──────────────┴──────────────────┐
@@ -43,9 +43,9 @@ AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. 
 bahtzang-trader/
 ├── frontend/                # Next.js 14 (App Router)
 │   └── src/
-│       ├── app/             # 13 pages (dashboard, trades, settings, concepts, etc.)
-│       ├── components/      # Reusable UI (Navbar, AdminNav, CrossLink, charts)
-│       ├── lib/             # API client, auth, Supabase, types, useHashScroll
+│       ├── app/             # 15 pages (dashboard, trades, analytics, backtest, etc.)
+│       ├── components/      # Reusable UI (Sidebar, ThemeToggle, charts, etc.)
+│       ├── lib/             # API client, auth, theme, sidebar, Supabase, types
 │       └── data/            # Static data (roadmap, changelog, concepts)
 ├── backend/                 # Python FastAPI
 │   └── app/
@@ -53,16 +53,19 @@ bahtzang-trader/
 │       ├── routes/          # API route modules (portfolio, trades, guardrails, bot, todos)
 │       ├── brokers/         # Broker abstraction (base.py + alpaca.py + schwab.py)
 │       ├── auth.py          # Supabase JWT verification via JWKS
+│       ├── backtest/         # Backtesting framework (3 strategies, OHLCV cache)
+│       ├── earnings/         # Earnings calendar (Finnhub API cache, position sizing)
 │       ├── claude_brain.py  # AI decision engine (AsyncAnthropic, 30s timeout)
-│       ├── guardrails.py    # Safety limits + kill switch (stored in PostgreSQL)
+│       ├── guardrails.py    # Safety limits + kill switch + stop-loss (stored in PostgreSQL)
+│       ├── pipeline_types.py # TypedDict definitions (Position, Quote, TradeDecision, etc.)
 │       ├── notifier.py      # Slack webhook notifications (fire-and-forget)
 │       ├── trade_executor.py # Pipeline: gather → think → validate → act → log → notify
-│       ├── market_data.py   # Alpha Vantage quotes + news
-│       └── scheduler.py     # Dynamic frequency (1x/3x/5x) + daily summary
+│       ├── market_data.py   # Alpha Vantage news sentiment
+│       └── scheduler.py     # Dynamic frequency (1x/3x/5x) + snapshots + earnings refresh
 │   └── data/
 │       └── todo-tasks.json  # Admin todo tasks (runtime, file-based)
 ├── docs/plans/              # Architecture roadmap + feature plans
-├── todos/                   # Code review findings (44 items, all resolved)
+├── todos/                   # Code review findings (59 items)
 ├── CLAUDE.md                # Project conventions for Claude Code
 └── package.json             # Root scripts (npm run dev)
 ```
@@ -71,18 +74,20 @@ bahtzang-trader/
 
 | Page | Description |
 |------|------------|
-| `/` | Dashboard — portfolio summary, Claude's decisions, charts |
-| `/trades` | Trade history with sortable columns |
-| `/settings` | Guardrails, kill switch, manual bot trigger |
-| `/analytics` | Performance metrics (confidence rate, trade counts) |
-| `/roadmap` | Kanban board — planned / in-progress / done, cross-link anchors |
-| `/concepts` | Future ideas — tabbed (Strategic / SEO / Integrations / UX) |
-| `/changelog` | Version history with feat/fix/security badges, cross-links |
-| `/about` | Architecture diagram and tech stack |
-| `/status` | Live service health checks |
-| `/docs` | Documentation links (GitHub, Swagger, Supabase) |
+| `/` | Dashboard — portfolio summary, Claude's decisions, equity curve |
+| `/trades` | Trade history with sortable columns and full reasoning |
+| `/settings` | Risk profiles, trading goals, guardrails, kill switch, manual trigger |
+| `/analytics` | Sharpe, Sortino, drawdown, win rate, profit factor, equity vs SPY |
+| `/backtest` | Backtest strategies (SMA Crossover, RSI Mean Reversion, Buy & Hold) |
+| `/earnings` | Upcoming earnings calendar with position sizing integration |
+| `/audit-log` | Guardrails config change audit trail |
 | `/todos` | API-backed task tracker — categories, progress bars, CRUD |
-| `/audit-log` | Expandable trade decision trail |
+| `/roadmap` | Kanban board — planned / in-progress / done |
+| `/changelog` | Version history with feat/fix/security badges |
+| `/errors` | Error log with ERR-XXXXXX reference codes |
+| `/status` | Live service health checks |
+| `/about` | Architecture diagram, tech stack, design philosophy |
+| `/docs` | Documentation links (GitHub, Swagger, Supabase, Railway) |
 | `/login` | Google Sign-In via Supabase |
 
 ## Getting Started
@@ -132,11 +137,12 @@ npm run dev:backend      # http://localhost:4060
 
 Every cycle (configurable 1x/3x/5x per day, or manual trigger):
 
-1. **Gather** — fetch portfolio + balances from Alpaca (async, non-blocking)
+1. **Gather** — fetch portfolio + balances from Alpaca, technical indicators (RSI/MACD/BBands/SMA/ATR), sector rotation signals, earnings calendar
 2. **Think** — send context to Claude Sonnet, get buy/sell/hold decision (30s timeout)
-3. **Validate** — run decision through guardrails (kill switch, limits, daily cap, position count)
-4. **Act** — execute order on broker if approved
+3. **Validate** — run decision through guardrails (kill switch, stop-loss, limits, daily cap, position count, PDT compliance)
+4. **Act** — execute order on Alpaca if approved, with earnings-aware position sizing
 5. **Log** — write decision + reasoning to PostgreSQL (every cycle, even holds)
+6. **Notify** — Slack webhook notification (fire-and-forget)
 
 ## Security
 
