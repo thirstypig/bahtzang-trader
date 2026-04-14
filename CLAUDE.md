@@ -41,7 +41,8 @@ npm run install:backend  # pip install in /backend
 - Tailwind CSS (dark theme, zinc-950 background)
 - Recharts for charts
 - Supabase JS (`getSupabase()` lazy singleton to avoid build-time crash)
-- All pages are `"use client"` — data fetched via `useEffect` gated by auth
+- Most pages are `"use client"` — data fetched via `useApiQuery` hook or `useEffect` gated by auth
+- Static pages (`about`, `docs`) are server components (no `"use client"`)
 
 ### Backend (`/backend`)
 - Python FastAPI
@@ -66,6 +67,7 @@ Gather (Alpaca) → Earnings (Finnhub cache) → Think (Claude, 30s timeout) →
 Every decision logged — even holds and blocked trades
 Alpaca SDK calls wrapped in asyncio.to_thread() to avoid blocking the event loop
 Earnings data: position sizing reduced 50% at 0-1 days, 70% at 2 days before earnings
+Pipeline types: Position, Quote, NewsItem, TradeDecision, CycleResult (pipeline_types.py)
 ```
 
 ### Frontend Auth Guard
@@ -88,9 +90,9 @@ backend/
       bot.py          # POST /run (rate-limited 2/min via slowapi)
       todos.py        # CRUD /admin/todos (JSON file persistence, asyncio.Lock)
     brokers/          # Broker abstraction layer
-      base.py         # BrokerInterface ABC (get_positions, get_balance, place_order)
+      base.py         # BrokerInterface ABC (typed: Position, AccountBalance)
       alpaca.py       # AlpacaBroker (async via to_thread, primary broker)
-      schwab.py       # SchwabBroker (backup, optional credentials)
+      schwab.py       # SchwabBroker (backup, shared httpx client for token + API)
     backtest/         # Feature module: backtesting framework (Phase F)
       models.py       # BacktestConfig, BacktestResult, OHLCVCache tables
       data.py         # Alpaca OHLCV fetch + PostgreSQL cache with gap-fill
@@ -102,17 +104,18 @@ backend/
       client.py       # Finnhub API + DB cache + format_csv() + days_until_earnings()
       routes.py       # GET /earnings, POST /earnings/refresh
     analytics.py      # Portfolio metrics: Sharpe, Sortino, drawdown, win rate, profit factor
+    pipeline_types.py # TypedDict definitions for pipeline data (Position, Quote, TradeDecision, etc.)
     claude_brain.py   # AsyncAnthropic → Claude Sonnet → CSV prompt (30s timeout) + earnings context
     circuit_breaker.py # 3-tier staged halts (YELLOW/ORANGE/RED) on portfolio P&L
     compliance.py     # PDT day trade tracking + wash sale 30-day cooling detection
-    guardrails.py     # GuardrailsUpdate Pydantic model + policy gate (DB-backed)
+    guardrails.py     # GuardrailsUpdate Pydantic model + policy gate (DB-backed) + stop-loss enforcement
     notifier.py       # Slack webhook notifications (fire-and-forget)
     position_sizing.py # Quarter-Kelly with confidence^2 + earnings proximity reduction
     sector_rotation.py # 11 sector ETFs relative strength vs SPY
     technical_analysis.py # pandas-ta indicators (RSI/MACD/BB/SMA/ATR) + Alpaca Data API
     trade_executor.py # Pipeline: gather → indicators → earnings → think → validate → act → log → notify
     market_data.py    # Alpha Vantage news (quotes moved to Alpaca Data API)
-    scheduler.py      # Trading frequency + daily snapshot (4:05 PM) + summary (4:10 PM) + earnings refresh (7 AM)
+    scheduler.py      # Trading frequency + daily snapshot (4:05 PM) + summary (4:10 PM) + earnings refresh (7 AM) — DB calls via to_thread()
     logger.py         # Trade logging to PostgreSQL
   data/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
@@ -150,6 +153,7 @@ frontend/
       types.ts        # TypeScript interfaces
       utils.ts        # formatCurrency, formatDateTime
       useHashScroll.ts # Scroll-to-anchor hook for cross-page linking
+      useApiQuery.ts  # Reusable data-fetching hook (loading + error state)
     data/             # Static data (roadmap, changelog, concepts)
   railway.toml        # Railway deploy config (HOSTNAME=0.0.0.0)
 ```
@@ -168,6 +172,8 @@ frontend/
 - Auth gating: `if (!user) return;` at top of `useEffect` in every page
 - Guardrails stored in PostgreSQL (persists across Railway deploys), API endpoints to read/write
 - Guardrails audit log: every config change logged with user, timestamp, and changes
+- Stop-loss enforcement: blocks buys on positions below threshold, warns on holds
+- Risk presets scale to actual portfolio value (from latest PortfolioSnapshot, fallback 100k)
 - Kill switch: activate via POST /killswitch, deactivate via POST /killswitch/deactivate
 - Rate limiting: slowapi (2/min on /run, 60/min global default)
 - Trade logging: every cycle logs to `trades` table regardless of outcome
