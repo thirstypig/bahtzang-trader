@@ -43,13 +43,13 @@ export default function EarningsPage() {
   function proximityColor(days: number) {
     if (days <= 1) return "bg-red-500/10 border-red-500/20 text-red-400";
     if (days <= 3) return "bg-amber-500/10 border-amber-500/20 text-amber-400";
-    return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
+    return "bg-emerald-500/10 border-emerald-500/20 text-accent";
   }
 
   function proximityBadge(days: number) {
     if (days <= 1) return "bg-red-500/10 text-red-400";
     if (days <= 3) return "bg-amber-500/10 text-amber-400";
-    return "bg-zinc-500/10 text-zinc-400";
+    return "bg-zinc-500/10 text-secondary";
   }
 
   if (loading) {
@@ -80,10 +80,10 @@ export default function EarningsPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white">Earnings Calendar</h1>
+            <h1 className="text-2xl font-bold text-primary">Earnings Calendar</h1>
             <Tip text="Companies report their financial results (earnings) every quarter. Stock prices often move sharply after earnings — up or down. The bot automatically reduces position sizes near earnings dates to protect you from surprise moves." />
           </div>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-muted">
             Upcoming earnings for held positions — reduces position sizes near
             reporting dates
           </p>
@@ -91,7 +91,7 @@ export default function EarningsPage() {
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-700 disabled:opacity-50"
+          className="rounded-lg border border-border-strong bg-card-alt px-4 py-2 text-xs font-medium text-secondary transition-colors hover:bg-border-strong disabled:opacity-50"
         >
           {refreshing ? "Refreshing..." : "Refresh Data"}
         </button>
@@ -99,39 +99,39 @@ export default function EarningsPage() {
 
       {/* Summary cards */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <p className="text-xs text-zinc-500">This Week</p>
-          <p className="mt-2 text-3xl font-bold text-white">
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-xs text-muted">This Week</p>
+          <p className="mt-2 text-3xl font-bold text-primary">
             {thisWeek.length}
           </p>
-          <p className="mt-1 text-xs text-zinc-600">earnings reports</p>
+          <p className="mt-1 text-xs text-muted">earnings reports</p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <p className="text-xs text-zinc-500">Tomorrow / Today</p>
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-xs text-muted">Tomorrow / Today</p>
           <p
             className={`mt-2 text-3xl font-bold ${
-              tomorrow.length > 0 ? "text-amber-400" : "text-zinc-400"
+              tomorrow.length > 0 ? "text-amber-400" : "text-secondary"
             }`}
           >
             {tomorrow.length}
           </p>
-          <p className="mt-1 text-xs text-zinc-600">
+          <p className="mt-1 text-xs text-muted">
             {tomorrow.length > 0 ? "position sizes reduced" : "all clear"}
           </p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <p className="text-xs text-zinc-500">Total Tracked</p>
-          <p className="mt-2 text-3xl font-bold text-emerald-400">
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-xs text-muted">Total Tracked</p>
+          <p className="mt-2 text-3xl font-bold text-accent">
             {earnings.length}
           </p>
-          <p className="mt-1 text-xs text-zinc-600">next 30 days</p>
+          <p className="mt-1 text-xs text-muted">next 30 days</p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <p className="text-xs text-zinc-500">Next Report</p>
-          <p className="mt-2 text-3xl font-bold text-white">
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-xs text-muted">Next Report</p>
+          <p className="mt-2 text-3xl font-bold text-primary">
             {nearest ? nearest.symbol : "—"}
           </p>
-          <p className="mt-1 text-xs text-zinc-600">
+          <p className="mt-1 text-xs text-muted">
             {nearest
               ? `${nearest.report_date} (${daysUntil(nearest.report_date)}d)`
               : "No upcoming earnings"}
@@ -141,12 +141,12 @@ export default function EarningsPage() {
 
       {/* Empty state */}
       {earnings.length === 0 && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-12 text-center">
-          <p className="text-sm text-zinc-400">
+        <div className="rounded-xl border border-border bg-card p-12 text-center">
+          <p className="text-sm text-secondary">
             No upcoming earnings found. Click &quot;Refresh Data&quot; to fetch
             earnings for your current holdings from Finnhub.
           </p>
-          <p className="mt-2 text-xs text-zinc-600">
+          <p className="mt-2 text-xs text-muted">
             Requires FINNHUB_API_KEY to be set in the backend .env file.
           </p>
         </div>
@@ -159,7 +159,7 @@ export default function EarningsPage() {
         return (
           <div key={dateStr} className="mb-4">
             <div className="mb-2 flex items-center gap-2">
-              <span className="text-sm font-medium text-white">{dateStr}</span>
+              <span className="text-sm font-medium text-primary">{dateStr}</span>
               <span
                 className={`rounded px-2 py-0.5 text-xs font-medium ${proximityBadge(days)}`}
               >
@@ -177,11 +177,11 @@ export default function EarningsPage() {
                   className={`flex items-center justify-between rounded-lg border p-4 ${proximityColor(days)}`}
                 >
                   <div className="flex items-center gap-4">
-                    <span className="text-sm font-bold text-white">
+                    <span className="text-sm font-bold text-primary">
                       {e.symbol}
                     </span>
                     {e.hour && (
-                      <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-medium uppercase text-zinc-400">
+                      <span className="rounded bg-card-alt px-2 py-0.5 text-[10px] font-medium uppercase text-secondary">
                         {e.hour === "bmo"
                           ? "Before Open"
                           : e.hour === "amc"
@@ -190,16 +190,16 @@ export default function EarningsPage() {
                       </span>
                     )}
                     {e.fiscal_quarter && (
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-xs text-muted">
                         {e.fiscal_quarter}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-6 text-xs text-zinc-400">
+                  <div className="flex items-center gap-6 text-xs text-secondary">
                     {e.eps_estimate !== null && (
                       <span>
                         EPS est:{" "}
-                        <span className="text-white">
+                        <span className="text-primary">
                           ${e.eps_estimate.toFixed(2)}
                         </span>
                       </span>
@@ -207,7 +207,7 @@ export default function EarningsPage() {
                     {e.revenue_estimate !== null && (
                       <span>
                         Rev est:{" "}
-                        <span className="text-white">
+                        <span className="text-primary">
                           $
                           {e.revenue_estimate >= 1_000_000_000
                             ? `${(e.revenue_estimate / 1_000_000_000).toFixed(1)}B`

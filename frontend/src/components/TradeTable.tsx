@@ -24,9 +24,9 @@ const COLUMNS: { key: SortKey; label: string; className?: string; tip?: string }
 ];
 
 const ACTION_BADGE: Record<string, string> = {
-  buy: "bg-emerald-900/40 text-emerald-400",
+  buy: "bg-emerald-900/40 text-accent",
   sell: "bg-red-900/40 text-red-400",
-  hold: "bg-zinc-800 text-zinc-400",
+  hold: "bg-card-alt text-secondary",
 };
 
 export default function TradeTable({ trades }: TradeTableProps) {
@@ -59,16 +59,16 @@ export default function TradeTable({ trades }: TradeTableProps) {
   });
 
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-800">
+    <div className="overflow-hidden rounded-xl border border-border">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-zinc-800 bg-zinc-900/80">
+            <tr className="border-b border-border bg-card/80">
               {COLUMNS.map((col) => (
                 <th
                   key={col.key}
                   onClick={() => handleSort(col.key)}
-                  className={`cursor-pointer whitespace-nowrap px-4 py-3 text-xs font-medium text-zinc-400 transition-colors hover:text-white ${col.className || ""}`}
+                  className={`cursor-pointer whitespace-nowrap px-4 py-3 text-xs font-medium text-secondary transition-colors hover:text-primary ${col.className || ""}`}
                 >
                   <span className="inline-flex items-center gap-1">
                     {col.label}
@@ -81,16 +81,16 @@ export default function TradeTable({ trades }: TradeTableProps) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-800/50">
+          <tbody className="divide-y divide-border/50">
             {sorted.map((trade) => (
               <tr
                 key={trade.id}
-                className="bg-zinc-950 transition-colors hover:bg-zinc-900/50"
+                className="bg-surface transition-colors hover:bg-card/50"
               >
-                <td className="whitespace-nowrap px-4 py-3 text-zinc-300">
+                <td className="whitespace-nowrap px-4 py-3 text-secondary">
                   {formatDateTime(trade.timestamp)}
                 </td>
-                <td className="px-4 py-3 font-mono font-semibold text-white">
+                <td className="px-4 py-3 font-mono font-semibold text-primary">
                   {trade.ticker || "—"}
                 </td>
                 <td className="px-4 py-3">
@@ -100,10 +100,10 @@ export default function TradeTable({ trades }: TradeTableProps) {
                     {trade.action}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-zinc-300">
+                <td className="px-4 py-3 text-right font-mono text-secondary">
                   {trade.quantity}
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-zinc-300">
+                <td className="px-4 py-3 text-right font-mono text-secondary">
                   {trade.price ? formatCurrency(trade.price) : "—"}
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -115,14 +115,14 @@ export default function TradeTable({ trades }: TradeTableProps) {
                     reason={trade.guardrail_block_reason}
                   />
                 </td>
-                <td className="max-w-xs truncate px-4 py-3 text-zinc-400">
+                <td className="max-w-xs truncate px-4 py-3 text-secondary">
                   {trade.claude_reasoning || "—"}
                 </td>
               </tr>
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={8} className="px-4 py-8 text-center text-muted">
                   No trades recorded yet
                 </td>
               </tr>
@@ -138,13 +138,13 @@ function ConfidenceBar({ value }: { value: number | null }) {
   const pct = ((value || 0) * 100).toFixed(0);
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-zinc-800">
+      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-card-alt">
         <div
           className="h-full rounded-full bg-emerald-500"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="text-xs text-zinc-400">{pct}%</span>
+      <span className="text-xs text-secondary">{pct}%</span>
     </div>
   );
 }
@@ -158,7 +158,7 @@ function GuardrailBadge({
 }) {
   if (passed) {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+      <span className="inline-flex items-center gap-1 text-xs text-accent">
         <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"

@@ -85,8 +85,8 @@ export default function DocsPage() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Documentation</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="text-2xl font-bold text-primary">Documentation</h1>
+        <p className="mt-1 text-sm text-muted">
           Guides, references, and infrastructure links
         </p>
       </div>
@@ -94,7 +94,7 @@ export default function DocsPage() {
       <div className="space-y-8">
         {DOCS.map((section) => (
           <div key={section.category}>
-            <h2 className="mb-3 text-sm font-semibold text-emerald-400">
+            <h2 className="mb-3 text-sm font-semibold text-accent">
               {section.category}
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -104,15 +104,15 @@ export default function DocsPage() {
                   href={item.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50"
+                  className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-border-strong hover:bg-card-alt/50"
                 >
                   <div className="flex items-start gap-3">
                     <span className="text-lg">{item.icon}</span>
                     <div>
-                      <h3 className="text-sm font-medium text-white group-hover:text-emerald-400">
+                      <h3 className="text-sm font-medium text-primary group-hover:text-accent">
                         {item.title}
                       </h3>
-                      <p className="mt-1 text-xs text-zinc-500">
+                      <p className="mt-1 text-xs text-muted">
                         {item.description}
                       </p>
                     </div>

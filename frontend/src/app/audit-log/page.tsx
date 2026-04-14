@@ -27,7 +27,7 @@ const TYPE_STYLES: Record<string, string> = {
   guardrail: "text-amber-400",
   auth: "text-blue-400",
   config: "text-purple-400",
-  system: "text-zinc-400",
+  system: "text-secondary",
 };
 
 function tradesToAuditEntries(trades: Trade[]): AuditEntry[] {
@@ -74,8 +74,8 @@ export default function AuditLogPage() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Audit Log</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="text-2xl font-bold text-primary">Audit Log</h1>
+        <p className="mt-1 text-sm text-muted">
           Complete trail of every bot action and decision
         </p>
       </div>
@@ -85,15 +85,15 @@ export default function AuditLogPage() {
           <Spinner />
         </div>
       ) : entries.length === 0 ? (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-8 text-center">
-          <p className="text-zinc-500">No audit entries yet</p>
+        <div className="rounded-xl border border-border bg-card p-8 text-center">
+          <p className="text-muted">No audit entries yet</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-zinc-800 overflow-hidden">
+        <div className="rounded-xl border border-border overflow-hidden">
           {entries.map((entry) => (
             <div
               key={entry.id}
-              className="border-b border-zinc-800/50 bg-zinc-950 transition-colors hover:bg-zinc-900/50"
+              className="border-b border-border/50 bg-surface transition-colors hover:bg-card/50"
             >
               <button
                 onClick={() =>
@@ -101,7 +101,7 @@ export default function AuditLogPage() {
                 }
                 className="flex w-full items-center gap-4 px-5 py-3 text-left"
               >
-                <span className="shrink-0 text-xs text-zinc-500 font-mono w-36">
+                <span className="shrink-0 text-xs text-muted font-mono w-36">
                   {formatDateTime(entry.timestamp)}
                 </span>
                 <span
@@ -114,11 +114,11 @@ export default function AuditLogPage() {
                 >
                   {entry.severity}
                 </span>
-                <span className="flex-1 truncate text-sm text-zinc-300">
+                <span className="flex-1 truncate text-sm text-secondary">
                   {entry.message}
                 </span>
                 <svg
-                  className={`h-4 w-4 shrink-0 text-zinc-600 transition-transform ${expandedId === entry.id ? "rotate-180" : ""}`}
+                  className={`h-4 w-4 shrink-0 text-muted transition-transform ${expandedId === entry.id ? "rotate-180" : ""}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -128,11 +128,11 @@ export default function AuditLogPage() {
                 </svg>
               </button>
               {expandedId === entry.id && entry.details && (
-                <div className="border-t border-zinc-800/50 bg-zinc-900/30 px-5 py-3">
-                  <p className="text-xs font-medium text-zinc-500 mb-1">
+                <div className="border-t border-border/50 bg-card/30 px-5 py-3">
+                  <p className="text-xs font-medium text-muted mb-1">
                     Claude&apos;s Reasoning
                   </p>
-                  <p className="text-sm text-zinc-400 leading-relaxed">
+                  <p className="text-sm text-secondary leading-relaxed">
                     {entry.details}
                   </p>
                 </div>

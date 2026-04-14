@@ -18,14 +18,14 @@ export default function TradesPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white">Trade History</h1>
+            <h1 className="text-2xl font-bold text-primary">Trade History</h1>
             <Tip text="A complete log of every decision the AI has made — buys, sells, and holds. Click any row to see Claude's full reasoning. Blocked trades show why the guardrails stopped them." />
           </div>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-muted">
             Every decision Claude has made, with full reasoning
           </p>
         </div>
-        <span className="rounded-lg bg-zinc-800 px-3 py-1.5 text-sm text-zinc-400">
+        <span className="rounded-lg bg-card-alt px-3 py-1.5 text-sm text-secondary">
           {trades.length} trade{trades.length !== 1 && "s"}
         </span>
       </div>

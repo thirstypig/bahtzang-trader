@@ -3,7 +3,6 @@
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { concepts, Concept } from "@/data/concepts";
 import { useHashScroll } from "@/lib/useHashScroll";
-import AdminNav from "@/components/AdminNav";
 import CrossLink from "@/components/CrossLink";
 
 const TABS = [
@@ -56,11 +55,9 @@ export default function ConceptsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
-      <AdminNav />
-
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Concepts</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="text-2xl font-bold text-primary">Concepts</h1>
+        <p className="mt-1 text-sm text-muted">
           Ideas and explorations — {concepts.length} concepts across {TABS.length} categories
         </p>
       </div>
@@ -69,7 +66,7 @@ export default function ConceptsPage() {
       <div
         role="tablist"
         aria-label="Concept categories"
-        className="flex border-b border-zinc-800"
+        className="flex border-b border-border"
       >
         {TABS.map((tab) => (
           <button
@@ -80,11 +77,11 @@ export default function ConceptsPage() {
             aria-controls={`panel-${tab.key}`}
             onClick={() => setTab(tab.key)}
             className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
-              activeTab === tab.key ? "text-white" : "text-zinc-500 hover:text-zinc-300"
+              activeTab === tab.key ? "text-primary" : "text-muted hover:text-secondary"
             }`}
           >
             {tab.label}
-            <span className="ml-1.5 text-[10px] text-zinc-600">{tabCounts[tab.key]}</span>
+            <span className="ml-1.5 text-[10px] text-muted">{tabCounts[tab.key]}</span>
             {activeTab === tab.key && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />
             )}
@@ -122,10 +119,10 @@ function ConceptCard({ concept }: { concept: Concept }) {
   return (
     <div
       id={concept.id}
-      className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-zinc-700"
+      className="rounded-xl border border-border bg-card p-5 transition-colors hover:border-border-strong"
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-sm font-semibold text-white">{concept.title}</h3>
+        <h3 className="text-sm font-semibold text-primary">{concept.title}</h3>
         <span
           className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${statusStyle.bg} ${statusStyle.text}`}
         >
@@ -133,13 +130,13 @@ function ConceptCard({ concept }: { concept: Concept }) {
         </span>
       </div>
 
-      <p className="mt-2 text-sm leading-relaxed text-zinc-400">{concept.description}</p>
+      <p className="mt-2 text-sm leading-relaxed text-secondary">{concept.description}</p>
 
       {concept.phases && (
         <ol className="mt-3 space-y-1">
           {concept.phases.map((phase, i) => (
-            <li key={i} className="flex gap-2 text-xs text-zinc-500">
-              <span className="shrink-0 font-mono text-zinc-600">{i + 1}.</span>
+            <li key={i} className="flex gap-2 text-xs text-muted">
+              <span className="shrink-0 font-mono text-muted">{i + 1}.</span>
               {phase}
             </li>
           ))}
@@ -150,16 +147,16 @@ function ConceptCard({ concept }: { concept: Concept }) {
         <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">
           {Object.entries(concept.details).map(([key, value]) => (
             <div key={key} className="text-xs">
-              <span className="text-zinc-600">{key}:</span>{" "}
-              <span className="text-zinc-400">{value}</span>
+              <span className="text-muted">{key}:</span>{" "}
+              <span className="text-secondary">{value}</span>
             </div>
           ))}
         </div>
       )}
 
       {concept.roadmapSection && (
-        <div className="mt-3 flex items-center gap-2 border-t border-zinc-800/50 pt-3">
-          <span className="text-[10px] text-zinc-600">Related:</span>
+        <div className="mt-3 flex items-center gap-2 border-t border-border/50 pt-3">
+          <span className="text-[10px] text-muted">Related:</span>
           <CrossLink type="roadmap" href={concept.roadmapSection} />
         </div>
       )}

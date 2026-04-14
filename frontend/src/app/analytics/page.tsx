@@ -76,10 +76,10 @@ export default function AnalyticsPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white">Analytics</h1>
+            <h1 className="text-2xl font-bold text-primary">Analytics</h1>
             <Tip text="This page measures how well the bot is performing. Metrics update daily from portfolio snapshots. More data points = more reliable metrics. You need at least 60 days for the Sharpe ratio to be statistically meaningful." />
           </div>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-muted">
             Performance metrics and portfolio analysis
             {snapshots.length > 0 && ` — ${snapshots.length} daily snapshots`}
           </p>
@@ -87,7 +87,7 @@ export default function AnalyticsPage() {
         <button
           onClick={handleTakeSnapshot}
           disabled={snapshotting}
-          className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-700 disabled:opacity-50"
+          className="rounded-lg border border-border-strong bg-card-alt px-4 py-2 text-xs font-medium text-secondary transition-colors hover:bg-border-strong disabled:opacity-50"
         >
           {snapshotting ? "Capturing..." : "Take Snapshot Now"}
         </button>
@@ -99,14 +99,14 @@ export default function AnalyticsPage() {
           label="Total Decisions"
           value={trades.length.toString()}
           sub="All bot cycles"
-          color="text-white"
+          color="text-primary"
           tip="Every time the bot runs, it makes a decision — buy, sell, or hold. This counts ALL decisions, including holds (doing nothing)."
         />
         <MetricCard
           label="Executed Trades"
           value={executed.length.toString()}
           sub={`${blocked.length} blocked by guardrails`}
-          color="text-emerald-400"
+          color="text-accent"
           tip="Trades that actually went through. Some trades get blocked by guardrails (safety rules) — for example, if the bot tries to invest too much money at once."
         />
         <MetricCard
@@ -120,7 +120,7 @@ export default function AnalyticsPage() {
           label="Snapshots"
           value={snapshots.length.toString()}
           sub={snapshots.length >= 60 ? "Sharpe is significant" : `${snapshots.length}/60 for Sharpe significance`}
-          color={snapshots.length >= 60 ? "text-emerald-400" : "text-amber-400"}
+          color={snapshots.length >= 60 ? "text-accent" : "text-amber-400"}
           tip="A snapshot records your portfolio value at the end of each trading day. You need at least 60 snapshots (about 3 months) for the performance metrics to be statistically reliable."
         />
       </div>
@@ -132,7 +132,7 @@ export default function AnalyticsPage() {
             label="Total Return"
             value={`${metrics.total_return_pct >= 0 ? "+" : ""}${metrics.total_return_pct}%`}
             sub={`Over ${metrics.num_trading_days} trading days`}
-            color={metrics.total_return_pct >= 0 ? "text-emerald-400" : "text-red-400"}
+            color={metrics.total_return_pct >= 0 ? "text-accent" : "text-red-400"}
             tip="How much your portfolio has grown (or shrunk) since the bot started. For example, +5% means $100,000 became $105,000."
           />
           <MetricCard
@@ -140,8 +140,8 @@ export default function AnalyticsPage() {
             value={metrics.sharpe_ratio !== null ? metrics.sharpe_ratio.toString() : "—"}
             sub={metrics.sharpe_confidence === "high" ? "Statistically significant" : `${metrics.num_trading_days}/60 days for significance`}
             color={
-              metrics.sharpe_ratio === null ? "text-zinc-400" :
-              metrics.sharpe_ratio >= 1 ? "text-emerald-400" :
+              metrics.sharpe_ratio === null ? "text-secondary" :
+              metrics.sharpe_ratio >= 1 ? "text-accent" :
               metrics.sharpe_ratio >= 0 ? "text-amber-400" : "text-red-400"
             }
             tip="Measures return per unit of risk. Think of it as 'bang for your buck.' Above 1.0 is good, above 2.0 is excellent. Below 0 means you're losing money. Needs 60+ days of data to be reliable."
@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
             label="Win Rate"
             value={`${metrics.win_rate_pct}%`}
             sub={metrics.profit_factor ? `Profit factor: ${metrics.profit_factor}` : "Positive days / total days"}
-            color={metrics.win_rate_pct >= 55 ? "text-emerald-400" : "text-amber-400"}
+            color={metrics.win_rate_pct >= 55 ? "text-accent" : "text-amber-400"}
             tip="Percentage of days your portfolio went up. 55%+ is good — even the best traders don't win every day. What matters is that wins are bigger than losses."
           />
         </div>
@@ -184,7 +184,7 @@ export default function AnalyticsPage() {
             label="Best Day"
             value={`+${metrics.best_day_pct}%`}
             sub="Largest single-day gain"
-            color="text-emerald-400"
+            color="text-accent"
             tip="Your single best day. Nice to see, but don't count on it repeating. Consistent small wins beat occasional big ones."
           />
           <MetricCard
@@ -214,13 +214,13 @@ function MetricCard({
   tip?: string;
 }) {
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-      <p className="flex items-center gap-1 text-xs text-zinc-500">
+    <div className="rounded-xl border border-border bg-card p-6">
+      <p className="flex items-center gap-1 text-xs text-muted">
         {label}
         {tip && <Tip text={tip} />}
       </p>
       <p className={`mt-2 text-3xl font-bold ${color}`}>{value}</p>
-      <p className="mt-1 text-xs text-zinc-600">{sub}</p>
+      <p className="mt-1 text-xs text-muted">{sub}</p>
     </div>
   );
 }

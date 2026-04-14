@@ -2,23 +2,42 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { useTheme } from "@/lib/theme";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
+  const { theme, toggle } = useTheme();
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center bg-surface">
+      {/* Theme toggle in corner */}
+      <button
+        onClick={toggle}
+        className="fixed right-6 top-6 rounded-lg border border-border bg-card p-2 text-muted transition-colors hover:bg-card-alt hover:text-secondary"
+        title={theme === "dark" ? "Light mode" : "Dark mode"}
+      >
+        {theme === "dark" ? (
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+          </svg>
+        ) : (
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+          </svg>
+        )}
+      </button>
+
       <div className="w-full max-w-sm">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-8">
+        <div className="rounded-2xl border border-border bg-card p-8 shadow-lg">
           <div className="mb-8 text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-lg font-bold text-white">
               B
             </div>
-            <h1 className="text-xl font-bold text-white">
-              bahtzang<span className="text-emerald-400">.trader</span>
+            <h1 className="text-xl font-bold text-primary">
+              bahtzang<span className="text-accent">.trader</span>
             </h1>
-            <p className="mt-2 text-sm text-zinc-500">
+            <p className="mt-2 text-sm text-muted">
               Sign in to access your trading dashboard
             </p>
           </div>
@@ -29,7 +48,7 @@ export default function LoginPage() {
               signIn();
             }}
             disabled={loading}
-            className="flex w-full items-center justify-center gap-3 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-3 rounded-lg border border-border-strong bg-card-alt px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-border-strong/30 disabled:opacity-50"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -52,7 +71,7 @@ export default function LoginPage() {
             {loading ? "Redirecting to Google..." : "Sign in with Google"}
           </button>
 
-          <p className="mt-6 text-center text-xs text-zinc-600">
+          <p className="mt-6 text-center text-xs text-muted">
             Access restricted to authorized accounts only
           </p>
         </div>

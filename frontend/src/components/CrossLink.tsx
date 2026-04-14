@@ -6,7 +6,7 @@ type LinkTarget = "roadmap" | "todo" | "changelog" | "concept";
 
 const LINK_STYLES: Record<LinkTarget, { bg: string; text: string; label: string }> = {
   roadmap: { bg: "bg-purple-900/30", text: "text-purple-400", label: "Roadmap" },
-  todo: { bg: "bg-zinc-800", text: "text-zinc-400", label: "Todo" },
+  todo: { bg: "bg-card-alt", text: "text-secondary", label: "Todo" },
   changelog: { bg: "bg-blue-900/30", text: "text-blue-400", label: "Changelog" },
   concept: { bg: "bg-amber-900/30", text: "text-amber-400", label: "Concept" },
 };

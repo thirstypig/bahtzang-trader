@@ -46,7 +46,7 @@ export default function KillSwitchButton({
           <button
             onClick={() => setShowModal(true)}
             disabled={loading}
-            className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition-all hover:bg-zinc-700 disabled:opacity-50"
+            className="rounded-lg border border-border-strong bg-card-alt px-4 py-2 text-sm font-medium text-secondary transition-all hover:bg-border-strong disabled:opacity-50"
           >
             {loading ? "Resuming..." : "Resume Trading"}
           </button>
@@ -69,7 +69,7 @@ export default function KillSwitchButton({
       <button
         onClick={() => setShowModal(true)}
         disabled={loading}
-        className="rounded-xl bg-red-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-red-900/30 transition-all hover:bg-red-700 hover:shadow-red-900/50 active:scale-95 disabled:opacity-50"
+        className="rounded-xl bg-red-600 px-8 py-4 text-lg font-bold text-primary shadow-lg shadow-red-900/30 transition-all hover:bg-red-700 hover:shadow-red-900/50 active:scale-95 disabled:opacity-50"
       >
         {loading ? "Activating..." : "KILL SWITCH"}
       </button>

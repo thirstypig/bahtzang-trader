@@ -2,12 +2,15 @@
 
 import { usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import Navbar from "@/components/Navbar";
+import { ThemeProvider } from "@/lib/theme";
+import { SidebarProvider, useSidebar } from "@/lib/sidebar";
+import Sidebar from "@/components/Sidebar";
 import Spinner from "@/components/Spinner";
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
+  const { expanded } = useSidebar();
 
   if (loading) {
     return (
@@ -17,20 +20,33 @@ function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const showNavbar = user && pathname !== "/login";
+  const showSidebar = user && pathname !== "/login";
+
+  if (!showSidebar) {
+    return <main>{children}</main>;
+  }
 
   return (
     <>
-      {showNavbar && <Navbar />}
-      <main>{children}</main>
+      <Sidebar />
+      <main
+        className="min-h-screen transition-[margin-left] duration-200"
+        style={{ marginLeft: expanded ? 240 : 68 }}
+      >
+        {children}
+      </main>
     </>
   );
 }
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <AppShell>{children}</AppShell>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <SidebarProvider>
+          <AppShell>{children}</AppShell>
+        </SidebarProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

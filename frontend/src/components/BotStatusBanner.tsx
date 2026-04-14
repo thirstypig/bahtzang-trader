@@ -80,7 +80,7 @@ export default function BotStatusBanner() {
           />
           <span
             className={`text-sm font-semibold ${
-              isHalted ? "text-red-400" : "text-emerald-400"
+              isHalted ? "text-red-400" : "text-accent"
             }`}
           >
             {isHalted ? "Bot Halted" : "Bot Active"}
@@ -88,52 +88,52 @@ export default function BotStatusBanner() {
         </div>
 
         {/* Frequency */}
-        <div className="text-xs text-zinc-400">
-          <span className="text-zinc-600">Schedule:</span>{" "}
+        <div className="text-xs text-secondary">
+          <span className="text-muted">Schedule:</span>{" "}
           {status.frequency}/day ({status.schedule_times.join(", ")})
         </div>
 
         {/* Strategy */}
-        <div className="text-xs text-zinc-400">
-          <span className="text-zinc-600">Goal:</span>{" "}
+        <div className="text-xs text-secondary">
+          <span className="text-muted">Goal:</span>{" "}
           {GOAL_LABELS[status.trading_goal] || status.trading_goal}
           <span className="mx-1 text-zinc-700">·</span>
-          <span className="text-zinc-600">Risk:</span>{" "}
+          <span className="text-muted">Risk:</span>{" "}
           <span className="capitalize">{status.risk_profile}</span>
         </div>
 
         {/* Last run */}
         {status.last_run && (
-          <div className="text-xs text-zinc-400">
-            <span className="text-zinc-600">Last:</span>{" "}
+          <div className="text-xs text-secondary">
+            <span className="text-muted">Last:</span>{" "}
             {status.last_action?.toUpperCase()} {status.last_ticker}{" "}
-            <span className="text-zinc-600">({timeAgo(status.last_run)})</span>
+            <span className="text-muted">({timeAgo(status.last_run)})</span>
           </div>
         )}
 
         {/* Next run */}
         {status.next_run && !isHalted && (
-          <div className="text-xs text-zinc-400">
-            <span className="text-zinc-600">Next:</span>{" "}
+          <div className="text-xs text-secondary">
+            <span className="text-muted">Next:</span>{" "}
             {formatNextRun(status.next_run)}
           </div>
         )}
 
         {/* Total trades */}
-        <div className="text-xs text-zinc-400">
-          <span className="text-zinc-600">Trades:</span> {status.total_trades} executed
+        <div className="text-xs text-secondary">
+          <span className="text-muted">Trades:</span> {status.total_trades} executed
         </div>
       </div>
 
       {/* Recent settings changes */}
       {status.recent_changes.length > 0 && (
-        <div className="mt-3 border-t border-zinc-800/50 pt-2">
-          <p className="text-[10px] text-zinc-600 mb-1">Recent changes:</p>
+        <div className="mt-3 border-t border-border/50 pt-2">
+          <p className="text-[10px] text-muted mb-1">Recent changes:</p>
           <div className="flex flex-wrap gap-2">
             {status.recent_changes.slice(0, 3).map((c, i) => (
               <span
                 key={i}
-                className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-400"
+                className="rounded bg-card-alt px-2 py-0.5 text-[10px] text-secondary"
               >
                 {c.action.replace(/_/g, " ")} · {timeAgo(c.timestamp)}
               </span>

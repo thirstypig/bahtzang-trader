@@ -38,7 +38,7 @@ npm run install:backend  # pip install in /backend
 ### Frontend (`/frontend`)
 - Next.js 14 (App Router, `output: "standalone"` for Railway)
 - React 18, TypeScript
-- Tailwind CSS (dark theme, zinc-950 background)
+- Tailwind CSS with semantic color tokens (light/dark theme via CSS custom properties)
 - Recharts for charts
 - Supabase JS (`getSupabase()` lazy singleton to avoid build-time crash)
 - Most pages are `"use client"` — data fetched via `useApiQuery` hook or `useEffect` gated by auth
@@ -140,15 +140,17 @@ frontend/
       earnings/       # /earnings (upcoming earnings calendar, color-coded proximity)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
-      providers.tsx   # AuthProvider + AppShell (conditional Navbar)
-      layout.tsx      # Root layout (Server Component, no "use client")
+      providers.tsx   # ThemeProvider + AuthProvider + SidebarProvider + AppShell
+      layout.tsx      # Root layout (Server Component, anti-flash theme script)
     components/       # Reusable UI components
-      AdminNav.tsx    # Shared admin page navigation (Todo|Roadmap|Concepts|Changelog)
+      Sidebar.tsx     # Collapsible left sidebar (icon nav, grouped sections, theme toggle, profile)
       CrossLink.tsx   # Reusable cross-link badge (pill-shaped, color-coded by type)
       KillSwitchButton.tsx # Kill switch with activate + deactivate
     lib/
       api.ts          # fetchAPI with Bearer token + admin todo CRUD functions
       auth.tsx        # AuthProvider, useAuth hook
+      theme.tsx       # ThemeProvider, useTheme hook (light/dark, localStorage)
+      sidebar.tsx     # SidebarProvider, useSidebar hook (expanded/collapsed state)
       supabase.ts     # Lazy Supabase client singleton
       types.ts        # TypeScript interfaces
       utils.ts        # formatCurrency, formatDateTime
@@ -167,7 +169,15 @@ frontend/
 - Direct connection (`db.*.supabase.co`) does NOT work from Railway (IPv6 unreachable)
 
 ## Conventions
-- Dark theme: zinc-950 background, zinc-900 cards, emerald-400 accents
+
+### Design System
+- Light/dark theme toggle — persisted in localStorage, respects system preference
+- Semantic color tokens via CSS custom properties: `bg-surface`, `bg-card`, `bg-card-alt`, `text-primary`, `text-secondary`, `text-muted`, `border-border`, `text-accent`
+- Collapsible left sidebar navigation (Core / Trading / Admin sections)
+- Never use hardcoded zinc-*/slate-* for theme colors — use semantic tokens instead
+- Brand colors (`bg-emerald-600`, `bg-red-*`) are fine as-is (not theme-dependent)
+
+### Code Patterns
 - All API calls go through `fetchAPI()` in `lib/api.ts`
 - Auth gating: `if (!user) return;` at top of `useEffect` in every page
 - Guardrails stored in PostgreSQL (persists across Railway deploys), API endpoints to read/write
