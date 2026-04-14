@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getGuardrails, triggerRun, updateGuardrails } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Guardrails, TradingGoal } from "@/lib/types";
+import { getTimezone, setTimezone } from "@/lib/utils";
 import KillSwitchButton from "@/components/KillSwitchButton";
 import Spinner from "@/components/Spinner";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -118,7 +119,12 @@ export default function SettingsPage() {
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<string | null>(null);
   const [showRunModal, setShowRunModal] = useState(false);
+  const [timezone, setTz] = useState("America/New_York");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setTz(getTimezone());
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -428,6 +434,35 @@ export default function SettingsPage() {
           </a>
           <p className="mt-2 text-xs text-zinc-600">
             Deposits, withdrawals, and order history are managed directly on Alpaca
+          </p>
+        </div>
+      </div>
+
+      {/* Display Timezone */}
+      <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+        <h2 className="text-lg font-semibold text-white">Display Timezone</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          All dates and times across the app will display in this timezone
+        </p>
+        <div className="mt-4 max-w-xs">
+          <select
+            value={timezone}
+            onChange={(e) => {
+              setTz(e.target.value);
+              setTimezone(e.target.value);
+            }}
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          >
+            <option value="America/New_York">Eastern (ET)</option>
+            <option value="America/Chicago">Central (CT)</option>
+            <option value="America/Denver">Mountain (MT)</option>
+            <option value="America/Los_Angeles">Pacific (PT)</option>
+            <option value="America/Anchorage">Alaska (AKT)</option>
+            <option value="Pacific/Honolulu">Hawaii (HT)</option>
+            <option value="UTC">UTC</option>
+          </select>
+          <p className="mt-2 text-xs text-zinc-600">
+            Current: {new Date().toLocaleTimeString("en-US", { timeZone: timezone, hour: "numeric", minute: "2-digit", timeZoneName: "short" })}
           </p>
         </div>
       </div>

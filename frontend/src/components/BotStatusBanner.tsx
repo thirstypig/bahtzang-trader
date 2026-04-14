@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getBotStatus, BotStatus } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { getTimezone } from "@/lib/utils";
 
 const GOAL_LABELS: Record<string, string> = {
   maximize_returns: "Maximize Returns",
@@ -35,8 +36,8 @@ function formatNextRun(iso: string): string {
   const mins = Math.floor((diffMs % 3600000) / 60000);
 
   if (hours > 24) {
-    return d.toLocaleDateString("en-US", { weekday: "short" }) +
-      " " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return d.toLocaleDateString("en-US", { timeZone: getTimezone(), weekday: "short" }) +
+      " " + d.toLocaleTimeString("en-US", { timeZone: getTimezone(), hour: "numeric", minute: "2-digit" });
   }
   if (hours > 0) return `in ${hours}h ${mins}m`;
   return `in ${mins}m`;

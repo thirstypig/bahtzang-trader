@@ -10,7 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { Trade } from "@/lib/types";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getTimezone } from "@/lib/utils";
 
 interface ValueChartProps {
   trades: Trade[];
@@ -30,6 +30,7 @@ export default function ValueChart({ trades }: ValueChartProps) {
     if (t.action === "sell") cumulative -= value;
     return {
       date: new Date(t.timestamp).toLocaleDateString("en-US", {
+        timeZone: getTimezone(),
         month: "short",
         day: "numeric",
       }),

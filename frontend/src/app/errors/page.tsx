@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { getRecentErrors, getErrorByRef, ErrorSummary, ErrorDetail } from "@/lib/api";
 import AdminNav from "@/components/AdminNav";
 import Spinner from "@/components/Spinner";
+import { getTimezone } from "@/lib/utils";
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -129,7 +130,7 @@ export default function ErrorsPage() {
                         </div>
                         <div>
                           <span className="text-zinc-600">Time:</span>{" "}
-                          <span className="text-zinc-400">{new Date(detail.timestamp).toLocaleString()}</span>
+                          <span className="text-zinc-400">{new Date(detail.timestamp).toLocaleString("en-US", { timeZone: getTimezone() })}</span>
                         </div>
                       </div>
                       <p className="mb-3 text-sm text-red-400">{detail.message}</p>
