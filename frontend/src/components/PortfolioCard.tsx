@@ -2,6 +2,7 @@
 
 import { Balance, Position } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
+import Tip from "@/components/Tip";
 
 interface PortfolioCardProps {
   balance: Balance | null;
@@ -20,22 +21,25 @@ export default function PortfolioCard({
 
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-      <h2 className="text-sm font-medium text-zinc-400">Portfolio Summary</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-sm font-medium text-zinc-400">Portfolio Summary</h2>
+        <Tip text="Your portfolio is the total of all your investments plus uninvested cash. This updates in real-time from your Alpaca brokerage account." />
+      </div>
       <div className="mt-4 grid grid-cols-3 gap-6">
         <div>
-          <p className="text-xs text-zinc-500">Total Value</p>
+          <p className="flex items-center gap-1 text-xs text-zinc-500">Total Value <Tip text="Everything you own in your account — stocks + cash combined. This is your net worth in the brokerage." /></p>
           <p className="mt-1 text-2xl font-bold text-white">
             {balance ? formatCurrency(balance.total_value) : "—"}
           </p>
         </div>
         <div>
-          <p className="text-xs text-zinc-500">Cash Available</p>
+          <p className="flex items-center gap-1 text-xs text-zinc-500">Cash Available <Tip text="Money not invested in any stock. The bot uses this cash when it decides to buy something." /></p>
           <p className="mt-1 text-2xl font-bold text-white">
             {balance ? formatCurrency(balance.cash_available) : "—"}
           </p>
         </div>
         <div>
-          <p className="text-xs text-zinc-500">Daily P&L</p>
+          <p className="flex items-center gap-1 text-xs text-zinc-500">Daily P&amp;L <Tip text="Profit and Loss for today. Green means your stocks went up today, red means they went down. This resets each trading day." /></p>
           <p
             className={`mt-1 text-2xl font-bold ${
               isPositive ? "text-emerald-400" : "text-red-400"

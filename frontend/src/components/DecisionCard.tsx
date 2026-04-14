@@ -2,6 +2,7 @@
 
 import { Trade } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
+import Tip from "@/components/Tip";
 
 interface DecisionCardProps {
   trade: Trade | null;
@@ -17,9 +18,12 @@ export default function DecisionCard({ trade }: DecisionCardProps) {
   if (!trade) {
     return (
       <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-sm font-medium text-zinc-400">
-          Claude&apos;s Last Decision
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-medium text-zinc-400">
+            Claude&apos;s Last Decision
+          </h2>
+          <Tip text="Every trading cycle, the AI analyzes your portfolio and market data, then decides to BUY, SELL, or HOLD." />
+        </div>
         <p className="mt-4 text-zinc-500">No decisions yet</p>
       </div>
     );
@@ -57,7 +61,7 @@ export default function DecisionCard({ trade }: DecisionCardProps) {
 
       <div className="mt-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-500">Confidence</span>
+          <span className="flex items-center gap-1 text-xs text-zinc-500">Confidence <Tip text="How sure the AI is about its decision, from 0% to 100%. Higher confidence means stronger conviction. Trades below the minimum confidence threshold (set in Settings) are blocked." /></span>
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-800">
             <div
               className="h-full rounded-full bg-emerald-500 transition-all"

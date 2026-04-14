@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { getEarningsCalendar, refreshEarnings } from "@/lib/api";
 import { EarningsEvent } from "@/lib/types";
 import Spinner from "@/components/Spinner";
+import Tip from "@/components/Tip";
 
 export default function EarningsPage() {
   const { user } = useAuth();
@@ -78,7 +79,10 @@ export default function EarningsPage() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Earnings Calendar</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-white">Earnings Calendar</h1>
+            <Tip text="Companies report their financial results (earnings) every quarter. Stock prices often move sharply after earnings — up or down. The bot automatically reduces position sizes near earnings dates to protect you from surprise moves." />
+          </div>
           <p className="mt-1 text-sm text-zinc-500">
             Upcoming earnings for held positions — reduces position sizes near
             reporting dates

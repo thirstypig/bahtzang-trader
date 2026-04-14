@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { BacktestDetail, BacktestItem, StrategyInfo } from "@/lib/types";
 import Spinner from "@/components/Spinner";
+import Tip from "@/components/Tip";
 import {
   LineChart,
   Line,
@@ -138,7 +139,10 @@ export default function BacktestPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <h1 className="text-2xl font-bold text-white">Backtest</h1>
+      <div className="flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-white">Backtest</h1>
+        <Tip text="Backtesting lets you test 'what would have happened?' by running a trading strategy on historical stock prices. It doesn't use real money — it simulates trades to see if a strategy would have been profitable." />
+      </div>
       <p className="mt-1 text-sm text-zinc-500">
         Test trading strategies against historical data
       </p>
@@ -161,8 +165,8 @@ export default function BacktestPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">
-              Strategy
+            <label className="mb-1 flex items-center gap-1 text-xs text-zinc-500">
+              Strategy <Tip text="The rule set the simulation follows. SMA Crossover buys when short-term momentum beats long-term (bullish signal). RSI Mean Reversion buys oversold stocks and sells overbought ones. Buy &amp; Hold is the simplest benchmark — just buy and hold." />
             </label>
             <select
               value={strategy}
@@ -230,8 +234,8 @@ export default function BacktestPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">
-              Max Position Size (%)
+            <label className="mb-1 flex items-center gap-1 text-xs text-zinc-500">
+              Max Position Size (%) <Tip text="The most you'll put into any single stock, as a fraction of your total portfolio. 0.10 means 10% — so with $100K, no single stock gets more than $10K." />
             </label>
             <input
               type="number"
@@ -255,8 +259,8 @@ export default function BacktestPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">
-              Stop Loss (%)
+            <label className="mb-1 flex items-center gap-1 text-xs text-zinc-500">
+              Stop Loss (%) <Tip text="If a stock drops this much from your buy price, it auto-sells to limit your loss. 0.05 means 5% — if you bought at $100 and it drops to $95, it sells automatically." />
             </label>
             <input
               type="number"
@@ -377,6 +381,7 @@ export default function BacktestPage() {
                   ? "text-emerald-400"
                   : "text-red-400"
               }
+              tip="How much the simulated portfolio gained or lost over the backtest period. Compare this to Buy & Hold to see if the strategy adds value."
             />
             <MetricCard
               label="Sharpe Ratio"
@@ -390,6 +395,7 @@ export default function BacktestPage() {
                       ? "text-amber-400"
                       : "text-red-400"
               }
+              tip="Return per unit of risk. Above 1.0 = good risk-adjusted returns. Above 2.0 = excellent. Compare across strategies to find the best risk/reward balance."
             />
             <MetricCard
               label="Max Drawdown"
@@ -551,14 +557,19 @@ function MetricCard({
   label,
   value,
   color,
+  tip,
 }: {
   label: string;
   value: string;
   color: string;
+  tip?: string;
 }) {
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-      <p className="text-xs text-zinc-500">{label}</p>
+      <p className="flex items-center gap-1 text-xs text-zinc-500">
+        {label}
+        {tip && <Tip text={tip} />}
+      </p>
       <p className={`mt-2 text-3xl font-bold ${color}`}>{value}</p>
     </div>
   );

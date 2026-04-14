@@ -5,6 +5,7 @@ import { getTrades } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Trade } from "@/lib/types";
 import Spinner from "@/components/Spinner";
+import Tip from "@/components/Tip";
 import TradeTable from "@/components/TradeTable";
 
 export default function TradesPage() {
@@ -23,7 +24,10 @@ export default function TradesPage() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Trade History</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-white">Trade History</h1>
+            <Tip text="A complete log of every decision the AI has made — buys, sells, and holds. Click any row to see Claude's full reasoning. Blocked trades show why the guardrails stopped them." />
+          </div>
           <p className="mt-1 text-sm text-zinc-500">
             Every decision Claude has made, with full reasoning
           </p>

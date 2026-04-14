@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Trade } from "@/lib/types";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import Tip from "@/components/Tip";
 
 interface TradeTableProps {
   trades: Trade[];
@@ -11,15 +12,15 @@ interface TradeTableProps {
 type SortKey = keyof Trade;
 type SortDir = "asc" | "desc";
 
-const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
-  { key: "timestamp", label: "Date" },
-  { key: "ticker", label: "Ticker" },
-  { key: "action", label: "Action" },
-  { key: "quantity", label: "Qty", className: "text-right" },
-  { key: "price", label: "Price", className: "text-right" },
-  { key: "confidence", label: "Confidence", className: "text-right" },
-  { key: "guardrail_passed", label: "Guardrail" },
-  { key: "claude_reasoning", label: "Reasoning" },
+const COLUMNS: { key: SortKey; label: string; className?: string; tip?: string }[] = [
+  { key: "timestamp", label: "Date", tip: "When the bot made this decision" },
+  { key: "ticker", label: "Ticker", tip: "The stock symbol (e.g., AAPL = Apple)" },
+  { key: "action", label: "Action", tip: "BUY = purchase shares, SELL = sell shares you own, HOLD = do nothing" },
+  { key: "quantity", label: "Qty", className: "text-right", tip: "Number of shares bought or sold" },
+  { key: "price", label: "Price", className: "text-right", tip: "Price per share at the time of the trade" },
+  { key: "confidence", label: "Confidence", className: "text-right", tip: "How sure the AI was about this decision (0-100%). Trades below the minimum threshold get blocked." },
+  { key: "guardrail_passed", label: "Guardrail", tip: "Did the trade pass safety checks? 'Blocked' means guardrails prevented it — for example, exceeding position limits." },
+  { key: "claude_reasoning", label: "Reasoning", tip: "The AI's explanation for why it made this decision" },
 ];
 
 const ACTION_BADGE: Record<string, string> = {
@@ -69,7 +70,10 @@ export default function TradeTable({ trades }: TradeTableProps) {
                   onClick={() => handleSort(col.key)}
                   className={`cursor-pointer whitespace-nowrap px-4 py-3 text-xs font-medium text-zinc-400 transition-colors hover:text-white ${col.className || ""}`}
                 >
-                  {col.label}
+                  <span className="inline-flex items-center gap-1">
+                    {col.label}
+                    {col.tip && <Tip text={col.tip} position="bottom" />}
+                  </span>
                   {sortKey === col.key && (
                     <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>
                   )}

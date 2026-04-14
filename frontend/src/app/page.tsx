@@ -9,6 +9,7 @@ import DecisionCard from "@/components/DecisionCard";
 import AllocationChart from "@/components/AllocationChart";
 import BotStatusBanner from "@/components/BotStatusBanner";
 import Spinner from "@/components/Spinner";
+import Tip from "@/components/Tip";
 import ValueChart from "@/components/ValueChart";
 
 export default function DashboardPage() {
@@ -66,7 +67,10 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <Tip text="This is your home base. It shows your current portfolio value, what the AI decided to do most recently, and how your money is allocated across stocks." />
+        </div>
         <p className="mt-1 text-sm text-zinc-500">
           Real-time portfolio overview and AI trading decisions
         </p>

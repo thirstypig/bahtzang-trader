@@ -5,6 +5,7 @@ import { getGuardrails, triggerRun, updateGuardrails } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Guardrails, TradingGoal } from "@/lib/types";
 import { getTimezone, setTimezone } from "@/lib/utils";
+import Tip from "@/components/Tip";
 import KillSwitchButton from "@/components/KillSwitchButton";
 import Spinner from "@/components/Spinner";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -195,7 +196,10 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-white">Settings</h1>
+          <Tip text="This is where you control the bot's behavior — what it trades, how often, and how much risk it takes. Changes take effect immediately." />
+        </div>
         <p className="mt-1 text-sm text-zinc-500">
           Configure your trading strategy, risk, and frequency
         </p>
@@ -213,7 +217,10 @@ export default function SettingsPage() {
 
       {/* Trading Goal */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold text-white">Trading Goal</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-white">Trading Goal</h2>
+          <Tip text="This is the most important setting. It tells the AI what you're trying to achieve — steady income, maximum growth, or just matching the market. The goal determines which stocks Claude considers and how aggressively it trades." />
+        </div>
         <p className="mt-1 text-sm text-zinc-500">
           What should Claude optimize for? This shapes which stocks it considers, how long it holds, and how often it trades.
         </p>
@@ -249,7 +256,10 @@ export default function SettingsPage() {
 
       {/* Trading Frequency */}
       <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold text-white">Trading Frequency</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-white">Trading Frequency</h2>
+          <Tip text="How often the bot analyzes the market and makes decisions. 1x/day is calm and conservative. 5x/day is active — more chances to catch opportunities but also more trading costs." />
+        </div>
         <p className="mt-1 text-sm text-zinc-500">
           How many times per day should the bot run?
         </p>
@@ -277,7 +287,10 @@ export default function SettingsPage() {
 
       {/* Risk Profile */}
       <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold text-white">Risk Profile</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-white">Risk Profile</h2>
+          <Tip text="How much risk you're comfortable with. Conservative = small positions, strict limits, rarely trades. Aggressive = larger positions, looser limits, trades more often. This overrides the fine-tune settings below with preset values." />
+        </div>
         <p className="mt-1 text-sm text-zinc-500">
           Controls position sizing, stop losses, and confidence thresholds
         </p>
@@ -309,7 +322,10 @@ export default function SettingsPage() {
 
       {/* Fine-Tune Guardrails */}
       <form onSubmit={handleSave} className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold text-white">Fine-Tune Guardrails</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-white">Fine-Tune Guardrails</h2>
+          <Tip text="Guardrails are safety limits that prevent the bot from doing anything too risky. Even if Claude wants to make a big trade, guardrails can block it. Think of them as guard rails on a highway — they keep you from going off the edge." />
+        </div>
         <p className="mt-1 text-sm text-zinc-500">
           Override individual settings from the selected profile
         </p>
@@ -352,7 +368,10 @@ export default function SettingsPage() {
 
       {/* Kill Switch */}
       <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold text-white">Emergency Controls</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-white">Emergency Controls</h2>
+          <Tip text="The kill switch immediately stops ALL automated trading. The bot won't buy or sell anything until you turn it back off. Use this if something seems wrong or you want to pause trading." />
+        </div>
         <p className="mt-1 text-sm text-zinc-500">Immediately halt all automated trading</p>
         <div className="mt-6">
           <KillSwitchButton
