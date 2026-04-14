@@ -132,6 +132,7 @@ def check_guardrails(
     db: Session,
     config: dict | None = None,
     current_position_count: int = 0,
+    positions: list[dict] | None = None,
 ) -> tuple[bool, str | None]:
     """
     Validate a trade decision against all guardrail rules.
@@ -194,6 +195,27 @@ def check_guardrails(
     if decision.get("action") == "buy":
         if current_position_count >= max_positions:
             return False, f"Max positions reached ({max_positions})"
+
+    # 014-fix: Stop-loss enforcement — check if held position breaches threshold
+    stop_loss = config.get("stop_loss_threshold", 0.05)
+    if positions and decision.get("ticker"):
+        ticker = decision["ticker"]
+        for pos in positions:
+            sym = pos.get("instrument", {}).get("symbol", "")
+            if sym == ticker:
+                pnl_pct = pos.get("unrealized_pnl_pct", 0)
+                if pnl_pct < -stop_loss:
+                    if decision.get("action") == "buy":
+                        return False, (
+                            f"{ticker} is down {abs(pnl_pct):.1%}, "
+                            f"breaching {stop_loss:.0%} stop-loss — buy blocked"
+                        )
+                    elif decision.get("action") == "hold":
+                        logger.warning(
+                            "Stop-loss alert: %s is down %.1f%% (threshold: %.0f%%)",
+                            ticker, abs(pnl_pct) * 100, stop_loss * 100,
+                        )
+                break
 
     # PDT compliance (accounts under $25k)
     if config.get("pdt_protection", True):

@@ -36,18 +36,19 @@ async def _get_access_token() -> str:
     ):
         return _token_cache["access_token"]
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            TOKEN_URL,
-            data={"grant_type": "client_credentials"},
-            auth=(settings.SCHWAB_CLIENT_ID, settings.SCHWAB_CLIENT_SECRET),
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        _token_cache["access_token"] = data["access_token"]
-        # 003-fix: Store expiry with 60s buffer
-        _token_cache["expires_at"] = time.time() + data.get("expires_in", 1800) - 60
-        return data["access_token"]
+    # 007-fix: Reuse shared client (absolute URL overrides base_url)
+    client = _get_client()
+    resp = await client.post(
+        TOKEN_URL,
+        data={"grant_type": "client_credentials"},
+        auth=(settings.SCHWAB_CLIENT_ID, settings.SCHWAB_CLIENT_SECRET),
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    _token_cache["access_token"] = data["access_token"]
+    # 003-fix: Store expiry with 60s buffer
+    _token_cache["expires_at"] = time.time() + data.get("expires_in", 1800) - 60
+    return data["access_token"]
 
 
 async def _headers() -> dict:

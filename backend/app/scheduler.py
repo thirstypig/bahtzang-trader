@@ -1,5 +1,6 @@
 """APScheduler cron job: runs the trading pipeline on market days."""
 
+import asyncio
 import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -80,10 +81,9 @@ async def _daily_summary():
         today_start = datetime.now(timezone.utc).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
-        today_trades = (
-            db.query(Trade)
-            .filter(Trade.timestamp >= today_start)
-            .all()
+        # 040-fix: Run sync DB query in thread to avoid blocking event loop
+        today_trades = await asyncio.to_thread(
+            lambda: db.query(Trade).filter(Trade.timestamp >= today_start).all()
         )
 
         executed = sum(1 for t in today_trades if t.executed)
@@ -166,8 +166,8 @@ async def _take_snapshot():
             unrealized_pnl=unrealized,
             spy_close=spy_close,
         )
-        db.merge(snapshot)
-        db.commit()
+        # 040-fix: Run sync DB write in thread to avoid blocking event loop
+        await asyncio.to_thread(lambda: (db.merge(snapshot), db.commit()))
         logger.info(
             "Snapshot saved: equity=$%.2f, SPY=$%.2f",
             balance["total_value"],

@@ -1,24 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { getTrades } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
 import { Trade } from "@/lib/types";
+import { useApiQuery } from "@/lib/useApiQuery";
 import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
 import TradeTable from "@/components/TradeTable";
 
 export default function TradesPage() {
-  const { user } = useAuth();
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) return;
-    getTrades(200)
-      .then(setTrades)
-      .finally(() => setLoading(false));
-  }, [user]);
+  const { data: trades, loading } = useApiQuery<Trade[]>(
+    () => getTrades(200),
+    [],
+  );
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">

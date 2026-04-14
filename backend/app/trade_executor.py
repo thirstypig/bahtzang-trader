@@ -6,6 +6,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from app import claude_brain, guardrails, market_data, notifier
+from app.pipeline_types import CycleResult
 from app.earnings.client import days_until_earnings, format_earnings_csv
 from app.circuit_breaker import check_circuit_breakers, YELLOW, ORANGE, RED
 from app.technical_analysis import get_indicators, format_indicators_csv
@@ -25,7 +26,7 @@ broker = AlpacaBroker()
 _cycle_lock = asyncio.Lock()
 
 
-async def run_cycle(db: Session, account_id: str = DEFAULT_ACCOUNT_ID) -> dict:
+async def run_cycle(db: Session, account_id: str = DEFAULT_ACCOUNT_ID) -> CycleResult:
     """
     Execute one full trading cycle:
     1. Fetch portfolio + balances from broker
@@ -39,7 +40,7 @@ async def run_cycle(db: Session, account_id: str = DEFAULT_ACCOUNT_ID) -> dict:
         return await _execute_cycle(db, account_id)
 
 
-async def _execute_cycle(db: Session, account_id: str) -> dict:
+async def _execute_cycle(db: Session, account_id: str) -> CycleResult:
     # 1. Gather portfolio state — parallel fetch
     positions, balance = await asyncio.gather(
         broker.get_positions(account_id),
@@ -139,6 +140,7 @@ async def _execute_cycle(db: Session, account_id: str) -> dict:
         db=db,
         config=guardrails_config,
         current_position_count=len(positions),
+        positions=positions,
     )
 
     # 5. Execute if approved

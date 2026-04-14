@@ -6,6 +6,7 @@ import logging
 import anthropic
 
 from app.config import settings
+from app.pipeline_types import Position, Quote, NewsItem, TradeDecision
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,9 @@ GOAL_PROMPTS = {
     "steady_income": (
         "TRADING GOAL: STEADY INCOME (target 4-8% annual yield). "
         "Generate income through dividends and covered call premiums. "
-        "Focus on high-dividend ETFs and stocks: SCHD, VYM, JEPI, O, JNJ, PG. "
+        "Consider high-dividend ETFs and stocks like SCHD, VYM, JEPI, O, JNJ, PG. "
+        "IMPORTANT: Verify current dividend yields from the market data provided — "
+        "do not assume historical yields are still accurate. "
         "Prefer stocks with strong dividend history and sustainable payout ratios. "
         "HOLD 75% of the time. Only trade 1-2x per month. "
         "Never sell within 2 weeks of ex-dividend date. "
@@ -67,8 +70,8 @@ GOAL_PROMPTS = {
     ),
     "capital_preservation": (
         "TRADING GOAL: CAPITAL PRESERVATION (target 2-4% annual, minimize losses). "
-        "Preserve capital above all. Focus on treasury ETFs and low-volatility stocks. "
-        "Focus on: SHV, BIL, XLU, USMV, PG, JNJ. "
+        "Preserve capital above all. Consider treasury ETFs and low-volatility stocks "
+        "like SHV, BIL, XLU, USMV, PG, JNJ — verify current yields from market data. "
         "Maintain minimum 20% cash reserve at all times. "
         "If any position drops > 8%, sell immediately. "
         "Require 80% confidence minimum. HOLD 80% of the time. "
@@ -109,15 +112,15 @@ assert set(GOAL_PROMPTS.keys()) == set(TRADING_GOALS.keys()), (
 
 
 async def get_trade_decision(
-    positions: list[dict],
+    positions: list[Position],
     cash_available: float,
-    market_data: list[dict],
-    news: list[dict],
+    market_data: list[Quote],
+    news: list[NewsItem],
     guardrails_config: dict,
     technicals_csv: str = "",
     sector_csv: str = "",
     earnings_csv: str = "",
-) -> dict:
+) -> TradeDecision:
     """Send portfolio context to Claude and get a structured trade decision."""
     risk_profile = guardrails_config.get("risk_profile", "moderate")
     trading_goal = guardrails_config.get("trading_goal", "maximize_returns")

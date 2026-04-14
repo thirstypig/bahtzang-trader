@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_auth
 from app.database import get_db
+from app.models import PortfolioSnapshot
 from app.guardrails import (
     RISK_PRESETS,
     TRADING_GOALS,
@@ -50,7 +51,9 @@ def update_guardrails(
 
     # If a risk profile is selected, apply the preset as the base
     if config.risk_profile:
-        portfolio_value = 100000
+        # 028-fix: Use actual portfolio value from latest snapshot (not hardcoded 100k)
+        latest = db.query(PortfolioSnapshot).order_by(PortfolioSnapshot.date.desc()).first()
+        portfolio_value = latest.total_equity if latest else 100_000
         preset = apply_risk_preset(config.risk_profile, portfolio_value)
         preset["kill_switch"] = current.get("kill_switch", False)
         preset["trading_goal"] = current.get("trading_goal", "maximize_returns")
