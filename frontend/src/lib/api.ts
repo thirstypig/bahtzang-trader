@@ -38,10 +38,11 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
     const detail = body.detail;
     // Handle structured error responses (object with error_code + message + ref)
     if (detail && typeof detail === "object" && detail.message) {
-      const err = new Error(detail.message);
-      (err as any).code = detail.error_code;
-      (err as any).errorType = detail.error_type;
-      (err as any).ref = detail.ref;
+      const err: Error & { code?: string; errorType?: string; ref?: string } =
+        new Error(detail.message);
+      err.code = detail.error_code;
+      err.errorType = detail.error_type;
+      err.ref = detail.ref;
       throw err;
     }
     throw new Error(typeof detail === "string" ? detail : res.statusText);

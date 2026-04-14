@@ -78,7 +78,7 @@ export default function ReturnDistributionChart({ snapshots }: Props) {
               borderRadius: 8,
               fontSize: 12,
             }}
-            formatter={(value: number) => [value, "Days"]}
+            formatter={(value) => [Number(value), "Days"]}
           />
           <ReferenceLine x={bins.findIndex((b) => b.midpoint >= 0) >= 0 ? bins[bins.findIndex((b) => b.midpoint >= 0)]?.range : undefined} stroke="#3f3f46" strokeDasharray="3 3" />
           <Bar dataKey="count" radius={[2, 2, 0, 0]}>

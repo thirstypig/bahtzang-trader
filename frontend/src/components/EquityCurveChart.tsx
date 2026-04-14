@@ -61,7 +61,7 @@ export default function EquityCurveChart({ snapshots }: Props) {
               borderRadius: 8,
               fontSize: 12,
             }}
-            formatter={(value: number) => [`${value.toFixed(2)}%`]}
+            formatter={(value) => [`${Number(value).toFixed(2)}%`]}
           />
           <Legend
             wrapperStyle={{ fontSize: 11, color: "#a1a1aa" }}

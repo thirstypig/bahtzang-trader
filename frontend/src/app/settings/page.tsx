@@ -167,10 +167,11 @@ export default function SettingsPage() {
       setRunResult(
         `${result.action.toUpperCase()} ${result.ticker || ""} — ${result.executed ? "Executed" : "Not executed"}${result.guardrail_block_reason ? ` (${result.guardrail_block_reason})` : ""}`
       );
-    } catch (err: any) {
-      const code = err?.code || "UNKNOWN";
-      const ref = err?.ref || "";
-      const message = err instanceof Error ? err.message : "Unknown error";
+    } catch (err: unknown) {
+      const e = err as Error & { code?: string; ref?: string };
+      const code = e?.code || "UNKNOWN";
+      const ref = e?.ref || "";
+      const message = e?.message || "Unknown error";
       setRunResult(`ERROR [${code}]${ref ? ` ${ref}` : ""}: ${message}`);
     } finally {
       setRunning(false);

@@ -66,7 +66,7 @@ export default function DrawdownChart({ snapshots }: Props) {
               borderRadius: 8,
               fontSize: 12,
             }}
-            formatter={(value: number) => [`${value.toFixed(2)}%`, "Drawdown"]}
+            formatter={(value) => [`${Number(value).toFixed(2)}%`, "Drawdown"]}
           />
           <ReferenceLine y={0} stroke="#3f3f46" />
           <Area

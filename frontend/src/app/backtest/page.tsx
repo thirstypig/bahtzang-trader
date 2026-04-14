@@ -458,8 +458,8 @@ export default function BacktestPage() {
                       borderRadius: 8,
                       fontSize: 12,
                     }}
-                    formatter={(value: number) => [
-                      `$${value.toLocaleString()}`,
+                    formatter={(value) => [
+                      `$${Number(value).toLocaleString()}`,
                       "Equity",
                     ]}
                   />
