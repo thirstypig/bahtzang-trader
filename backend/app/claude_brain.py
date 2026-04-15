@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 
 import anthropic
 
@@ -215,25 +216,7 @@ async def get_trade_decision(
         }]
 
     response_text = message.content[0].text
-
-    # Strip markdown code fences if Claude wraps JSON in ```json ... ```
-    stripped = response_text.strip()
-    if stripped.startswith("```"):
-        stripped = stripped.split("\n", 1)[-1]  # remove first line (```json)
-        if stripped.endswith("```"):
-            stripped = stripped[:-3].strip()
-        response_text = stripped
-
-    try:
-        parsed = json.loads(response_text)
-    except json.JSONDecodeError:
-        return [{
-            "action": "hold",
-            "ticker": "",
-            "quantity": 0,
-            "reasoning": f"Failed to parse Claude response: {response_text[:200]}",
-            "confidence": 0.0,
-        }]
+    parsed = _parse_claude_json(response_text)
 
     # Normalize: accept both single object and array
     decisions = parsed if isinstance(parsed, list) else [parsed]
@@ -248,3 +231,56 @@ async def get_trade_decision(
         }
         for d in decisions
     ]
+
+
+def _parse_claude_json(text: str) -> dict | list:
+    """Robustly extract JSON from Claude's response, handling fences and extra text."""
+    # 1. Try direct parse first (cleanest case)
+    try:
+        return json.loads(text.strip())
+    except json.JSONDecodeError:
+        pass
+
+    # 2. Strip markdown code fences (```json ... ``` or ``` ... ```)
+    fence_match = re.search(r"```(?:json)?\s*\n?(.*?)```", text, re.DOTALL)
+    if fence_match:
+        try:
+            return json.loads(fence_match.group(1).strip())
+        except json.JSONDecodeError:
+            pass
+
+    # 3. Find the outermost JSON structure (array or object) anywhere in the text
+    for start_char, end_char in [("[", "]"), ("{", "}")]:
+        start = text.find(start_char)
+        if start == -1:
+            continue
+        # Find matching closing bracket by counting nesting
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == start_char:
+                depth += 1
+            elif text[i] == end_char:
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(text[start:i + 1])
+                    except json.JSONDecodeError:
+                        break
+        break
+
+    # 4. All parsing failed — extract whatever reasoning we can
+    logger.warning("Failed to parse Claude JSON, extracting text: %s", text[:300])
+    # Try to find a reasoning-like sentence in the raw text
+    reasoning = text.strip()
+    # Remove any partial JSON artifacts for readability
+    reasoning = re.sub(r'[{}\[\]"]+', "", reasoning)
+    reasoning = re.sub(r"\s+", " ", reasoning).strip()
+    if len(reasoning) > 500:
+        reasoning = reasoning[:500] + "..."
+    return {
+        "action": "hold",
+        "ticker": "",
+        "quantity": 0,
+        "reasoning": reasoning or "Claude returned an unparseable response",
+        "confidence": 0.0,
+    }

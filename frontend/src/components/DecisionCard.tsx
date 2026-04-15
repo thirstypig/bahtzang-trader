@@ -8,6 +8,22 @@ interface DecisionCardProps {
   trade: Trade | null;
 }
 
+function cleanReasoning(text: string | null): string {
+  if (!text) return "";
+  let cleaned = text.replace(/^Failed to parse Claude response:\s*/i, "");
+  cleaned = cleaned.replace(/```json\s*/g, "").replace(/```/g, "");
+  if (cleaned.trimStart().startsWith("{") || cleaned.trimStart().startsWith("[")) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      const obj = Array.isArray(parsed) ? parsed[0] : parsed;
+      if (obj?.reasoning) return obj.reasoning;
+    } catch {
+      cleaned = cleaned.replace(/[{}\[\]"]/g, "").replace(/\s+/g, " ").trim();
+    }
+  }
+  return cleaned;
+}
+
 const ACTION_STYLES = {
   buy: "bg-emerald-900/40 text-accent border-emerald-800",
   sell: "bg-red-900/40 text-red-400 border-red-800",
@@ -78,7 +94,7 @@ export default function DecisionCard({ trade }: DecisionCardProps) {
         <div className="mt-4 rounded-lg bg-surface p-4">
           <p className="text-xs font-medium text-muted">Reasoning</p>
           <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-secondary">
-            {trade.claude_reasoning}
+            {cleanReasoning(trade.claude_reasoning)}
           </p>
         </div>
       )}

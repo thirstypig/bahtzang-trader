@@ -115,8 +115,8 @@ export default function TradeTable({ trades }: TradeTableProps) {
                     reason={trade.guardrail_block_reason}
                   />
                 </td>
-                <td className="max-w-xs truncate px-4 py-3 text-secondary">
-                  {trade.claude_reasoning || "—"}
+                <td className="max-w-xs truncate px-4 py-3 text-secondary" title={cleanReasoning(trade.claude_reasoning)}>
+                  {cleanReasoning(trade.claude_reasoning) || "—"}
                 </td>
               </tr>
             ))}
@@ -132,6 +132,25 @@ export default function TradeTable({ trades }: TradeTableProps) {
       </div>
     </div>
   );
+}
+
+function cleanReasoning(text: string | null): string {
+  if (!text) return "";
+  // Strip "Failed to parse Claude response: " prefix and JSON artifacts
+  let cleaned = text.replace(/^Failed to parse Claude response:\s*/i, "");
+  cleaned = cleaned.replace(/```json\s*/g, "").replace(/```/g, "");
+  // If it looks like raw JSON, try to extract the reasoning field
+  if (cleaned.trimStart().startsWith("{") || cleaned.trimStart().startsWith("[")) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      const obj = Array.isArray(parsed) ? parsed[0] : parsed;
+      if (obj?.reasoning) return obj.reasoning;
+    } catch {
+      // Strip JSON syntax for readability
+      cleaned = cleaned.replace(/[{}\[\]"]/g, "").replace(/\s+/g, " ").trim();
+    }
+  }
+  return cleaned;
 }
 
 function ConfidenceBar({ value }: { value: number | null }) {
