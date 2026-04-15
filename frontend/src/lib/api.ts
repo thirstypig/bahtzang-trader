@@ -58,6 +58,21 @@ export async function getTrades(limit = 50): Promise<Trade[]> {
   return fetchAPI<Trade[]>(`/trades?limit=${limit}`);
 }
 
+export async function exportTradesCsv(year?: number): Promise<void> {
+  const params = year ? `?year=${year}` : "";
+  const headers: Record<string, string> = {};
+  if (_accessToken) headers["Authorization"] = `Bearer ${_accessToken}`;
+  const res = await fetch(`${API}/trades/export${params}`, { headers });
+  if (!res.ok) throw new Error("Export failed");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `bahtzang-trades-${year || "all"}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function getGuardrails(): Promise<Guardrails> {
   return fetchAPI<Guardrails>("/guardrails");
 }

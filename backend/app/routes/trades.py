@@ -1,6 +1,10 @@
 """Trade history API routes."""
 
+import csv
+import io
+
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.auth import require_auth
@@ -36,3 +40,43 @@ def get_trades(
         }
         for t in trades
     ]
+
+
+@router.get("/trades/export")
+def export_trades(
+    year: int | None = Query(None, ge=2020, le=2100),
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
+    """Export executed trades as CSV for tax reporting."""
+    query = db.query(Trade).filter(Trade.executed.is_(True))
+    if year:
+        from sqlalchemy import extract
+        query = query.filter(extract("year", Trade.timestamp) == year)
+    trades = query.order_by(Trade.timestamp.asc()).all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "Date", "Action", "Ticker", "Quantity", "Price",
+        "Total Value", "Confidence", "Reasoning",
+    ])
+    for t in trades:
+        writer.writerow([
+            t.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            t.action.upper(),
+            t.ticker,
+            t.quantity,
+            f"{t.price:.2f}" if t.price else "",
+            f"{(t.price or 0) * t.quantity:.2f}",
+            f"{(t.confidence or 0):.0%}",
+            (t.claude_reasoning or "").replace("\n", " "),
+        ])
+
+    buf.seek(0)
+    filename = f"bahtzang-trades-{year or 'all'}.csv"
+    return StreamingResponse(
+        buf,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
