@@ -4,19 +4,19 @@ import { roadmapItems, RoadmapItem } from "@/data/roadmap";
 import { useHashScroll } from "@/lib/useHashScroll";
 
 const STATUS_CONFIG = {
-  planned: { label: "Planned", bg: "bg-card-alt", text: "text-secondary", dot: "bg-zinc-500" },
-  "in-progress": { label: "In Progress", bg: "bg-blue-900/30", text: "text-blue-400", dot: "bg-blue-500" },
-  done: { label: "Done", bg: "bg-emerald-900/30", text: "text-emerald-400", dot: "bg-emerald-500" },
+  planned: { label: "Planned", dot: "bg-muted" },
+  "in-progress": { label: "In Progress", dot: "bg-blue-500" },
+  done: { label: "Done", dot: "bg-accent" },
 };
 
 const PRIORITY_BADGE: Record<string, string> = {
-  high: "bg-red-900/30 text-red-400",
-  medium: "bg-amber-900/30 text-amber-400",
+  high: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+  medium: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
   low: "bg-card-alt text-muted",
 };
 
-function Column({ status, items }: { status: string; items: RoadmapItem[] }) {
-  const config = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG];
+function Column({ status, items }: { status: keyof typeof STATUS_CONFIG; items: RoadmapItem[] }) {
+  const config = STATUS_CONFIG[status];
   return (
     <div className="rounded-xl border border-border bg-card/50 p-4">
       <div className="mb-4 flex items-center gap-2">
