@@ -22,9 +22,12 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  denied: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 }
+
+const ALLOWED_EMAIL = process.env.NEXT_PUBLIC_ALLOWED_EMAIL || "";
 
 // 007-fix: Throw if used outside provider instead of silent no-op
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -42,12 +45,23 @@ function extractUser(session: Session | null): User | null {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [denied, setDenied] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     function applySession(session: Session | null) {
-      setUser(extractUser(session));
+      const extracted = extractUser(session);
+      if (extracted && ALLOWED_EMAIL && extracted.email !== ALLOWED_EMAIL) {
+        setDenied(true);
+        setUser(null);
+        setApiToken(null);
+        getSupabase().auth.signOut();
+        setLoading(false);
+        return;
+      }
+      setDenied(false);
+      setUser(extracted);
       setApiToken(session?.access_token || null);
       setLoading(false);
     }
@@ -94,8 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const value = useMemo(
-    () => ({ user, loading, signIn, signOut }),
-    [user, loading, signIn, signOut],
+    () => ({ user, loading, denied, signIn, signOut }),
+    [user, loading, denied, signIn, signOut],
   );
 
   return (

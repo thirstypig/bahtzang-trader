@@ -5,8 +5,40 @@ import { useAuth } from "@/lib/auth";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export default function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, denied } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  if (denied) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-surface">
+        <div className="fixed right-6 top-6">
+          <ThemeToggle expanded={false} />
+        </div>
+        <div className="w-full max-w-md text-center">
+          <div className="rounded-2xl border border-danger/30 bg-card p-10 shadow-lg">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-danger/10">
+              <svg className="h-8 w-8 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-primary">Access Denied</h1>
+            <p className="mt-4 text-lg text-secondary">
+              Sorry — you are not permitted.
+            </p>
+            <p className="mt-2 text-lg font-semibold text-muted">
+              Go away. This is a private site.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-8 rounded-lg border border-border bg-card-alt px-6 py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-border-strong/30 hover:text-primary"
+            >
+              Try a different account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface">
