@@ -53,6 +53,8 @@ export interface Guardrails {
   min_confidence: number;
   max_positions: number;
   kill_switch: boolean;
+  target_amount: number | null;
+  target_date: string | null;
 }
 
 export interface CycleResult {

@@ -120,7 +120,7 @@ async def get_trade_decision(
     technicals_csv: str = "",
     sector_csv: str = "",
     earnings_csv: str = "",
-) -> TradeDecision:
+) -> list[TradeDecision]:
     """Send portfolio context to Claude and get a structured trade decision."""
     risk_profile = guardrails_config.get("risk_profile", "moderate")
     trading_goal = guardrails_config.get("trading_goal", "maximize_returns")
@@ -168,15 +168,30 @@ async def get_trade_decision(
         prompt_parts.append(f"NEWS ({len(news)} items):")
         prompt_parts.append(json.dumps(news[:5]))  # Top 5 news items
 
+    # Timeline goal context
+    target_amount = guardrails_config.get("target_amount")
+    target_date = guardrails_config.get("target_date")
+    if target_amount and target_date:
+        prompt_parts.append("")
+        prompt_parts.append(
+            f"TIMELINE GOAL: Grow portfolio to ${target_amount:,.0f} by {target_date}. "
+            f"Current portfolio: ${cash_available + sum(p.get('market_value', 0) for p in positions):,.0f}. "
+            "Factor this timeline into your urgency and willingness to take positions. "
+            "If behind schedule, be more aggressive about finding opportunities."
+        )
+
     prompt_parts.append("")
     prompt_parts.append(
         "Analyze the portfolio, technicals, sector rotation, earnings calendar, and news. "
-        "Decide on ONE action: buy, sell, or hold. "
+        "You may suggest UP TO 3 trades if you see multiple opportunities. "
+        "For each trade, decide: buy, sell, or hold. "
+        "If nothing looks good, return a single hold. "
         "IMPORTANT: If a held stock has earnings within 2 days, consider reducing exposure. "
         "If buying a stock with earnings within 2 days, factor in binary event risk. "
         f"Minimum confidence to trade: {guardrails_config.get('min_confidence', 0.6)}. "
         "NaN means insufficient history for that indicator. "
-        "Respond with JSON: {action, ticker, quantity, reasoning, confidence}"
+        "Respond with JSON array: [{action, ticker, quantity, reasoning, confidence}, ...] "
+        "Even for a single decision, wrap it in an array."
     )
 
     user_prompt = "\n".join(prompt_parts)
@@ -191,13 +206,13 @@ async def get_trade_decision(
         )
     except anthropic.APITimeoutError:
         logger.warning("Claude API timed out after 30s — defaulting to hold")
-        return {
+        return [{
             "action": "hold",
             "ticker": "",
             "quantity": 0,
             "reasoning": "Claude API timed out — holding as a safety measure",
             "confidence": 0.0,
-        }
+        }]
 
     response_text = message.content[0].text
 
@@ -210,20 +225,26 @@ async def get_trade_decision(
         response_text = stripped
 
     try:
-        decision = json.loads(response_text)
+        parsed = json.loads(response_text)
     except json.JSONDecodeError:
-        decision = {
+        return [{
             "action": "hold",
             "ticker": "",
             "quantity": 0,
             "reasoning": f"Failed to parse Claude response: {response_text[:200]}",
             "confidence": 0.0,
-        }
+        }]
 
-    return {
-        "action": decision.get("action", "hold"),
-        "ticker": decision.get("ticker", ""),
-        "quantity": decision.get("quantity", 0),
-        "reasoning": decision.get("reasoning", ""),
-        "confidence": decision.get("confidence", 0.0),
-    }
+    # Normalize: accept both single object and array
+    decisions = parsed if isinstance(parsed, list) else [parsed]
+
+    return [
+        {
+            "action": d.get("action", "hold"),
+            "ticker": d.get("ticker", ""),
+            "quantity": d.get("quantity", 0),
+            "reasoning": d.get("reasoning", ""),
+            "confidence": d.get("confidence", 0.0),
+        }
+        for d in decisions
+    ]

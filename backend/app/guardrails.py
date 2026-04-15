@@ -88,6 +88,8 @@ class GuardrailsUpdate(BaseModel):
     daily_order_limit: int | None = Field(None, gt=0, le=100)
     min_confidence: float | None = Field(None, gt=0, le=1)
     max_positions: int | None = Field(None, gt=0, le=100)
+    target_amount: float | None = Field(None, gt=0, le=100_000_000)
+    target_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     # kill_switch deliberately omitted — only settable via /killswitch
 
 

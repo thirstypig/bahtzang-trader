@@ -77,7 +77,7 @@ export default function DecisionCard({ trade }: DecisionCardProps) {
       {trade.claude_reasoning && (
         <div className="mt-4 rounded-lg bg-surface p-4">
           <p className="text-xs font-medium text-muted">Reasoning</p>
-          <p className="mt-1 text-sm leading-relaxed text-secondary">
+          <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-secondary">
             {trade.claude_reasoning}
           </p>
         </div>

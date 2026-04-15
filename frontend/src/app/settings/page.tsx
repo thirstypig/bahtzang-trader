@@ -254,6 +254,53 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Timeline Goal */}
+      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-primary">Timeline Goal</h2>
+          <Tip text="Set a dollar target and date. The AI will factor this into its urgency — if you're behind schedule, it'll look harder for opportunities. Leave blank to disable." />
+        </div>
+        <p className="mt-1 text-sm text-muted">
+          Where do you want to be, and by when?
+        </p>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium text-secondary">Target Amount</label>
+            <div className="relative mt-1.5">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+              <input
+                type="number"
+                placeholder="e.g. 500"
+                value={guardrails.target_amount ?? ""}
+                onChange={(e) => setGuardrails({ ...guardrails, target_amount: e.target.value ? Number(e.target.value) : null })}
+                className="w-full rounded-lg border border-border-strong bg-card-alt py-2.5 pl-7 pr-3 text-sm text-primary placeholder-muted transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-secondary">Target Date</label>
+            <input
+              type="date"
+              value={guardrails.target_date ?? ""}
+              onChange={(e) => setGuardrails({ ...guardrails, target_date: e.target.value || null })}
+              className="mt-1.5 w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2.5 text-sm text-primary transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+        </div>
+        {guardrails.target_amount && guardrails.target_date && (
+          <p className="mt-3 text-xs text-accent">
+            Goal: Grow portfolio to ${guardrails.target_amount.toLocaleString()} by {new Date(guardrails.target_date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          </p>
+        )}
+        <button
+          onClick={() => handleUpdate({ target_amount: guardrails.target_amount, target_date: guardrails.target_date })}
+          disabled={saving}
+          className="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-emerald-700 disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save Goal"}
+        </button>
+      </div>
+
       {/* Trading Frequency */}
       <div className="mt-6 rounded-xl border border-border bg-card p-6">
         <div className="flex items-center gap-2">

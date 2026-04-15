@@ -90,8 +90,8 @@ async def _execute_cycle(db: Session, account_id: str) -> CycleResult:
     sector_csv = format_sector_csv(sector_signals)
     earnings_csv = format_earnings_csv(db, held_tickers) if held_tickers else ""
 
-    # 3. Get Claude's decision (guardrails_config already loaded in step 1b)
-    decision = await claude_brain.get_trade_decision(
+    # 3. Get Claude's decisions (guardrails_config already loaded in step 1b)
+    decisions = await claude_brain.get_trade_decision(
         positions=positions,
         cash_available=cash_available,
         market_data=quotes,
@@ -102,97 +102,118 @@ async def _execute_cycle(db: Session, account_id: str) -> CycleResult:
         earnings_csv=earnings_csv,
     )
 
-    # Look up current price — check cached quotes first
-    price = None
-    if decision["ticker"] and decision["action"] != "hold":
-        cached = next((q for q in quotes if q["ticker"] == decision["ticker"]), None)
-        if cached:
-            price = cached["price"]
-        else:
-            quote = await market_data.get_quote(decision["ticker"])
-            price = quote["price"]
-        decision["price"] = price
+    # Process each decision; track remaining cash for multi-trade guardrail checks
+    remaining_cash = cash_available
+    remaining_invested = total_invested
+    current_pos_count = len(positions)
+    results: list[CycleResult] = []
 
-        # Earnings-aware position sizing: cap quantity near earnings
-        if decision["action"] == "buy" and price:
-            from app.position_sizing import kelly_position_size
-            ed = days_until_earnings(db, decision["ticker"])
-            max_size = kelly_position_size(
-                confidence=decision.get("confidence", 0.5),
-                portfolio_value=balance["total_value"],
-                db=db,
-                earnings_days=ed,
-            )
-            if max_size > 0:
-                max_qty = int(max_size / price)
-                if max_qty > 0 and decision["quantity"] > max_qty:
-                    logger.info(
-                        "Position sizing capped %s from %d to %d shares (earnings in %s days)",
-                        decision["ticker"], decision["quantity"], max_qty, ed,
-                    )
-                    decision["quantity"] = max_qty
+    for decision in decisions:
+        # Look up current price — check cached quotes first
+        price = None
+        if decision["ticker"] and decision["action"] != "hold":
+            cached = next((q for q in quotes if q["ticker"] == decision["ticker"]), None)
+            if cached:
+                price = cached["price"]
+            else:
+                quote = await market_data.get_quote(decision["ticker"])
+                price = quote["price"]
+            decision["price"] = price
 
-    # 4. Run through guardrails
-    passed, block_reason = guardrails.check_guardrails(
-        decision=decision,
-        cash_available=cash_available,
-        total_invested=total_invested,
-        db=db,
-        config=guardrails_config,
-        current_position_count=len(positions),
-        positions=positions,
-    )
+            # Earnings-aware position sizing: cap quantity near earnings
+            if decision["action"] == "buy" and price:
+                from app.position_sizing import kelly_position_size
+                ed = days_until_earnings(db, decision["ticker"])
+                max_size = kelly_position_size(
+                    confidence=decision.get("confidence", 0.5),
+                    portfolio_value=balance["total_value"],
+                    db=db,
+                    earnings_days=ed,
+                )
+                if max_size > 0:
+                    max_qty = int(max_size / price)
+                    if max_qty > 0 and decision["quantity"] > max_qty:
+                        logger.info(
+                            "Position sizing capped %s from %d to %d shares (earnings in %s days)",
+                            decision["ticker"], decision["quantity"], max_qty, ed,
+                        )
+                        decision["quantity"] = max_qty
 
-    # 5. Execute if approved
-    executed = False
-    if passed and decision["action"] in ("buy", "sell"):
-        try:
-            await broker.place_order(
-                account_id=account_id,
-                ticker=decision["ticker"],
-                action=decision["action"],
-                quantity=decision["quantity"],
-            )
-            executed = True
-            logger.info(
-                "Executed %s %d shares of %s",
-                decision["action"],
-                decision["quantity"],
-                decision["ticker"],
-            )
-        except Exception as e:
-            logger.error("Order execution failed: %s", e)
-            block_reason = f"Execution error: {e}"
-            passed = False
+        # 4. Run through guardrails (with updated cash/invested from prior trades)
+        passed, block_reason = guardrails.check_guardrails(
+            decision=decision,
+            cash_available=remaining_cash,
+            total_invested=remaining_invested,
+            db=db,
+            config=guardrails_config,
+            current_position_count=current_pos_count,
+            positions=positions,
+        )
 
-    # 6. Log to database
-    trade = log_trade(
-        db=db,
-        ticker=decision.get("ticker", ""),
-        action=decision["action"],
-        quantity=decision.get("quantity", 0),
-        price=price,
-        claude_reasoning=decision.get("reasoning"),
-        confidence=decision.get("confidence"),
-        guardrail_passed=passed,
-        guardrail_block_reason=block_reason,
-        executed=executed,
-    )
+        # 5. Execute if approved
+        executed = False
+        if passed and decision["action"] in ("buy", "sell"):
+            try:
+                await broker.place_order(
+                    account_id=account_id,
+                    ticker=decision["ticker"],
+                    action=decision["action"],
+                    quantity=decision["quantity"],
+                )
+                executed = True
+                trade_value = (price or 0) * decision["quantity"]
+                if decision["action"] == "buy":
+                    remaining_cash -= trade_value
+                    remaining_invested += trade_value
+                    current_pos_count += 1
+                else:
+                    remaining_cash += trade_value
+                    remaining_invested -= trade_value
+                logger.info(
+                    "Executed %s %d shares of %s",
+                    decision["action"],
+                    decision["quantity"],
+                    decision["ticker"],
+                )
+            except Exception as e:
+                logger.error("Order execution failed: %s", e)
+                block_reason = f"Execution error: {e}"
+                passed = False
 
-    result = {
-        "trade_id": trade.id,
-        "action": decision["action"],
-        "ticker": decision.get("ticker", ""),
-        "quantity": decision.get("quantity", 0),
-        "price": price,
-        "executed": executed,
-        "guardrail_passed": passed,
-        "guardrail_block_reason": block_reason,
-        "reasoning": decision.get("reasoning", ""),
-        "confidence": decision.get("confidence", 0),
+        # 6. Log to database
+        trade = log_trade(
+            db=db,
+            ticker=decision.get("ticker", ""),
+            action=decision["action"],
+            quantity=decision.get("quantity", 0),
+            price=price,
+            claude_reasoning=decision.get("reasoning"),
+            confidence=decision.get("confidence"),
+            guardrail_passed=passed,
+            guardrail_block_reason=block_reason,
+            executed=executed,
+        )
+
+        result: CycleResult = {
+            "trade_id": trade.id,
+            "action": decision["action"],
+            "ticker": decision.get("ticker", ""),
+            "quantity": decision.get("quantity", 0),
+            "price": price,
+            "executed": executed,
+            "guardrail_passed": passed,
+            "guardrail_block_reason": block_reason,
+            "reasoning": decision.get("reasoning", ""),
+            "confidence": decision.get("confidence", 0),
+        }
+        results.append(result)
+
+        # 7. Notify (fire-and-forget — never blocks trading)
+        await notifier.notify_trade(result)
+
+    # Return the first result for API compatibility; all trades are logged
+    return results[0] if results else {
+        "trade_id": 0, "action": "hold", "ticker": "", "quantity": 0,
+        "price": None, "executed": False, "guardrail_passed": True,
+        "guardrail_block_reason": None, "reasoning": "No decisions", "confidence": 0,
     }
-
-    # 7. Notify (fire-and-forget — never blocks trading)
-    await notifier.notify_trade(result)
-
-    return result
