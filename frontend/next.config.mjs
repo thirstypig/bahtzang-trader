@@ -36,11 +36,11 @@ const nextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            // SHA-256 hash covers the inline theme-init script in layout.tsx.
-            // If that script changes, recompute: echo -n '<script>' | openssl dgst -sha256 -binary | openssl base64
+            // Next.js injects dynamic inline scripts for hydration — 'unsafe-inline' is required.
+            // Hash-only CSP for script-src is not feasible without Next.js nonce support.
             value: [
               "default-src 'self'",
-              "script-src 'self' 'sha256-X8XN7IK+5noayWSxdVJz3QFvCIeNDi1kOQDj/IIPsCg='",
+              "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https://lh3.googleusercontent.com",
               "font-src 'self'",
