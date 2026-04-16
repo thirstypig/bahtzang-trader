@@ -117,6 +117,24 @@ async def _daily_summary():
         db.close()
 
 
+PLAN_SNAPSHOT_JOB_ID = "daily_plan_snapshots"
+
+
+async def _take_plan_snapshots():
+    """Capture end-of-day portfolio state for each active plan."""
+    logger.info("Taking daily plan snapshots")
+    db = SessionLocal()
+    try:
+        from app.plans.snapshots import take_plan_snapshots
+
+        count = await take_plan_snapshots(db)
+        logger.info("Plan snapshots complete: %d plans captured", count)
+    except Exception as e:
+        logger.exception("Plan snapshots failed: %s", e)
+    finally:
+        db.close()
+
+
 SNAPSHOT_JOB_ID = "daily_snapshot"
 
 
@@ -241,6 +259,17 @@ def start_scheduler():
     scheduler.add_job(
         _take_snapshot, snapshot_trigger,
         id=SNAPSHOT_JOB_ID, replace_existing=True,
+    )
+
+    # Daily plan snapshots at 4:06 PM ET (right after global snapshot)
+    plan_snapshot_trigger = CronTrigger(
+        day_of_week="mon-fri",
+        hour=16, minute=6,
+        timezone=ET,
+    )
+    scheduler.add_job(
+        _take_plan_snapshots, plan_snapshot_trigger,
+        id=PLAN_SNAPSHOT_JOB_ID, replace_existing=True,
     )
 
     # Daily earnings refresh at 7:00 AM ET (before first trading cycle)

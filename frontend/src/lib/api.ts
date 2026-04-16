@@ -5,6 +5,9 @@ import {
   EarningsEvent,
   Guardrails,
   InvestmentPlan,
+  PlanMetrics,
+  PlanPosition,
+  PlanSnapshotData,
   Portfolio,
   StrategyInfo,
   Trade,
@@ -320,6 +323,24 @@ export async function deletePlan(id: number): Promise<void> {
 
 export async function runPlan(id: number): Promise<CycleResult> {
   return fetchAPI<CycleResult>(`/plans/${id}/run`, { method: "POST" });
+}
+
+export async function getPlanPositions(id: number): Promise<PlanPosition[]> {
+  return fetchAPI<PlanPosition[]>(`/plans/${id}/positions`);
+}
+
+export async function getPlanSnapshots(
+  id: number,
+  days = 90,
+): Promise<PlanSnapshotData[]> {
+  return fetchAPI<PlanSnapshotData[]>(`/plans/${id}/snapshots?days=${days}`);
+}
+
+export async function getPlanMetrics(
+  id: number,
+  days = 90,
+): Promise<PlanMetrics> {
+  return fetchAPI<PlanMetrics>(`/plans/${id}/metrics?days=${days}`);
 }
 
 export async function getEarningsCalendar(

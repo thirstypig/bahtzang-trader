@@ -8,6 +8,8 @@ import { InvestmentPlan, Trade } from "@/lib/types";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
+import PlanPositions from "@/components/PlanPositions";
+import PlanEquityCurve from "@/components/PlanEquityCurve";
 
 const GOAL_LABELS: Record<string, string> = {
   maximize_returns: "📈 Maximize Returns",
@@ -144,6 +146,12 @@ export default function PlanDetailPage() {
           </p>
         </div>
       )}
+
+      {/* Positions + Equity Curve */}
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <PlanPositions planId={planId} />
+        <PlanEquityCurve planId={planId} />
+      </div>
 
       {/* Trade History */}
       <div className="rounded-xl border border-border bg-card">

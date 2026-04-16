@@ -1,6 +1,7 @@
 """Investment plan API routes — CRUD with budget validation."""
 
 import logging
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -9,7 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_auth
 from app.database import get_db
-from app.plans.models import Plan, PlanTrade
+from app.plans.executor import compute_virtual_positions
+from app.plans.models import Plan, PlanSnapshot, PlanTrade
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +129,75 @@ def get_plan(
     )
     d["trades"] = [t.to_dict() for t in trades]
     return d
+
+
+@router.get("/{plan_id}/positions")
+async def get_plan_positions(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
+    """Virtual positions with live prices and P&L for a plan."""
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+
+    positions = compute_virtual_positions(db, plan_id)
+    if not positions:
+        return []
+
+    # Compute average buy cost per ticker from executed buy trades
+    avg_costs: dict[str, float] = {}
+    for ticker in positions:
+        row = (
+            db.query(
+                func.sum(PlanTrade.quantity * PlanTrade.price).label("total_cost"),
+                func.sum(PlanTrade.quantity).label("total_qty"),
+            )
+            .filter(
+                PlanTrade.plan_id == plan_id,
+                PlanTrade.ticker == ticker,
+                PlanTrade.action == "buy",
+                PlanTrade.executed.is_(True),
+                PlanTrade.price.isnot(None),
+            )
+            .first()
+        )
+        if row and row.total_qty and row.total_qty > 0:
+            avg_costs[ticker] = row.total_cost / row.total_qty
+        else:
+            avg_costs[ticker] = 0.0
+
+    # Fetch live quotes
+    from app import market_data
+
+    tickers = list(positions.keys())
+    quotes = await market_data.get_quotes(tickers)
+    price_map = {q["ticker"]: q["price"] for q in quotes}
+
+    result = []
+    for ticker, qty in positions.items():
+        current_price = price_map.get(ticker, 0.0)
+        avg_cost = avg_costs.get(ticker, 0.0)
+        market_value = qty * current_price
+        cost_basis = qty * avg_cost
+        pnl = market_value - cost_basis
+        pnl_pct = (pnl / cost_basis * 100) if cost_basis > 0 else 0.0
+
+        result.append({
+            "ticker": ticker,
+            "quantity": qty,
+            "avg_cost": round(avg_cost, 2),
+            "current_price": round(current_price, 2),
+            "market_value": round(market_value, 2),
+            "cost_basis": round(cost_basis, 2),
+            "pnl": round(pnl, 2),
+            "pnl_pct": round(pnl_pct, 2),
+        })
+
+    # Sort by market value descending
+    result.sort(key=lambda x: x["market_value"], reverse=True)
+    return result
 
 
 @router.patch("/{plan_id}")
@@ -247,3 +318,94 @@ def get_plan_trades(
         .all()
     )
     return [t.to_dict() for t in trades]
+
+
+@router.get("/{plan_id}/snapshots")
+def get_plan_snapshots(
+    plan_id: int,
+    days: int = 90,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
+    """Return plan snapshots for equity curve rendering."""
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+
+    since = date.today() - timedelta(days=days)
+    snapshots = (
+        db.query(PlanSnapshot)
+        .filter(PlanSnapshot.plan_id == plan_id, PlanSnapshot.date >= since)
+        .order_by(PlanSnapshot.date.asc())
+        .all()
+    )
+    return [
+        {
+            "date": s.date.isoformat(),
+            "budget": s.budget,
+            "virtual_cash": s.virtual_cash,
+            "invested_value": s.invested_value,
+            "total_value": s.total_value,
+            "pnl": s.pnl,
+            "pnl_pct": s.pnl_pct,
+        }
+        for s in snapshots
+    ]
+
+
+@router.get("/{plan_id}/metrics")
+def get_plan_metrics(
+    plan_id: int,
+    days: int = 90,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
+    """Computed analytics for a plan: total return, best/worst day, trading days."""
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+
+    since = date.today() - timedelta(days=days)
+    snapshots = (
+        db.query(PlanSnapshot)
+        .filter(PlanSnapshot.plan_id == plan_id, PlanSnapshot.date >= since)
+        .order_by(PlanSnapshot.date.asc())
+        .all()
+    )
+
+    num_trading_days = len(snapshots)
+
+    if num_trading_days == 0:
+        return {
+            "total_return_pct": 0,
+            "best_day_pct": 0,
+            "worst_day_pct": 0,
+            "num_trading_days": 0,
+        }
+
+    # Total return from first snapshot to last
+    first = snapshots[0]
+    last = snapshots[-1]
+    total_return_pct = (
+        ((last.total_value - first.budget) / first.budget * 100)
+        if first.budget > 0
+        else 0
+    )
+
+    # Daily returns (day-over-day pnl_pct change)
+    daily_changes: list[float] = []
+    for i in range(1, len(snapshots)):
+        prev_val = snapshots[i - 1].total_value
+        curr_val = snapshots[i].total_value
+        if prev_val > 0:
+            daily_changes.append((curr_val - prev_val) / prev_val * 100)
+
+    best_day_pct = max(daily_changes) if daily_changes else 0
+    worst_day_pct = min(daily_changes) if daily_changes else 0
+
+    return {
+        "total_return_pct": round(total_return_pct, 2),
+        "best_day_pct": round(best_day_pct, 2),
+        "worst_day_pct": round(worst_day_pct, 2),
+        "num_trading_days": num_trading_days,
+    }

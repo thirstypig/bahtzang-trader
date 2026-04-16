@@ -153,6 +153,34 @@ export interface InvestmentPlan {
   invested?: number;
 }
 
+export interface PlanPosition {
+  ticker: string;
+  quantity: number;
+  avg_cost: number;
+  current_price: number;
+  market_value: number;
+  cost_basis: number;
+  pnl: number;
+  pnl_pct: number;
+}
+
+export interface PlanSnapshotData {
+  date: string;
+  budget: number;
+  virtual_cash: number;
+  invested_value: number;
+  total_value: number;
+  pnl: number;
+  pnl_pct: number;
+}
+
+export interface PlanMetrics {
+  total_return_pct: number;
+  best_day_pct: number;
+  worst_day_pct: number;
+  num_trading_days: number;
+}
+
 export interface EarningsEvent {
   symbol: string;
   report_date: string;
