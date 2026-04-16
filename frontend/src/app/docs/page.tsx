@@ -22,6 +22,14 @@ const DOCS: { category: string; items: DocEntry[] }[] = [
     ],
   },
   {
+    category: "Plans",
+    items: [
+      { id: "investment-plans", title: "Investment Plans", description: "Pie-style portfolio slices — deepened architecture plan", icon: "🥧", file: "/docs/investment-plans.md" },
+      { id: "trading-frequency", title: "Trading Frequency & Goals", description: "Trading goals, frequency scheduling, and APScheduler integration", icon: "📊", file: "/docs/trading-frequency-goals.md" },
+      { id: "admin-system", title: "Admin System", description: "Todo CRUD, roadmap, concepts, changelog — full admin feature plan", icon: "🛠️", file: "/docs/admin-system-plan.md" },
+    ],
+  },
+  {
     category: "External Links",
     items: [
       { id: "swagger", title: "API Docs (Swagger)", description: "Interactive API — all endpoints with try-it-out", icon: "⚡", file: null, href: "https://bahtzang-backend-production.up.railway.app/docs" },
