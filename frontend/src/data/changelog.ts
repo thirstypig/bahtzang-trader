@@ -67,7 +67,6 @@ export const changelog: ChangelogEntry[] = [
       { type: "feat", title: "Add kill switch deactivation endpoint + Resume Trading UI" },
       { type: "feat", title: "Wire trading frequency to APScheduler (1x/3x/5x per day)" },
       { type: "fix", title: "Fix max_positions counting all-time buys instead of current positions" },
-      { type: "feat", title: "Add Slack trade notifications (fire-and-forget)" },
       { type: "security", title: "Add rate limiting, security headers, error response sanitization" },
       { type: "feat", title: "Add guardrails audit trail with user + timestamp" },
       { type: "perf", title: "Wrap Alpaca SDK in asyncio.to_thread() — non-blocking event loop" },

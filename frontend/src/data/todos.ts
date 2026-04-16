@@ -105,44 +105,9 @@ export const todos: Todo[] = [
   },
 
   // =====================================================
-  // FEATURES — to be built
+  // FEATURES — back burner
   // =====================================================
 
-  {
-    id: "build-alpaca-integration",
-    title: "Build Alpaca broker integration",
-    description: "Replace Schwab as primary broker. Zero-commission stocks, ETFs, options, crypto.",
-    steps: [
-      "Create backend/app/brokers/ directory with base.py interface",
-      "Build alpaca_client.py using alpaca-py SDK",
-      "Support: get_positions, get_balance, place_order, get_order_status",
-      "Add paper trading toggle via ALPACA_PAPER env var",
-      "Update trade_executor.py to use broker router",
-      "Test with paper trading account",
-    ],
-    status: "todo",
-    priority: "high",
-    category: "feature",
-    addedDate: "2026-04-10",
-  },
-  {
-    id: "build-risk-mgmt",
-    title: "Build risk management subsystem",
-    description: "VaR, Kelly criterion position sizing, circuit breakers, PDT compliance.",
-    status: "todo",
-    priority: "high",
-    category: "feature",
-    addedDate: "2026-04-10",
-  },
-  {
-    id: "build-enhanced-brain",
-    title: "Enhance Claude's trading brain",
-    description: "Two-tier screening, technical indicators (RSI, MACD, Bollinger), sector rotation, earnings calendar.",
-    status: "todo",
-    priority: "medium",
-    category: "feature",
-    addedDate: "2026-04-10",
-  },
   {
     id: "build-intl-markets",
     title: "International markets support (back burner)",
@@ -252,6 +217,36 @@ export const todos: Todo[] = [
     category: "setup",
     addedDate: "2026-04-08",
     completedDate: "2026-04-10",
+  },
+  {
+    id: "build-alpaca-integration",
+    title: "Alpaca broker integration",
+    description: "Zero-commission stocks, ETFs, options, crypto. Paper + live trading, fractional shares via notional orders.",
+    status: "done",
+    priority: "high",
+    category: "feature",
+    addedDate: "2026-04-10",
+    completedDate: "2026-04-12",
+  },
+  {
+    id: "build-risk-mgmt",
+    title: "Risk management subsystem",
+    description: "Kelly criterion position sizing, three-tier circuit breakers, guardrails, PDT awareness.",
+    status: "done",
+    priority: "high",
+    category: "feature",
+    addedDate: "2026-04-10",
+    completedDate: "2026-04-13",
+  },
+  {
+    id: "build-enhanced-brain",
+    title: "Enhanced Claude trading brain",
+    description: "Technical indicators (RSI, MACD, Bollinger, SMA), sector rotation signals, earnings calendar, multi-trade cycles.",
+    status: "done",
+    priority: "medium",
+    category: "feature",
+    addedDate: "2026-04-10",
+    completedDate: "2026-04-13",
   },
   {
     id: "dashboard-built",

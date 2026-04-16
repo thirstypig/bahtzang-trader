@@ -66,14 +66,6 @@ export const roadmapItems: RoadmapItem[] = [
     phase: "Phase 1",
   },
   {
-    id: "notifications",
-    title: "Slack trade notifications",
-    description: "Fire-and-forget webhooks for trades, blocks, kill switch, daily summary",
-    status: "done",
-    priority: "high",
-    phase: "Phase A",
-  },
-  {
     id: "portfolio-analytics",
     title: "Portfolio snapshots + equity curve",
     description: "Daily snapshots at 4:05 PM ET, equity curve vs SPY, drawdown chart, Sharpe/Sortino/metrics",
