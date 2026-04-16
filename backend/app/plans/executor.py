@@ -3,7 +3,7 @@
 import asyncio
 import logging
 
-from sqlalchemy import func
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app import claude_brain, guardrails, market_data, notifier
@@ -29,7 +29,7 @@ def compute_virtual_positions(db: Session, plan_id: int) -> dict[str, float]:
         db.query(
             PlanTrade.ticker,
             func.sum(
-                func.case(
+                case(
                     (PlanTrade.action == "buy", PlanTrade.quantity),
                     (PlanTrade.action == "sell", -PlanTrade.quantity),
                     else_=0,
