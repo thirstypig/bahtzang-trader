@@ -48,7 +48,24 @@ export default function PlanDetailPage() {
   }
 
   useEffect(() => {
-    if (user) loadPlan();
+    if (!user) return;
+    if (Number.isNaN(planId) || planId <= 0) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    getPlan(planId)
+      .then((d) => {
+        if (!cancelled) setData(d);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load plan");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [user, planId]);
 
   if (Number.isNaN(planId) || planId <= 0) {
@@ -222,28 +239,13 @@ export default function PlanDetailPage() {
             <h2 className="font-semibold text-primary">Trade History</h2>
             <Tip text="All decisions made by Claude for this plan. Only executed trades affect your virtual cash." />
           </div>
-          {/* Status legend */}
-          <div className="flex items-center gap-3 text-[10px]">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-accent" />
-              <span className="text-muted">Executed — order placed on Alpaca</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-zinc-400" />
-              <span className="text-muted">Hold — Claude chose not to trade</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-red-400" />
-              <span className="text-muted">Blocked — guardrails stopped it (hover for reason)</span>
-            </span>
-          </div>
         </div>
         {trades.length === 0 ? (
           <div className="px-6 py-12 text-center text-muted">
             No trades yet. The bot will start trading when the next scheduled cycle runs.
           </div>
         ) : (
-          <TradeTable trades={trades as Trade[]} />
+          <TradeTable trades={trades} />
         )}
       </div>
     </div>

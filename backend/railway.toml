@@ -2,6 +2,10 @@
 builder = "nixpacks"
 
 [deploy]
+# 083-fix: Do NOT add --workers > 1. Per-plan asyncio locks (plans/executor.py)
+# and the broker order_lock (brokers/alpaca.py) are in-process only — multiple
+# uvicorn workers would reopen the double-spend race condition. If you need
+# multi-worker scaling, migrate those locks to pg_advisory_lock first.
 startCommand = "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-4060}"
 healthcheckPath = "/health"
 healthcheckTimeout = 300

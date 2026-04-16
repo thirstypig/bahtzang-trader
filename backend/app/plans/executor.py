@@ -226,24 +226,27 @@ async def _run_plan_cycle_locked(
         # 069-fix: Broker-level order_lock handles concurrent order protection;
         # no need for a plan-executor-level lock here.
         executed = False
+        alpaca_order_id: str | None = None
         cash_before = remaining_cash
         if passed and decision["action"] in ("buy", "sell") and decision.get("quantity", 0) > 0:
             try:
-                await broker.place_order(
+                # 080-fix: Capture broker return for reconciliation tracking
+                order_result = await broker.place_order(
                     account_id="default",
                     ticker=decision["ticker"],
                     action=decision["action"],
                     quantity=decision["quantity"],
                 )
+                alpaca_order_id = order_result.get("order_id") if order_result else None
                 executed = True
                 if decision["action"] == "buy":
                     remaining_cash -= trade_value
                 else:
                     remaining_cash += trade_value
                 logger.info(
-                    "Plan %d: executed %s %s shares of %s",
+                    "Plan %d: executed %s %s shares of %s (Alpaca order %s)",
                     plan.id, decision["action"],
-                    decision["quantity"], decision["ticker"],
+                    decision["quantity"], decision["ticker"], alpaca_order_id,
                 )
             except Exception as e:
                 logger.error("Plan %d: order failed: %s", plan.id, e)
@@ -264,6 +267,7 @@ async def _run_plan_cycle_locked(
             guardrail_passed=passed,
             guardrail_block_reason=block_reason,
             executed=executed,
+            alpaca_order_id=alpaca_order_id,
             virtual_cash_before=cash_before,
             virtual_cash_after=remaining_cash,
         )
@@ -275,9 +279,13 @@ async def _run_plan_cycle_locked(
             db.refresh(plan_trade)
         except Exception as e:
             db.rollback()
+            # 080-fix: Include Alpaca order ID in the reconciliation log
+            # so operators can match the executed order to the unwritten state.
             logger.exception(
-                "Plan %d: DB commit failed after %s trade — MANUAL RECONCILIATION NEEDED: %s",
-                plan.id, "executed" if executed else "logged", e,
+                "Plan %d: DB commit failed — RECONCILIATION NEEDED. "
+                "Alpaca order_id=%s ticker=%s action=%s qty=%s executed=%s. Error: %s",
+                plan.id, alpaca_order_id, decision.get("ticker"), decision["action"],
+                decision.get("quantity"), executed, e,
             )
             # Re-raise to stop the cycle; other plans continue in run_all_plans
             raise

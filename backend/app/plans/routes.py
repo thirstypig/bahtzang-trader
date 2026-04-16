@@ -5,8 +5,10 @@ from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
+
+from app.brokers.alpaca import AlpacaBroker
 
 from app.auth import require_auth
 from app.database import get_db
@@ -15,6 +17,12 @@ from app.plans.executor import compute_virtual_positions
 from app.plans.models import Plan, PlanSnapshot, PlanTrade
 
 logger = logging.getLogger(__name__)
+
+# Module-level broker instance shared across requests
+_broker = AlpacaBroker()
+
+# Advisory lock key for budget validation (arbitrary constant)
+_BUDGET_LOCK_KEY = 9001
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -52,19 +60,30 @@ def _total_budgets(db: Session, exclude_plan_id: int | None = None) -> float:
 
 
 async def _validate_budget(db: Session, new_budget: float, exclude_plan_id: int | None = None) -> None:
-    """060-fix: Validate SUM(budgets) + new_budget <= real Alpaca equity.
+    """060/081/082-fix: Validate SUM(budgets) + new_budget <= real Alpaca equity.
 
-    Replaces the old hardcoded $10M cap with a check against the actual
-    broker account value so virtual allocations can never exceed reality.
+    - 060: Validates against actual broker equity (not hardcoded cap)
+    - 081: Fails closed if broker unreachable — no silent fallback to $10M
+    - 082: Uses pg_advisory_xact_lock to prevent concurrent create races
+
+    Caller MUST invoke this inside a transaction that also performs the
+    subsequent INSERT, so the advisory lock covers both validation and insert.
     """
-    from app.brokers.alpaca import AlpacaBroker
-    broker = AlpacaBroker()
+    # 082-fix: Advisory lock serializes all budget mutations. Released at
+    # transaction end (commit or rollback).
+    db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": _BUDGET_LOCK_KEY})
+
+    # 081-fix: Fail closed if broker is unreachable. A stale/unknown equity
+    # figure would silently allow overallocation.
     try:
-        balance = await broker.get_account_balance("default")
+        balance = await _broker.get_account_balance("default")
         real_equity = balance.get("total_value", 0)
     except Exception as e:
-        logger.warning("Could not fetch broker equity for validation: %s", e)
-        real_equity = 10_000_000  # Fallback to old cap if broker unreachable
+        logger.warning("Broker unreachable for budget validation: %s", e)
+        raise HTTPException(
+            status_code=503,
+            detail="Broker temporarily unavailable — cannot validate budget against real equity. Try again in a moment.",
+        )
 
     existing_total = _total_budgets(db, exclude_plan_id=exclude_plan_id)
     if existing_total + new_budget > real_equity:
@@ -289,6 +308,11 @@ def delete_plan(
         db.query(PlanTrade).filter(PlanTrade.plan_id == plan_id).delete(synchronize_session=False)
     db.delete(plan)
     db.commit()
+
+    # 086-fix: Release the per-plan asyncio lock to prevent unbounded growth
+    from app.plans.executor import _plan_locks
+    _plan_locks.pop(plan_id, None)
+
     logger.info("Deleted plan %d: %s (force=%s)", plan_id, plan_name, force)
     return {"status": f"Plan '{plan_name}' deleted"}
 

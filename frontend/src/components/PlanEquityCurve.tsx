@@ -22,12 +22,22 @@ export default function PlanEquityCurve({ planId }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError(null);
     getPlanSnapshots(planId, 90)
-      .then(setSnapshots)
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load equity curve"))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        if (!cancelled) setSnapshots(d);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load equity curve");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [planId]);
 
   if (loading) {

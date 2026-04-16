@@ -15,12 +15,22 @@ export default function PlanPositions({ planId }: PlanPositionsProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError(null);
     getPlanPositions(planId)
-      .then(setPositions)
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load positions"))
-      .finally(() => setLoading(false));
+      .then((d) => {
+        if (!cancelled) setPositions(d);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load positions");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [planId]);
 
   if (loading) {

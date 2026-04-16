@@ -76,6 +76,9 @@ class PlanTrade(Base):
     guardrail_passed: Mapped[bool] = mapped_column(Boolean, nullable=False)
     guardrail_block_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     executed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # 080-fix: Alpaca order ID for reconciliation if DB commit fails
+    # after the real-money order succeeds.
+    alpaca_order_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     virtual_cash_before: Mapped[float] = mapped_column(Float, nullable=False)
     virtual_cash_after: Mapped[float] = mapped_column(Float, nullable=False)
 
@@ -100,6 +103,7 @@ class PlanTrade(Base):
             "guardrail_passed": self.guardrail_passed,
             "guardrail_block_reason": self.guardrail_block_reason,
             "executed": self.executed,
+            "alpaca_order_id": self.alpaca_order_id,
             "virtual_cash_before": self.virtual_cash_before,
             "virtual_cash_after": self.virtual_cash_after,
         }
