@@ -132,6 +132,27 @@ export interface BacktestDetail extends BacktestItem {
 // Earnings
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Plans
+// ---------------------------------------------------------------------------
+
+export interface InvestmentPlan {
+  id: number;
+  name: string;
+  budget: number;
+  virtual_cash: number;
+  trading_goal: TradingGoal;
+  risk_profile: "conservative" | "moderate" | "aggressive";
+  trading_frequency: "1x" | "3x" | "5x";
+  target_amount: number | null;
+  target_date: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  trade_count?: number;
+  invested?: number;
+}
+
 export interface EarningsEvent {
   symbol: string;
   report_date: string;

@@ -4,6 +4,7 @@ import {
   CycleResult,
   EarningsEvent,
   Guardrails,
+  InvestmentPlan,
   Portfolio,
   StrategyInfo,
   Trade,
@@ -275,6 +276,47 @@ export async function deleteBacktest(configId: number): Promise<void> {
 // ---------------------------------------------------------------------------
 // Earnings Calendar
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Plans
+// ---------------------------------------------------------------------------
+
+export async function getPlans(): Promise<InvestmentPlan[]> {
+  return fetchAPI<InvestmentPlan[]>("/plans");
+}
+
+export async function getPlan(id: number): Promise<InvestmentPlan & { trades: Trade[] }> {
+  return fetchAPI<InvestmentPlan & { trades: Trade[] }>(`/plans/${id}`);
+}
+
+export async function createPlan(plan: {
+  name: string;
+  budget: number;
+  trading_goal: string;
+  risk_profile?: string;
+  trading_frequency?: string;
+  target_amount?: number | null;
+  target_date?: string | null;
+}): Promise<InvestmentPlan> {
+  return fetchAPI<InvestmentPlan>("/plans", {
+    method: "POST",
+    body: JSON.stringify(plan),
+  });
+}
+
+export async function updatePlan(
+  id: number,
+  updates: Partial<InvestmentPlan>,
+): Promise<InvestmentPlan> {
+  return fetchAPI<InvestmentPlan>(`/plans/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+}
+
+export async function deletePlan(id: number): Promise<void> {
+  await fetchAPI(`/plans/${id}`, { method: "DELETE" });
+}
 
 export async function getEarningsCalendar(
   days = 30

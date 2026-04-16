@@ -35,6 +35,7 @@ const NAV: NavGroup[] = [
       { href: "/settings", label: "Settings", icon: Icons.Settings },
       { href: "/backtest", label: "Backtest", icon: Icons.Backtest },
       { href: "/earnings", label: "Earnings", icon: Icons.Earnings },
+      { href: "/plans", label: "Plans", icon: Icons.Plans },
       { href: "/audit-log", label: "Audit Log", icon: Icons.AuditLog },
     ],
   },
