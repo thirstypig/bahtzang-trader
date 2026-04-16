@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getPlan, updatePlan, runPlan } from "@/lib/api";
+import { getPlan, updatePlan, runPlan, exportPlanTradesCsv } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { InvestmentPlan, Trade } from "@/lib/types";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
@@ -31,6 +31,7 @@ export default function PlanDetailPage() {
   const [toggling, setToggling] = useState(false);
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   function loadPlan() {
     setLoading(true);
@@ -94,6 +95,19 @@ export default function PlanDetailPage() {
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
         >
           {running ? "Running..." : "Run Now"}
+        </button>
+        <button
+          onClick={async () => {
+            setExporting(true);
+            try { await exportPlanTradesCsv(planId); } catch {} finally { setExporting(false); }
+          }}
+          disabled={exporting}
+          className="flex items-center gap-1.5 rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm font-medium text-secondary transition-colors hover:bg-border-strong/30 hover:text-primary disabled:opacity-50"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          {exporting ? "..." : "CSV"}
         </button>
         <button
           onClick={handleToggleActive}

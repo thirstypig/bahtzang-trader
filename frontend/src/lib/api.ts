@@ -325,6 +325,20 @@ export async function runPlan(id: number): Promise<CycleResult> {
   return fetchAPI<CycleResult>(`/plans/${id}/run`, { method: "POST" });
 }
 
+export async function exportPlanTradesCsv(id: number): Promise<void> {
+  const headers: Record<string, string> = {};
+  if (_accessToken) headers["Authorization"] = `Bearer ${_accessToken}`;
+  const res = await fetch(`${API}/plans/${id}/export`, { headers });
+  if (!res.ok) throw new Error("Export failed");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `bahtzang-plan-${id}-trades.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function getPlanPositions(id: number): Promise<PlanPosition[]> {
   return fetchAPI<PlanPosition[]>(`/plans/${id}/positions`);
 }

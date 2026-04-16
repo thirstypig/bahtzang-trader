@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { getPlans, deletePlan } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { InvestmentPlan } from "@/lib/types";
@@ -10,6 +10,7 @@ import { formatCurrency } from "@/lib/utils";
 import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
 import ConfirmModal from "@/components/ConfirmModal";
+import PlanAllocationChart from "@/components/PlanAllocationChart";
 
 const GOAL_LABELS: Record<string, { label: string; icon: string }> = {
   maximize_returns: { label: "Max Returns", icon: "📈" },
@@ -28,6 +29,7 @@ const RISK_COLORS: Record<string, string> = {
 
 export default function PlansPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [plans, setPlans] = useState<InvestmentPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<InvestmentPlan | null>(null);
@@ -111,6 +113,16 @@ export default function PlansPage() {
               <p className="mt-1 text-xl font-bold text-primary">{plans.length}</p>
             </div>
           </div>
+
+          {/* Allocation donut chart */}
+          {plans.length >= 2 && (
+            <div className="mb-6">
+              <PlanAllocationChart
+                plans={plans}
+                onSliceClick={(id) => router.push(`/plans/${id}`)}
+              />
+            </div>
+          )}
 
           {/* Plan cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

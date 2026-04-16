@@ -409,3 +409,54 @@ def get_plan_metrics(
         "worst_day_pct": round(worst_day_pct, 2),
         "num_trading_days": num_trading_days,
     }
+
+
+@router.get("/{plan_id}/export")
+def export_plan_trades(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
+    """Export executed plan trades as CSV for tax reporting."""
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+
+    trades = (
+        db.query(PlanTrade)
+        .filter(PlanTrade.plan_id == plan_id, PlanTrade.executed.is_(True))
+        .order_by(PlanTrade.timestamp.asc())
+        .all()
+    )
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "Date", "Action", "Ticker", "Quantity", "Price",
+        "Total Value", "Confidence", "Virtual Cash After", "Reasoning",
+    ])
+    for t in trades:
+        writer.writerow([
+            t.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            t.action.upper(),
+            t.ticker,
+            f"{t.quantity:.4f}",
+            f"{t.price:.2f}" if t.price else "",
+            f"{(t.price or 0) * t.quantity:.2f}",
+            f"{(t.confidence or 0):.0%}",
+            f"{t.virtual_cash_after:.2f}",
+            (t.claude_reasoning or "").replace("\n", " "),
+        ])
+
+    buf.seek(0)
+    safe_name = plan.name.replace(" ", "-").lower()
+    filename = f"bahtzang-{safe_name}-trades.csv"
+    return StreamingResponse(
+        buf,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
