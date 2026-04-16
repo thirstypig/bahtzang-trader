@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_auth
 from app.database import get_db
+from app.guardrails import VALID_GOALS
 from app.plans.executor import compute_virtual_positions
 from app.plans.models import Plan, PlanSnapshot, PlanTrade
 
@@ -17,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
-VALID_GOALS = "maximize_returns|steady_income|capital_preservation|beat_sp500|swing_trading|passive_index"
 VALID_PROFILES = "conservative|moderate|aggressive"
 VALID_FREQUENCIES = "1x|3x|5x"
 
@@ -51,6 +51,33 @@ def _total_budgets(db: Session, exclude_plan_id: int | None = None) -> float:
     return q.scalar()
 
 
+async def _validate_budget(db: Session, new_budget: float, exclude_plan_id: int | None = None) -> None:
+    """060-fix: Validate SUM(budgets) + new_budget <= real Alpaca equity.
+
+    Replaces the old hardcoded $10M cap with a check against the actual
+    broker account value so virtual allocations can never exceed reality.
+    """
+    from app.brokers.alpaca import AlpacaBroker
+    broker = AlpacaBroker()
+    try:
+        balance = await broker.get_account_balance("default")
+        real_equity = balance.get("total_value", 0)
+    except Exception as e:
+        logger.warning("Could not fetch broker equity for validation: %s", e)
+        real_equity = 10_000_000  # Fallback to old cap if broker unreachable
+
+    existing_total = _total_budgets(db, exclude_plan_id=exclude_plan_id)
+    if existing_total + new_budget > real_equity:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Would exceed account equity. Real equity: ${real_equity:,.2f}, "
+                f"existing plan budgets: ${existing_total:,.2f}, "
+                f"this plan: ${new_budget:,.2f}."
+            ),
+        )
+
+
 @router.get("")
 def list_plans(
     db: Session = Depends(get_db),
@@ -58,35 +85,32 @@ def list_plans(
 ):
     """List all plans with summary stats."""
     plans = db.query(Plan).order_by(Plan.created_at.asc()).all()
+
+    # 065-fix: Single GROUP BY query instead of N+1
+    counts = dict(
+        db.query(PlanTrade.plan_id, func.count(PlanTrade.id))
+        .filter(PlanTrade.executed.is_(True))
+        .group_by(PlanTrade.plan_id)
+        .all()
+    )
+
     result = []
     for plan in plans:
         d = plan.to_dict()
-        # Add trade count and invested value
-        trade_count = (
-            db.query(func.count(PlanTrade.id))
-            .filter(PlanTrade.plan_id == plan.id, PlanTrade.executed.is_(True))
-            .scalar()
-        )
-        d["trade_count"] = trade_count
+        d["trade_count"] = counts.get(plan.id, 0)
         d["invested"] = plan.budget - plan.virtual_cash
         result.append(d)
     return result
 
 
 @router.post("")
-def create_plan(
+async def create_plan(
     body: PlanCreate,
     db: Session = Depends(get_db),
     user: dict = Depends(require_auth),
 ):
     """Create a new investment plan with budget validation."""
-    existing_total = _total_budgets(db)
-    if existing_total + body.budget > 10_000_000:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Total plan budgets (${existing_total + body.budget:,.0f}) would be too high. "
-                   f"Existing allocations: ${existing_total:,.0f}.",
-        )
+    await _validate_budget(db, body.budget)
 
     plan = Plan(
         name=body.name,
@@ -146,27 +170,27 @@ async def get_plan_positions(
     if not positions:
         return []
 
-    # Compute average buy cost per ticker from executed buy trades
-    avg_costs: dict[str, float] = {}
-    for ticker in positions:
-        row = (
-            db.query(
-                func.sum(PlanTrade.quantity * PlanTrade.price).label("total_cost"),
-                func.sum(PlanTrade.quantity).label("total_qty"),
-            )
-            .filter(
-                PlanTrade.plan_id == plan_id,
-                PlanTrade.ticker == ticker,
-                PlanTrade.action == "buy",
-                PlanTrade.executed.is_(True),
-                PlanTrade.price.isnot(None),
-            )
-            .first()
+    # 065-fix: Single aggregated query grouped by ticker instead of N+1
+    rows = (
+        db.query(
+            PlanTrade.ticker,
+            func.sum(PlanTrade.quantity * PlanTrade.price).label("total_cost"),
+            func.sum(PlanTrade.quantity).label("total_qty"),
         )
-        if row and row.total_qty and row.total_qty > 0:
-            avg_costs[ticker] = row.total_cost / row.total_qty
-        else:
-            avg_costs[ticker] = 0.0
+        .filter(
+            PlanTrade.plan_id == plan_id,
+            PlanTrade.ticker.in_(list(positions.keys())),
+            PlanTrade.action == "buy",
+            PlanTrade.executed.is_(True),
+            PlanTrade.price.isnot(None),
+        )
+        .group_by(PlanTrade.ticker)
+        .all()
+    )
+    avg_costs: dict[str, float] = {
+        r.ticker: (r.total_cost / r.total_qty) if r.total_qty and r.total_qty > 0 else 0.0
+        for r in rows
+    }
 
     # Fetch live quotes
     from app import market_data
@@ -201,7 +225,7 @@ async def get_plan_positions(
 
 
 @router.patch("/{plan_id}")
-def update_plan(
+async def update_plan(
     plan_id: int,
     body: PlanUpdate,
     db: Session = Depends(get_db),
@@ -216,13 +240,8 @@ def update_plan(
 
     # Budget validation if changing budget
     if "budget" in updates:
-        other_total = _total_budgets(db, exclude_plan_id=plan_id)
         new_budget = updates["budget"]
-        if other_total + new_budget > 10_000_000:
-            raise HTTPException(
-                400,
-                f"Total plan budgets would exceed limit. Other plans: ${other_total:,.0f}.",
-            )
+        await _validate_budget(db, new_budget, exclude_plan_id=plan_id)
         # Adjust virtual cash proportionally
         budget_diff = new_budget - plan.budget
         plan.virtual_cash = max(0, plan.virtual_cash + budget_diff)
@@ -239,18 +258,38 @@ def update_plan(
 @router.delete("/{plan_id}")
 def delete_plan(
     plan_id: int,
+    force: bool = False,
     db: Session = Depends(get_db),
     user: dict = Depends(require_auth),
 ):
-    """Delete a plan (trades are preserved for history)."""
+    """Delete a plan. Blocked if executed trades exist unless ?force=true."""
     plan = db.query(Plan).filter(Plan.id == plan_id).first()
     if not plan:
         raise HTTPException(404, "Plan not found")
 
+    # 062-fix: FK is RESTRICT, so delete would fail if trades exist.
+    # Surface this as a clear error rather than a raw IntegrityError.
+    executed_count = (
+        db.query(func.count(PlanTrade.id))
+        .filter(PlanTrade.plan_id == plan_id, PlanTrade.executed.is_(True))
+        .scalar()
+    )
+    if executed_count > 0 and not force:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Plan has {executed_count} executed trades. "
+                "Export CSV first, then pass ?force=true to permanently delete (trades will be removed)."
+            ),
+        )
+
     plan_name = plan.name
+    if force:
+        # When forcing, drop all trades first (FK is RESTRICT so manual delete needed)
+        db.query(PlanTrade).filter(PlanTrade.plan_id == plan_id).delete(synchronize_session=False)
     db.delete(plan)
     db.commit()
-    logger.info("Deleted plan %d: %s", plan_id, plan_name)
+    logger.info("Deleted plan %d: %s (force=%s)", plan_id, plan_name, force)
     return {"status": f"Plan '{plan_name}' deleted"}
 
 

@@ -2,7 +2,10 @@
 
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, Date, DateTime, Float, Index, Integer, String, Text
+from sqlalchemy import (
+    Boolean, Date, DateTime, Float, ForeignKey, Index, Integer,
+    String, Text, UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -54,7 +57,11 @@ class PlanTrade(Base):
     __tablename__ = "plan_trades"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    plan_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    # 062-fix: FK with RESTRICT — don't silently orphan trade history on plan delete.
+    # Force explicit handling (archive/export) before deleting a plan.
+    plan_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("plans.id", ondelete="RESTRICT"), nullable=False,
+    )
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -102,7 +109,10 @@ class PlanSnapshot(Base):
     __tablename__ = "plan_snapshots"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    plan_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    # 062-fix: FK with CASCADE — snapshots are derivable, safe to drop on plan delete.
+    plan_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("plans.id", ondelete="CASCADE"), nullable=False,
+    )
     date: Mapped[date] = mapped_column(Date, nullable=False)
     budget: Mapped[float] = mapped_column(Float, nullable=False)
     virtual_cash: Mapped[float] = mapped_column(Float, nullable=False)
@@ -111,6 +121,8 @@ class PlanSnapshot(Base):
     pnl: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     pnl_pct: Mapped[float] = mapped_column(Float, nullable=False, default=0)
 
+    # 070-fix: Unique constraint prevents duplicate snapshots if job runs twice
     __table_args__ = (
         Index("ix_plan_snapshots_plan_date", "plan_id", date.desc()),
+        UniqueConstraint("plan_id", "date", name="uq_plan_snapshots_plan_date"),
     )

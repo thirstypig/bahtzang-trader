@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 # Alpaca SDK handles connection pooling internally
 _client: TradingClient | None = None
 
+# 069-fix: Shared broker-level lock so plan executor and legacy cycle
+# executor can't interleave orders against the same Alpaca account.
+# Any code calling place_order should rely on this lock; don't wrap calls
+# in additional asyncio.Lock().
+order_lock = asyncio.Lock()
+
 
 def _get_client() -> TradingClient:
     global _client
@@ -80,7 +86,9 @@ class AlpacaBroker(BrokerInterface):
             time_in_force=TimeInForce.DAY,
         )
 
-        order = await asyncio.to_thread(client.submit_order, order_data=order_data)
+        # 069-fix: Shared lock prevents concurrent orders across plan + legacy executors
+        async with order_lock:
+            order = await asyncio.to_thread(client.submit_order, order_data=order_data)
         logger.info(
             "Alpaca order submitted: %s %s %s — ID: %s, Status: %s",
             action, quantity, ticker, order.id, order.status,

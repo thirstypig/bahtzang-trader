@@ -19,8 +19,17 @@ logger = logging.getLogger(__name__)
 
 broker = AlpacaBroker()
 
-# Global lock for Alpaca order execution — prevents concurrent orders
-_execution_lock = asyncio.Lock()
+# 061-fix: Per-plan asyncio locks prevent concurrent runs of the same plan
+# from double-spending virtual cash (e.g., scheduler + manual /run collision).
+# Broker-level order serialization is handled by `order_lock` in alpaca.py (069-fix).
+_plan_locks: dict[int, asyncio.Lock] = {}
+
+
+def _get_plan_lock(plan_id: int) -> asyncio.Lock:
+    """Return the asyncio lock for a given plan_id, creating it on first use."""
+    if plan_id not in _plan_locks:
+        _plan_locks[plan_id] = asyncio.Lock()
+    return _plan_locks[plan_id]
 
 
 def compute_virtual_positions(db: Session, plan_id: int) -> dict[str, float]:
@@ -70,7 +79,34 @@ async def run_plan_cycle(
     sector_csv: str,
     earnings_csv: str,
 ) -> list[CycleResult]:
-    """Execute a trading cycle for a single plan using shared market data."""
+    """Execute a trading cycle for a single plan using shared market data.
+
+    061-fix: Acquires a per-plan lock to prevent concurrent runs from
+    double-spending virtual cash.
+    063-fix: Commits each trade individually right after Alpaca order
+    placement to close the cash duplication window.
+    """
+    async with _get_plan_lock(plan.id):
+        # Re-read plan inside the lock to get the latest virtual_cash
+        db.refresh(plan)
+        return await _run_plan_cycle_locked(
+            db, plan, positions, balance,
+            quotes, news, technicals_csv, sector_csv, earnings_csv,
+        )
+
+
+async def _run_plan_cycle_locked(
+    db: Session,
+    plan: Plan,
+    positions: list,
+    balance: dict,
+    quotes: list,
+    news: list,
+    technicals_csv: str,
+    sector_csv: str,
+    earnings_csv: str,
+) -> list[CycleResult]:
+    """Inner cycle body — caller MUST hold the per-plan lock."""
 
     # Build plan-specific context
     virtual_positions = compute_virtual_positions(db, plan.id)
@@ -144,21 +180,28 @@ async def run_plan_cycle(
                     decision["action"] = "hold"
                     decision["reasoning"] = f"Sell blocked: plan only owns {plan_qty:.2f} shares"
 
-        # Auto-size buy orders to fractional shares if cash is insufficient.
-        # For small plans (< $200), Claude often suggests 1 share of stocks that
-        # cost more than the budget. Instead of blocking, reduce to fit the cash.
+        # 072-fix: Auto-size buy orders to fractional shares if cash is
+        # insufficient. Update the reasoning field so the audit trail reflects
+        # the actual quantity (previously Claude's "buy 1 share" would be
+        # silently logged as "buy 0.25 share" with unchanged reasoning).
         if decision["action"] == "buy" and price and price > 0:
             trade_value = price * decision.get("quantity", 0)
-            # Leave 10% buffer for slippage on small orders; minimum $1 order
+            # Keep 5% buffer for slippage; minimum $1 order
             max_affordable = max(remaining_cash * 0.95, 0)
             if trade_value > max_affordable and max_affordable >= 1.0:
                 new_qty = round(max_affordable / price, 4)
                 if new_qty >= 0.0001:
+                    original_qty = decision["quantity"]
                     logger.info(
                         "Plan %d: reducing %s qty from %s to %s (cash $%.2f)",
-                        plan.id, decision["ticker"], decision["quantity"], new_qty, remaining_cash,
+                        plan.id, decision["ticker"], original_qty, new_qty, remaining_cash,
                     )
                     decision["quantity"] = new_qty
+                    decision["reasoning"] = (
+                        f"{decision.get('reasoning', '')} "
+                        f"[Auto-resized from {original_qty} to {new_qty} shares "
+                        f"to fit plan cash of ${remaining_cash:.2f}]"
+                    ).strip()
 
         # Guardrail check with plan-scoped values
         trade_value = (price or 0) * decision.get("quantity", 0)
@@ -180,34 +223,36 @@ async def run_plan_cycle(
                 passed = False
                 block_reason = f"Confidence {decision.get('confidence', 0):.0%} below minimum {plan_config.get('min_confidence', 0.6):.0%}"
 
-        # Execute under global lock
+        # 069-fix: Broker-level order_lock handles concurrent order protection;
+        # no need for a plan-executor-level lock here.
         executed = False
         cash_before = remaining_cash
         if passed and decision["action"] in ("buy", "sell") and decision.get("quantity", 0) > 0:
-            async with _execution_lock:
-                try:
-                    await broker.place_order(
-                        account_id="default",
-                        ticker=decision["ticker"],
-                        action=decision["action"],
-                        quantity=decision["quantity"],
-                    )
-                    executed = True
-                    if decision["action"] == "buy":
-                        remaining_cash -= trade_value
-                    else:
-                        remaining_cash += trade_value
-                    logger.info(
-                        "Plan %d: executed %s %s shares of %s",
-                        plan.id, decision["action"],
-                        decision["quantity"], decision["ticker"],
-                    )
-                except Exception as e:
-                    logger.error("Plan %d: order failed: %s", plan.id, e)
-                    block_reason = f"Execution error: {e}"
-                    passed = False
+            try:
+                await broker.place_order(
+                    account_id="default",
+                    ticker=decision["ticker"],
+                    action=decision["action"],
+                    quantity=decision["quantity"],
+                )
+                executed = True
+                if decision["action"] == "buy":
+                    remaining_cash -= trade_value
+                else:
+                    remaining_cash += trade_value
+                logger.info(
+                    "Plan %d: executed %s %s shares of %s",
+                    plan.id, decision["action"],
+                    decision["quantity"], decision["ticker"],
+                )
+            except Exception as e:
+                logger.error("Plan %d: order failed: %s", plan.id, e)
+                block_reason = f"Execution error: {e}"
+                passed = False
 
-        # Log to plan_trades
+        # 063-fix: Log trade + update plan cash + commit atomically per decision,
+        # immediately after the Alpaca order. This closes the cash-duplication
+        # window where a later commit failure would leave a real order unlogged.
         plan_trade = PlanTrade(
             plan_id=plan.id,
             ticker=decision.get("ticker", ""),
@@ -223,7 +268,19 @@ async def run_plan_cycle(
             virtual_cash_after=remaining_cash,
         )
         db.add(plan_trade)
-        db.flush()
+        if executed:
+            plan.virtual_cash = remaining_cash
+        try:
+            db.commit()
+            db.refresh(plan_trade)
+        except Exception as e:
+            db.rollback()
+            logger.exception(
+                "Plan %d: DB commit failed after %s trade — MANUAL RECONCILIATION NEEDED: %s",
+                plan.id, "executed" if executed else "logged", e,
+            )
+            # Re-raise to stop the cycle; other plans continue in run_all_plans
+            raise
 
         result: CycleResult = {
             "trade_id": plan_trade.id,
@@ -238,10 +295,6 @@ async def run_plan_cycle(
             "confidence": decision.get("confidence", 0),
         }
         results.append(result)
-
-    # Update plan's virtual cash
-    plan.virtual_cash = remaining_cash
-    db.commit()
 
     return results
 
@@ -269,7 +322,20 @@ async def run_all_plans(db: Session) -> dict[int, list[CycleResult]]:
         guardrails.save_guardrails(db, {"kill_switch": True})
         return {}
 
-    held_tickers = [p.get("instrument", {}).get("symbol", "") for p in positions]
+    # 3. Get active plans FIRST so we can include their tickers in market data
+    active_plans = db.query(Plan).filter(Plan.is_active.is_(True)).all()
+    if not active_plans:
+        logger.info("No active plans")
+        return {}
+
+    # 068-fix: Union account tickers with per-plan virtual position tickers.
+    # Plans may hold virtual positions not reflected in Alpaca's merged view.
+    all_tickers = {p.get("instrument", {}).get("symbol", "") for p in positions}
+    for plan in active_plans:
+        all_tickers.update(compute_virtual_positions(db, plan.id).keys())
+    all_tickers.discard("")
+    held_tickers = sorted(all_tickers)
+
     quotes_task = market_data.get_quotes(held_tickers) if held_tickers else asyncio.sleep(0, result=[])
     news_task = market_data.get_news(held_tickers if held_tickers else None)
     indicators_task = get_indicators(held_tickers) if held_tickers else asyncio.sleep(0, result={})
@@ -281,44 +347,21 @@ async def run_all_plans(db: Session) -> dict[int, list[CycleResult]]:
     sector_csv = format_sector_csv(sector_signals)
     earnings_csv = format_earnings_csv(db, held_tickers) if held_tickers else ""
 
-    # 3. Get active plans
-    active_plans = db.query(Plan).filter(Plan.is_active.is_(True)).all()
-    if not active_plans:
-        logger.info("No active plans")
-        return {}
-
-    # 4. Parallel Claude calls, sequential execution
-    plan_decisions = await asyncio.gather(*[
-        claude_brain.get_trade_decision(
-            positions=[
-                {"instrument": {"symbol": t, "asset_type": "stock"},
-                 "quantity": q, "market_value": q * next((qo["price"] for qo in quotes if qo["ticker"] == t), 0),
-                 "cost_basis": 0, "unrealized_pnl": 0, "unrealized_pnl_pct": 0}
-                for t, q in compute_virtual_positions(db, plan.id).items()
-            ],
-            cash_available=plan.virtual_cash,
-            market_data=quotes,
-            news=news,
-            guardrails_config=_plan_to_guardrails_config(plan),
-            technicals_csv=technicals_csv,
-            sector_csv=sector_csv,
-            earnings_csv=earnings_csv,
-        )
-        for plan in active_plans
-    ], return_exceptions=True)
-
-    # 5. Sequential execution per plan
+    # 4. Run each plan's cycle (Claude call happens inside run_plan_cycle).
+    # 064-fix: removed wasted asyncio.gather of Claude calls whose results
+    # were discarded; run_plan_cycle makes its own Claude call.
     all_results: dict[int, list[CycleResult]] = {}
-    for plan, decisions in zip(active_plans, plan_decisions):
-        if isinstance(decisions, Exception):
-            logger.error("Plan %d Claude call failed: %s", plan.id, decisions)
-            continue
-        results = await run_plan_cycle(
-            db, plan, positions, balance,
-            quotes, news, technicals_csv, sector_csv, earnings_csv,
-        )
-        all_results[plan.id] = results
-        for r in results:
-            await notifier.notify_trade(r)
+    for plan in active_plans:
+        try:
+            results = await run_plan_cycle(
+                db, plan, positions, balance,
+                quotes, news, technicals_csv, sector_csv, earnings_csv,
+            )
+            all_results[plan.id] = results
+            for r in results:
+                await notifier.notify_trade(r)
+        except Exception as e:
+            logger.exception("Plan %d cycle failed: %s", plan.id, e)
+            # Continue with other plans — one plan's failure shouldn't block others
 
     return all_results

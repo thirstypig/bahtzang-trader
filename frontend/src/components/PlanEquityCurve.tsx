@@ -19,11 +19,14 @@ interface Props {
 export default function PlanEquityCurve({ planId }: Props) {
   const [snapshots, setSnapshots] = useState<PlanSnapshotData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setLoading(true);
+    setError(null);
     getPlanSnapshots(planId, 90)
       .then(setSnapshots)
-      .catch(() => setSnapshots([]))
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load equity curve"))
       .finally(() => setLoading(false));
   }, [planId]);
 
@@ -31,6 +34,14 @@ export default function PlanEquityCurve({ planId }: Props) {
     return (
       <div className="flex h-64 items-center justify-center rounded-xl border border-border bg-card">
         <p className="text-sm text-muted">Loading equity curve...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-64 items-center justify-center rounded-xl border border-red-800 bg-red-950/30 p-6 text-center">
+        <p className="text-sm text-red-400">Failed to load equity curve: {error}</p>
       </div>
     );
   }

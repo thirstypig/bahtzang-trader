@@ -32,12 +32,18 @@ export default function PlansPage() {
   const router = useRouter();
   const [plans, setPlans] = useState<InvestmentPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<InvestmentPlan | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function loadPlans() {
     setLoading(true);
-    getPlans().then(setPlans).finally(() => setLoading(false));
+    setError(null);
+    getPlans()
+      .then(setPlans)
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load plans"))
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -50,12 +56,15 @@ export default function PlansPage() {
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
       await deletePlan(deleteTarget.id);
+      setDeleteTarget(null);
       loadPlans();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete plan");
     } finally {
       setDeleting(false);
-      setDeleteTarget(null);
     }
   }
 
@@ -79,11 +88,17 @@ export default function PlansPage() {
         </Link>
       </div>
 
+      {error && (
+        <div className="mb-6 rounded-xl border border-red-800 bg-red-950/30 p-6 text-red-400">
+          Failed to load plans: {error}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex h-64 items-center justify-center">
           <Spinner />
         </div>
-      ) : plans.length === 0 ? (
+      ) : error ? null : plans.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">
           <p className="text-lg font-medium text-primary">No plans yet</p>
           <p className="mt-2 text-sm text-muted">
@@ -193,11 +208,18 @@ export default function PlansPage() {
       <ConfirmModal
         open={!!deleteTarget}
         title="Delete Plan"
-        message={`Delete "${deleteTarget?.name}"? Trade history will be preserved but the plan and its budget allocation will be removed.`}
+        message={
+          deleteError
+            ? `Failed to delete: ${deleteError}. Try again?`
+            : `Delete "${deleteTarget?.name}"? Trade history will be preserved but the plan and its budget allocation will be removed.`
+        }
         confirmLabel={deleting ? "Deleting..." : "Delete Plan"}
         confirmClassName="bg-red-600 hover:bg-red-700"
         onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
       />
     </div>
   );

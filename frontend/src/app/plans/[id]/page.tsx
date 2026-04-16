@@ -5,11 +5,12 @@ import { useEffect, useState } from "react";
 import { getPlan, updatePlan, runPlan, exportPlanTradesCsv } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { InvestmentPlan, Trade } from "@/lib/types";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
 import PlanPositions from "@/components/PlanPositions";
 import PlanEquityCurve from "@/components/PlanEquityCurve";
+import TradeTable from "@/components/TradeTable";
 
 const GOAL_LABELS: Record<string, string> = {
   maximize_returns: "📈 Maximize Returns",
@@ -28,19 +29,44 @@ export default function PlanDetailPage() {
   const { user } = useAuth();
   const [data, setData] = useState<(InvestmentPlan & { trades: Trade[] }) | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [toggling, setToggling] = useState(false);
+  const [toggleError, setToggleError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   function loadPlan() {
+    if (Number.isNaN(planId) || planId <= 0) return;
     setLoading(true);
-    getPlan(planId).then(setData).finally(() => setLoading(false));
+    setError(null);
+    getPlan(planId)
+      .then(setData)
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load plan"))
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
     if (user) loadPlan();
   }, [user, planId]);
+
+  if (Number.isNaN(planId) || planId <= 0) {
+    return <div className="p-8 text-center text-muted">Invalid plan ID</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-5xl px-6 py-8">
+        <button onClick={() => router.push("/plans")} className="mb-4 text-xs text-muted transition-colors hover:text-secondary">
+          &larr; Back to Plans
+        </button>
+        <div className="rounded-xl border border-red-800 bg-red-950/30 p-6 text-red-400">
+          Failed to load: {error}
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !data) {
     return (
@@ -57,9 +83,12 @@ export default function PlanDetailPage() {
 
   async function handleToggleActive() {
     setToggling(true);
+    setToggleError(null);
     try {
       await updatePlan(planId, { is_active: !plan.is_active });
       loadPlan();
+    } catch (err) {
+      setToggleError(err instanceof Error ? err.message : "Failed to toggle plan");
     } finally {
       setToggling(false);
     }
@@ -99,7 +128,14 @@ export default function PlanDetailPage() {
         <button
           onClick={async () => {
             setExporting(true);
-            try { await exportPlanTradesCsv(planId); } catch {} finally { setExporting(false); }
+            setExportError(null);
+            try {
+              await exportPlanTradesCsv(planId);
+            } catch (err) {
+              setExportError(err instanceof Error ? err.message : "Export failed");
+            } finally {
+              setExporting(false);
+            }
           }}
           disabled={exporting}
           className="flex items-center gap-1.5 rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm font-medium text-secondary transition-colors hover:bg-border-strong/30 hover:text-primary disabled:opacity-50"
@@ -152,6 +188,18 @@ export default function PlanDetailPage() {
         </div>
       )}
 
+      {toggleError && (
+        <div className="mb-6 rounded-xl border border-red-800 bg-red-950/30 px-4 py-3 text-sm text-red-400">
+          Failed to toggle plan: {toggleError}
+        </div>
+      )}
+
+      {exportError && (
+        <div className="mb-6 rounded-xl border border-red-800 bg-red-950/30 px-4 py-3 text-sm text-red-400">
+          Failed to export CSV: {exportError}
+        </div>
+      )}
+
       {plan.target_amount && plan.target_date && (
         <div className="mb-6 rounded-xl border border-accent/30 bg-accent/5 p-4">
           <p className="text-sm text-accent">
@@ -195,50 +243,7 @@ export default function PlanDetailPage() {
             No trades yet. The bot will start trading when the next scheduled cycle runs.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-border/50 bg-card/80">
-                  <th className="px-4 py-3 text-xs font-medium text-secondary">Date</th>
-                  <th className="px-4 py-3 text-xs font-medium text-secondary">Ticker</th>
-                  <th className="px-4 py-3 text-xs font-medium text-secondary">Action</th>
-                  <th className="px-4 py-3 text-xs font-medium text-secondary text-right">Qty</th>
-                  <th className="px-4 py-3 text-xs font-medium text-secondary text-right">Price</th>
-                  <th className="px-4 py-3 text-xs font-medium text-secondary">Status</th>
-                  <th className="px-4 py-3 text-xs font-medium text-secondary">Reasoning</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {trades.map((t) => (
-                  <tr key={t.id} className="bg-surface transition-colors hover:bg-card/50">
-                    <td className="whitespace-nowrap px-4 py-3 text-secondary">{formatDateTime(t.timestamp)}</td>
-                    <td className="px-4 py-3 font-mono font-semibold text-primary">{t.ticker || "—"}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${
-                        t.action === "buy" ? "bg-emerald-900/40 text-accent"
-                          : t.action === "sell" ? "bg-red-900/40 text-red-400"
-                          : "bg-card-alt text-secondary"
-                      }`}>
-                        {t.action}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-secondary">{t.quantity}</td>
-                    <td className="px-4 py-3 text-right font-mono text-secondary">{t.price ? formatCurrency(t.price) : "—"}</td>
-                    <td className="px-4 py-3">
-                      {t.executed ? (
-                        <span className="text-xs text-accent">Executed</span>
-                      ) : t.guardrail_passed ? (
-                        <span className="text-xs text-secondary">Hold</span>
-                      ) : (
-                        <span className="text-xs text-red-400" title={t.guardrail_block_reason || ""}>Blocked</span>
-                      )}
-                    </td>
-                    <td className="max-w-xs truncate px-4 py-3 text-secondary">{t.claude_reasoning || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TradeTable trades={trades as Trade[]} />
         )}
       </div>
     </div>

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p1
 issue_id: "063"
 tags: [code-review, data-integrity, plans, transactions]
