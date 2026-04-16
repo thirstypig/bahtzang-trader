@@ -33,12 +33,21 @@ JOB_PREFIX = "trading_cycle_"
 
 
 async def _scheduled_cycle():
-    """Run one trading cycle inside a fresh DB session."""
+    """Run one trading cycle — plans first, then global fallback."""
     logger.info("Scheduled trading cycle starting")
     db = SessionLocal()
     try:
-        result = await run_cycle(db)
-        logger.info("Cycle complete: %s", result)
+        # If plans exist, run per-plan cycles
+        from app.plans.models import Plan
+        active_plans = db.query(Plan).filter(Plan.is_active.is_(True)).count()
+        if active_plans > 0:
+            from app.plans.executor import run_all_plans
+            results = await run_all_plans(db)
+            logger.info("Plan cycles complete: %d plans processed", len(results))
+        else:
+            # No plans — use legacy global cycle
+            result = await run_cycle(db)
+            logger.info("Cycle complete: %s", result)
     except Exception as e:
         logger.exception("Scheduled cycle failed: %s", e)
     finally:

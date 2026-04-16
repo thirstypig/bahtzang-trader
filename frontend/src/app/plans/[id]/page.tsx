@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getPlan, updatePlan } from "@/lib/api";
+import { getPlan, updatePlan, runPlan } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { InvestmentPlan, Trade } from "@/lib/types";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
@@ -27,6 +27,8 @@ export default function PlanDetailPage() {
   const [data, setData] = useState<(InvestmentPlan & { trades: Trade[] }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [runResult, setRunResult] = useState<string | null>(null);
 
   function loadPlan() {
     setLoading(true);
@@ -73,6 +75,25 @@ export default function PlanDetailPage() {
           </p>
         </div>
         <button
+          onClick={async () => {
+            setRunning(true);
+            setRunResult(null);
+            try {
+              const r = await runPlan(planId);
+              setRunResult(`${r.action.toUpperCase()} ${r.ticker || ""} — ${r.executed ? "Executed" : "Not executed"}`);
+              loadPlan();
+            } catch (err) {
+              setRunResult(`Error: ${err instanceof Error ? err.message : "Unknown"}`);
+            } finally {
+              setRunning(false);
+            }
+          }}
+          disabled={running || !plan.is_active}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+        >
+          {running ? "Running..." : "Run Now"}
+        </button>
+        <button
           onClick={handleToggleActive}
           disabled={toggling}
           className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
@@ -106,6 +127,14 @@ export default function PlanDetailPage() {
           <p className="mt-0.5 text-[10px] text-muted">{trades.length} total decisions</p>
         </div>
       </div>
+
+      {runResult && (
+        <div className={`mb-6 rounded-xl px-4 py-3 text-sm ${
+          runResult.startsWith("Error") ? "border border-red-800 bg-red-950/30 text-red-400" : "bg-surface text-secondary"
+        }`}>
+          {runResult}
+        </div>
+      )}
 
       {plan.target_amount && plan.target_date && (
         <div className="mb-6 rounded-xl border border-accent/30 bg-accent/5 p-4">

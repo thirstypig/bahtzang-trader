@@ -183,6 +183,50 @@ def delete_plan(
     return {"status": f"Plan '{plan_name}' deleted"}
 
 
+@router.post("/{plan_id}/run")
+async def run_plan(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
+    """Manually trigger a trading cycle for one plan."""
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+    if not plan.is_active:
+        raise HTTPException(400, "Plan is paused")
+
+    from app.plans.executor import run_plan_cycle
+    from app.brokers.alpaca import AlpacaBroker
+    from app import market_data, guardrails
+    from app.technical_analysis import get_indicators, format_indicators_csv
+    from app.sector_rotation import get_sector_signals, format_sector_csv
+    from app.earnings.client import format_earnings_csv
+    import asyncio
+
+    broker = AlpacaBroker()
+    positions, balance = await asyncio.gather(
+        broker.get_positions("default"),
+        broker.get_account_balance("default"),
+    )
+    held_tickers = [p.get("instrument", {}).get("symbol", "") for p in positions]
+    quotes_task = market_data.get_quotes(held_tickers) if held_tickers else asyncio.sleep(0, result=[])
+    news_task = market_data.get_news(held_tickers if held_tickers else None)
+    indicators_task = get_indicators(held_tickers) if held_tickers else asyncio.sleep(0, result={})
+    sector_task = get_sector_signals()
+    quotes, news, indicators, sectors = await asyncio.gather(
+        quotes_task, news_task, indicators_task, sector_task
+    )
+
+    results = await run_plan_cycle(
+        db, plan, positions, balance, quotes, news,
+        format_indicators_csv(indicators),
+        format_sector_csv(sectors),
+        format_earnings_csv(db, held_tickers) if held_tickers else "",
+    )
+    return results[0] if results else {"action": "hold", "ticker": "", "quantity": 0}
+
+
 @router.get("/{plan_id}/trades")
 def get_plan_trades(
     plan_id: int,

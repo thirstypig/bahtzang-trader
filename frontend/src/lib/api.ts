@@ -318,6 +318,10 @@ export async function deletePlan(id: number): Promise<void> {
   await fetchAPI(`/plans/${id}`, { method: "DELETE" });
 }
 
+export async function runPlan(id: number): Promise<CycleResult> {
+  return fetchAPI<CycleResult>(`/plans/${id}/run`, { method: "POST" });
+}
+
 export async function getEarningsCalendar(
   days = 30
 ): Promise<{ earnings: EarningsEvent[]; count: number }> {
