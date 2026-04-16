@@ -191,6 +191,9 @@ async def get_trade_decision(
         "If buying a stock with earnings within 2 days, factor in binary event risk. "
         f"Minimum confidence to trade: {guardrails_config.get('min_confidence', 0.6)}. "
         "NaN means insufficient history for that indicator. "
+        "FRACTIONAL SHARES are supported — if cash is limited, suggest fractional qty "
+        "(e.g., 0.5 shares of a $200 stock for a $100 budget). Quantity can be a decimal. "
+        "Don't suggest whole-share trades that exceed the available cash. "
         "Respond with JSON array: [{action, ticker, quantity, reasoning, confidence}, ...] "
         "Even for a single decision, wrap it in an array."
     )

@@ -169,10 +169,25 @@ export default function PlanDetailPage() {
 
       {/* Trade History */}
       <div className="rounded-xl border border-border bg-card">
-        <div className="border-b border-border px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
           <div className="flex items-center gap-2">
             <h2 className="font-semibold text-primary">Trade History</h2>
             <Tip text="All decisions made by Claude for this plan. Only executed trades affect your virtual cash." />
+          </div>
+          {/* Status legend */}
+          <div className="flex items-center gap-3 text-[10px]">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-accent" />
+              <span className="text-muted">Executed — order placed on Alpaca</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-zinc-400" />
+              <span className="text-muted">Hold — Claude chose not to trade</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-red-400" />
+              <span className="text-muted">Blocked — guardrails stopped it (hover for reason)</span>
+            </span>
           </div>
         </div>
         {trades.length === 0 ? (

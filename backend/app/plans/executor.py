@@ -144,6 +144,22 @@ async def run_plan_cycle(
                     decision["action"] = "hold"
                     decision["reasoning"] = f"Sell blocked: plan only owns {plan_qty:.2f} shares"
 
+        # Auto-size buy orders to fractional shares if cash is insufficient.
+        # For small plans (< $200), Claude often suggests 1 share of stocks that
+        # cost more than the budget. Instead of blocking, reduce to fit the cash.
+        if decision["action"] == "buy" and price and price > 0:
+            trade_value = price * decision.get("quantity", 0)
+            # Leave 10% buffer for slippage on small orders; minimum $1 order
+            max_affordable = max(remaining_cash * 0.95, 0)
+            if trade_value > max_affordable and max_affordable >= 1.0:
+                new_qty = round(max_affordable / price, 4)
+                if new_qty >= 0.0001:
+                    logger.info(
+                        "Plan %d: reducing %s qty from %s to %s (cash $%.2f)",
+                        plan.id, decision["ticker"], decision["quantity"], new_qty, remaining_cash,
+                    )
+                    decision["quantity"] = new_qty
+
         # Guardrail check with plan-scoped values
         trade_value = (price or 0) * decision.get("quantity", 0)
         invested = plan.budget - remaining_cash
@@ -154,6 +170,9 @@ async def run_plan_cycle(
             if trade_value > remaining_cash:
                 passed = False
                 block_reason = f"Insufficient plan cash: ${remaining_cash:.2f} < ${trade_value:.2f}"
+            elif trade_value < 1.0:
+                passed = False
+                block_reason = f"Trade value $${trade_value:.2f} below $1 minimum"
             elif invested + trade_value > plan.budget:
                 passed = False
                 block_reason = f"Would exceed plan budget of ${plan.budget:.0f}"

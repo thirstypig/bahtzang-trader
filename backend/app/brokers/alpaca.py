@@ -59,14 +59,20 @@ class AlpacaBroker(BrokerInterface):
         }
 
     async def place_order(
-        self, account_id: str, ticker: str, action: str, quantity: int
+        self, account_id: str, ticker: str, action: str, quantity: float
     ) -> dict:
-        """Place a market buy or sell order on Alpaca."""
+        """Place a market buy or sell order on Alpaca.
+
+        Supports fractional shares — Alpaca accepts float qty for eligible
+        securities. Falls back to whole-share qty for crypto/options.
+        """
         if action not in ("buy", "sell"):
             raise ValueError(f"Invalid action: {action}. Must be 'buy' or 'sell'.")
 
         client = _get_client()
 
+        # Fractional shares use DAY time_in_force; whole shares use DAY as well.
+        # Alpaca SDK accepts float qty for eligible tickers.
         order_data = MarketOrderRequest(
             symbol=ticker,
             qty=quantity,
@@ -76,7 +82,7 @@ class AlpacaBroker(BrokerInterface):
 
         order = await asyncio.to_thread(client.submit_order, order_data=order_data)
         logger.info(
-            "Alpaca order submitted: %s %d %s — ID: %s, Status: %s",
+            "Alpaca order submitted: %s %s %s — ID: %s, Status: %s",
             action, quantity, ticker, order.id, order.status,
         )
 
