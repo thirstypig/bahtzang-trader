@@ -81,21 +81,20 @@ async def run_plan_cycle(
 ) -> list[CycleResult]:
     """Execute a trading cycle for a single plan using shared market data.
 
-    061-fix: Acquires a per-plan lock to prevent concurrent runs from
-    double-spending virtual cash.
-    063-fix: Commits each trade individually right after Alpaca order
-    placement to close the cash duplication window.
+    087-fix: Inlined the per-plan lock (was a separate wrapper/_locked split).
+    061-fix: Per-plan lock prevents concurrent runs from double-spending.
+    063-fix: Commits each trade individually right after Alpaca order.
     """
     async with _get_plan_lock(plan.id):
         # Re-read plan inside the lock to get the latest virtual_cash
         db.refresh(plan)
-        return await _run_plan_cycle_locked(
+        return await _execute_plan_cycle(
             db, plan, positions, balance,
             quotes, news, technicals_csv, sector_csv, earnings_csv,
         )
 
 
-async def _run_plan_cycle_locked(
+async def _execute_plan_cycle(
     db: Session,
     plan: Plan,
     positions: list,
@@ -106,7 +105,6 @@ async def _run_plan_cycle_locked(
     sector_csv: str,
     earnings_csv: str,
 ) -> list[CycleResult]:
-    """Inner cycle body — caller MUST hold the per-plan lock."""
 
     # Build plan-specific context
     virtual_positions = compute_virtual_positions(db, plan.id)

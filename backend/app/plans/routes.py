@@ -483,6 +483,7 @@ def export_plan_trades(
     """Export executed plan trades as CSV for tax reporting."""
     import csv
     import io
+    import re
     from fastapi.responses import StreamingResponse
 
     plan = db.query(Plan).filter(Plan.id == plan_id).first()
@@ -496,6 +497,13 @@ def export_plan_trades(
         .all()
     )
 
+    # 076-fix: Prefix cells starting with formula chars to prevent CSV injection
+    def csv_safe(value: str) -> str:
+        s = str(value or "")
+        if s and s[0] in "=+-@\t\r":
+            return "'" + s
+        return s
+
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow([
@@ -505,18 +513,19 @@ def export_plan_trades(
     for t in trades:
         writer.writerow([
             t.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            t.action.upper(),
-            t.ticker,
+            csv_safe(t.action.upper()),
+            csv_safe(t.ticker),
             f"{t.quantity:.4f}",
             f"{t.price:.2f}" if t.price else "",
             f"{(t.price or 0) * t.quantity:.2f}",
             f"{(t.confidence or 0):.0%}",
             f"{t.virtual_cash_after:.2f}",
-            (t.claude_reasoning or "").replace("\n", " "),
+            csv_safe((t.claude_reasoning or "").replace("\n", " ")),
         ])
 
     buf.seek(0)
-    safe_name = plan.name.replace(" ", "-").lower()
+    # 077-fix: Strip everything except [a-z0-9-] from filename
+    safe_name = re.sub(r"[^a-z0-9\-]", "", plan.name.replace(" ", "-").lower())[:50]
     filename = f"bahtzang-{safe_name}-trades.csv"
     return StreamingResponse(
         buf,

@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { InvestmentPlan } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
@@ -11,17 +12,22 @@ interface Props {
 
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
-export default function PlanAllocationChart({ plans, onSliceClick }: Props) {
+function PlanAllocationChart({ plans, onSliceClick }: Props) {
+  const data = useMemo(() => {
+    if (plans.length === 0) return [];
+    const totalBudget = plans.reduce((s, p) => s + p.budget, 0);
+    return plans.map((p, i) => ({
+      name: p.name,
+      value: p.budget,
+      pct: totalBudget > 0 ? ((p.budget / totalBudget) * 100).toFixed(1) : "0",
+      planId: p.id,
+      color: COLORS[i % COLORS.length],
+    }));
+  }, [plans]);
+
   if (plans.length === 0) return null;
 
   const totalBudget = plans.reduce((s, p) => s + p.budget, 0);
-  const data = plans.map((p, i) => ({
-    name: p.name,
-    value: p.budget,
-    pct: totalBudget > 0 ? ((p.budget / totalBudget) * 100).toFixed(1) : "0",
-    planId: p.id,
-    color: COLORS[i % COLORS.length],
-  }));
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -85,3 +91,5 @@ export default function PlanAllocationChart({ plans, onSliceClick }: Props) {
     </div>
   );
 }
+
+export default React.memo(PlanAllocationChart);

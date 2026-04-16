@@ -15,13 +15,13 @@ const GOALS: { id: TradingGoal; label: string; icon: string; desc: string; retur
   { id: "passive_index", label: "Passive Index", icon: "🌊", desc: "Buy and hold ETFs", returns: "8-12%/yr" },
 ];
 
-const RISKS = [
+const RISKS: { id: "conservative" | "moderate" | "aggressive"; label: string; icon: string }[] = [
   { id: "conservative", label: "Conservative", icon: "🛡️" },
   { id: "moderate", label: "Moderate", icon: "⚖️" },
   { id: "aggressive", label: "Aggressive", icon: "🔥" },
 ];
 
-const FREQS = [
+const FREQS: { id: "1x" | "3x" | "5x"; label: string }[] = [
   { id: "1x", label: "1x/day" },
   { id: "3x", label: "3x/day" },
   { id: "5x", label: "5x/day" },
@@ -32,8 +32,8 @@ export default function NewPlanPage() {
   const [name, setName] = useState("");
   const [budget, setBudget] = useState("");
   const [goal, setGoal] = useState<TradingGoal>("maximize_returns");
-  const [risk, setRisk] = useState("moderate");
-  const [freq, setFreq] = useState("1x");
+  const [risk, setRisk] = useState<"conservative" | "moderate" | "aggressive">("moderate");
+  const [freq, setFreq] = useState<"1x" | "3x" | "5x">("1x");
   const [targetAmt, setTargetAmt] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [saving, setSaving] = useState(false);

@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getPlan, updatePlan, runPlan, exportPlanTradesCsv } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { InvestmentPlan, Trade } from "@/lib/types";
+import { InvestmentPlan, Trade, TradingGoal } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
@@ -12,7 +12,7 @@ import PlanPositions from "@/components/PlanPositions";
 import PlanEquityCurve from "@/components/PlanEquityCurve";
 import TradeTable from "@/components/TradeTable";
 
-const GOAL_LABELS: Record<string, string> = {
+const GOAL_LABELS: Record<TradingGoal, string> = {
   maximize_returns: "📈 Maximize Returns",
   steady_income: "💰 Steady Income",
   capital_preservation: "🏦 Capital Preservation",

@@ -45,9 +45,9 @@ export default function AboutPage() {
           <pre>{`
 ┌─────────────────────────────────────────────────────────────┐
 │                    www.bahtzang.com                          │
-│               Next.js 14 (Railway) · 15 pages               │
+│               Next.js 14 (Railway) · 19 pages               │
 │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-│   │Dashboard │  │ Trades   │  │ Settings │  │ Backtest │  │
+│   │Dashboard │  │ Trades   │  │  Plans   │  │ Backtest │  │
 │   └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  │
 └────────┼──────────────┼──────────────┼──────────────┼───────┘
          │              │              │              │
@@ -114,6 +114,13 @@ export default function AboutPage() {
             The trades table records every cycle — even holds and blocked trades
             — with full reasoning. This creates a complete audit trail for
             performance analysis and regulatory compliance.
+          </p>
+          <p>
+            <strong className="text-primary">Investment Plans.</strong>{" "}
+            Split your portfolio into independent pie-style slices, each with
+            its own budget, goal, risk profile, and virtual cash tracking.
+            Plans trade independently using fractional shares so every dollar
+            of your budget gets put to work.
           </p>
           <p>
             <strong className="text-primary">Defense in depth.</strong>{" "}

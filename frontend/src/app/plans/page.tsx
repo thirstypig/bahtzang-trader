@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { getPlans, deletePlan } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { InvestmentPlan } from "@/lib/types";
+import { InvestmentPlan, TradingGoal } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
 import ConfirmModal from "@/components/ConfirmModal";
 import PlanAllocationChart from "@/components/PlanAllocationChart";
 
-const GOAL_LABELS: Record<string, { label: string; icon: string }> = {
+const GOAL_LABELS: Record<TradingGoal, { label: string; icon: string }> = {
   maximize_returns: { label: "Max Returns", icon: "📈" },
   steady_income: { label: "Income", icon: "💰" },
   capital_preservation: { label: "Preserve", icon: "🏦" },

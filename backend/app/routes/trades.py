@@ -61,16 +61,23 @@ def export_trades(
         "Date", "Action", "Ticker", "Quantity", "Price",
         "Total Value", "Confidence", "Reasoning",
     ])
+    # 076-fix: Prefix cells starting with formula chars to prevent CSV injection
+    def csv_safe(value: str) -> str:
+        s = str(value or "")
+        if s and s[0] in "=+-@\t\r":
+            return "'" + s
+        return s
+
     for t in trades:
         writer.writerow([
             t.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            t.action.upper(),
-            t.ticker,
+            csv_safe(t.action.upper()),
+            csv_safe(t.ticker),
             t.quantity,
             f"{t.price:.2f}" if t.price else "",
             f"{(t.price or 0) * t.quantity:.2f}",
             f"{(t.confidence or 0):.0%}",
-            (t.claude_reasoning or "").replace("\n", " "),
+            csv_safe((t.claude_reasoning or "").replace("\n", " ")),
         ])
 
     buf.seek(0)
