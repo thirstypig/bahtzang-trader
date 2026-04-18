@@ -65,7 +65,7 @@ async def add_cache_headers(request: Request, call_next):
         elif path.startswith("/backtest"):
             response.headers["Cache-Control"] = "private, max-age=300"
         elif path == "/guardrails/presets":
-            response.headers["Cache-Control"] = "public, max-age=86400"
+            response.headers["Cache-Control"] = "private, max-age=86400"
     return response
 
 

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getTodos, createTodo, updateTodo, deleteTodo, TodoTask } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { useHashScroll } from "@/lib/useHashScroll";
+import HashScroll from "@/components/HashScroll";
 import CrossLink from "@/components/CrossLink";
 import Spinner from "@/components/Spinner";
 
@@ -39,8 +39,6 @@ export default function TodosPage() {
   const [filter, setFilter] = useState<FilterStatus>("active");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-
-  useHashScroll();
 
   useEffect(() => {
     if (!user) return;
@@ -117,6 +115,7 @@ export default function TodosPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
+      <HashScroll />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-primary">To-Do List</h1>
         <p className="mt-1 text-sm text-muted">

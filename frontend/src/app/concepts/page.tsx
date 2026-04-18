@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { concepts, Concept } from "@/data/concepts";
-import { useHashScroll } from "@/lib/useHashScroll";
+import HashScroll from "@/components/HashScroll";
 import CrossLink from "@/components/CrossLink";
 
 const TABS = [
@@ -41,8 +41,6 @@ function useTabs(defaultTab: TabKey = "strategic") {
 export default function ConceptsPage() {
   const [activeTab, setTab] = useTabs();
 
-  useHashScroll();
-
   const tabConcepts = concepts.filter((c) => c.tab === activeTab);
 
   const tabCounts = TABS.reduce(
@@ -55,6 +53,7 @@ export default function ConceptsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
+      <HashScroll />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-primary">Concepts</h1>
         <p className="mt-1 text-sm text-muted">

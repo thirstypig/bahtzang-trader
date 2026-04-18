@@ -84,8 +84,6 @@ def list_backtests(
     user: dict = Depends(require_auth),
 ):
     """List all backtests with config + summary metrics."""
-    from sqlalchemy.orm import subqueryload
-
     configs = (
         db.query(BacktestConfig)
         .order_by(BacktestConfig.created_at.desc())
