@@ -45,7 +45,7 @@ export default function AboutPage() {
           <pre>{`
 ┌─────────────────────────────────────────────────────────────┐
 │                    www.bahtzang.com                          │
-│               Next.js 14 (Railway) · 19 pages               │
+│               Next.js 14 (Railway) · 22 pages               │
 │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
 │   │Dashboard │  │ Trades   │  │  Plans   │  │ Backtest │  │
 │   └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  │

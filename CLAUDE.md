@@ -42,7 +42,11 @@ npm run install:backend  # pip install in /backend
 - Recharts for charts
 - Supabase JS (`getSupabase()` lazy singleton to avoid build-time crash)
 - Most pages are `"use client"` — data fetched via `useApiQuery` hook or `useEffect` gated by auth
-- Static pages (`about`, `docs`) are server components (no `"use client"`)
+- Static pages (`about`, `changelog`, `roadmap`) are Server Components (zero JS shipped)
+- Chart components (Recharts) lazy-loaded via `dynamic(() => import(...), { ssr: false })`
+- Global focus-visible ring, prefers-reduced-motion, skip-to-content link
+- Error boundary (`error.tsx`), custom 404 (`not-found.tsx`), loading state (`loading.tsx`)
+- 15s fetch timeout via `AbortSignal.timeout()` on all API calls
 
 ### Backend (`/backend`)
 - Python FastAPI
@@ -85,7 +89,7 @@ backend/
     models.py         # Trade, PortfolioSnapshot, GuardrailsConfig, GuardrailsAudit + feature model imports
     routes/           # API route modules (feature-isolated)
       portfolio.py    # GET /portfolio, /portfolio/snapshots, /portfolio/metrics, POST /portfolio/snapshot
-      trades.py       # GET /trades
+      trades.py       # GET /trades, GET /trades/summary (lightweight, no reasoning), GET /trades/export
       guardrails.py   # GET/POST /guardrails, POST /killswitch, POST /killswitch/deactivate
       bot.py          # POST /run (rate-limited 2/min via slowapi)
       todos.py        # CRUD /admin/todos (JSON file persistence, asyncio.Lock)
@@ -140,14 +144,17 @@ frontend/
       earnings/       # /earnings (upcoming earnings calendar, color-coded proximity)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
-      providers.tsx   # ThemeProvider + AuthProvider + SidebarProvider + AppShell
+      error.tsx       # Error boundary with retry
+      loading.tsx     # Root loading spinner (Suspense fallback)
+      not-found.tsx   # Custom 404 page
+      providers.tsx   # ThemeProvider + AuthProvider + SidebarProvider + AppShell + skip link
       layout.tsx      # Root layout (Server Component, anti-flash theme script)
     components/       # Reusable UI components
       Sidebar.tsx     # Collapsible left sidebar (icon nav, grouped sections, theme toggle, profile)
       CrossLink.tsx   # Reusable cross-link badge (pill-shaped, color-coded by type)
       KillSwitchButton.tsx # Kill switch with activate + deactivate
     lib/
-      api.ts          # fetchAPI with Bearer token + admin todo CRUD functions
+      api.ts          # fetchAPI with Bearer token, 15s timeout, admin todo CRUD functions
       auth.tsx        # AuthProvider, useAuth hook
       theme.tsx       # ThemeProvider, useTheme hook (light/dark, localStorage)
       sidebar.tsx     # SidebarProvider, useSidebar hook (expanded/collapsed state)

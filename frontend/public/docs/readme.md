@@ -9,7 +9,7 @@ AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. 
 ```
 ┌─────────────────────────────────┐
 │  Next.js 14 Frontend (Railway)  │  www.bahtzang.com
-│  Dashboard · Trades · Analytics  │  15 pages + login
+│  Dashboard · Trades · Analytics  │  22 pages + login
 │  Backtest · Earnings · Settings │
 └──────────────┬──────────────────┘
                │ REST API + Bearer JWT
@@ -43,7 +43,7 @@ AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. 
 bahtzang-trader/
 ├── frontend/                # Next.js 14 (App Router)
 │   └── src/
-│       ├── app/             # 15 pages (dashboard, trades, analytics, backtest, etc.)
+│       ├── app/             # 22 pages (dashboard, trades, analytics, plans, backtest, etc.)
 │       ├── components/      # Reusable UI (Sidebar, ThemeToggle, charts, etc.)
 │       ├── lib/             # API client, auth, theme, sidebar, Supabase, types
 │       └── data/            # Static data (roadmap, changelog, concepts)
@@ -55,11 +55,16 @@ bahtzang-trader/
 │       ├── auth.py          # Supabase JWT verification via JWKS
 │       ├── backtest/         # Backtesting framework (3 strategies, OHLCV cache)
 │       ├── earnings/         # Earnings calendar (Finnhub API cache, position sizing)
+│       ├── plans/            # Investment Plans (routes, models, snapshots)
 │       ├── claude_brain.py  # AI decision engine (AsyncAnthropic, 30s timeout)
 │       ├── guardrails.py    # Safety limits + kill switch + stop-loss (stored in PostgreSQL)
+│       ├── compliance.py    # PDT tracking + wash sale detection
+│       ├── circuit_breaker.py # 3-tier circuit breakers (YELLOW/ORANGE/RED)
+│       ├── position_sizing.py # Quarter-Kelly position sizing
+│       ├── technical_analysis.py # pandas-ta indicators (RSI, MACD, BBands, SMA, ATR)
+│       ├── sector_rotation.py # 11 sector ETFs vs SPY (LEADING/LAGGING)
 │       ├── pipeline_types.py # TypedDict definitions (Position, Quote, TradeDecision, etc.)
-│       ├── notifier.py      # Slack webhook notifications (fire-and-forget)
-│       ├── trade_executor.py # Pipeline: gather → think → validate → act → log → notify
+│       ├── trade_executor.py # Pipeline: gather → think → validate → act → log
 │       ├── market_data.py   # Alpha Vantage news sentiment
 │       └── scheduler.py     # Dynamic frequency (1x/3x/5x) + snapshots + earnings refresh
 │   └── data/
@@ -78,16 +83,20 @@ bahtzang-trader/
 | `/trades` | Trade history with sortable columns and full reasoning |
 | `/settings` | Risk profiles, trading goals, guardrails, kill switch, manual trigger |
 | `/analytics` | Sharpe, Sortino, drawdown, win rate, profit factor, equity vs SPY |
+| `/plans` | Investment Plans — independent pie-style portfolio slices |
+| `/plans/new` | Create a new plan with budget, goal, and timeline |
+| `/plans/[id]` | Plan detail — positions, equity curve, trades, run/pause |
 | `/backtest` | Backtest strategies (SMA Crossover, RSI Mean Reversion, Buy & Hold) |
 | `/earnings` | Upcoming earnings calendar with position sizing integration |
 | `/audit-log` | Guardrails config change audit trail |
 | `/todos` | API-backed task tracker — categories, progress bars, CRUD |
 | `/roadmap` | Kanban board — planned / in-progress / done |
 | `/changelog` | Version history with feat/fix/security badges |
+| `/concepts` | Ideas and explorations across 4 categories |
 | `/errors` | Error log with ERR-XXXXXX reference codes |
 | `/status` | Live service health checks |
 | `/about` | Architecture diagram, tech stack, design philosophy |
-| `/docs` | Documentation links (GitHub, Swagger, Supabase, Railway) |
+| `/docs` | Daily operations guide, project docs, external links |
 | `/login` | Google Sign-In via Supabase |
 
 ## Getting Started
@@ -142,7 +151,7 @@ Every cycle (configurable 1x/3x/5x per day, or manual trigger):
 3. **Validate** — run decision through guardrails (kill switch, stop-loss, limits, daily cap, position count, PDT compliance)
 4. **Act** — execute order on Alpaca if approved, with earnings-aware position sizing
 5. **Log** — write decision + reasoning to PostgreSQL (every cycle, even holds)
-6. **Notify** — Slack webhook notification (fire-and-forget)
+6. **Log** — also logs to plan-specific trade history if running via Investment Plans
 
 ## Security
 
