@@ -1,7 +1,5 @@
-"use client";
-
 import { changelog } from "@/data/changelog";
-import { useHashScroll } from "@/lib/useHashScroll";
+import HashScroll from "@/components/HashScroll";
 import CrossLink from "@/components/CrossLink";
 
 const TYPE_STYLES: Record<string, string> = {
@@ -16,10 +14,9 @@ const TYPE_STYLES: Record<string, string> = {
 const totalChanges = changelog.reduce((sum, e) => sum + e.changes.length, 0);
 
 export default function ChangelogPage() {
-  useHashScroll();
-
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
+      <HashScroll />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-primary">Changelog</h1>
         <p className="mt-1 text-sm text-muted">

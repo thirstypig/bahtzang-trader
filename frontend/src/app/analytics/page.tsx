@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import {
-  getTrades,
+  getTradesSummary,
   getSnapshots,
   getPortfolioMetrics,
   takeSnapshot,
@@ -11,11 +11,13 @@ import {
   PortfolioMetrics,
 } from "@/lib/api";
 import { Trade } from "@/lib/types";
+import dynamic from "next/dynamic";
 import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
-import EquityCurveChart from "@/components/EquityCurveChart";
-import ReturnDistributionChart from "@/components/ReturnDistributionChart";
-import DrawdownChart from "@/components/DrawdownChart";
+
+const EquityCurveChart = dynamic(() => import("@/components/EquityCurveChart"), { ssr: false });
+const ReturnDistributionChart = dynamic(() => import("@/components/ReturnDistributionChart"), { ssr: false });
+const DrawdownChart = dynamic(() => import("@/components/DrawdownChart"), { ssr: false });
 
 export default function AnalyticsPage() {
   const { user } = useAuth();
@@ -28,7 +30,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (!user) return;
     Promise.all([
-      getTrades(500).catch(() => []),
+      getTradesSummary(500).catch(() => []),
       getSnapshots(90).catch(() => []),
       getPortfolioMetrics(90).catch(() => null),
     ])

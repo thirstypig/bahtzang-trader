@@ -10,7 +10,7 @@ import Spinner from "@/components/Spinner";
 function MobileHeader() {
   const { toggle } = useSidebar();
   return (
-    <div className="sticky top-0 z-10 flex h-14 items-center border-b border-border bg-card px-4 md:hidden">
+    <header className="sticky top-0 z-10 flex h-14 items-center border-b border-border bg-card px-4 md:hidden">
       <button
         onClick={toggle}
         className="rounded-md p-1.5 text-secondary transition-colors hover:bg-card-alt hover:text-primary"
@@ -23,7 +23,7 @@ function MobileHeader() {
       <span className="ml-3 text-sm font-semibold text-primary">
         bahtzang<span className="text-accent">.trader</span>
       </span>
-    </div>
+    </header>
   );
 }
 
@@ -48,8 +48,12 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:outline-none">
+        Skip to main content
+      </a>
       <Sidebar />
       <main
+        id="main-content"
         className="min-h-screen transition-[margin-left] duration-200"
         style={{ marginLeft: mobile ? 0 : (expanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED) }}
       >

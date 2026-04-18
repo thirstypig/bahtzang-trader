@@ -6,11 +6,13 @@ import { useAuth } from "@/lib/auth";
 import { Balance, Position, Trade } from "@/lib/types";
 import PortfolioCard from "@/components/PortfolioCard";
 import DecisionCard from "@/components/DecisionCard";
-import AllocationChart from "@/components/AllocationChart";
+import dynamic from "next/dynamic";
 import BotStatusBanner from "@/components/BotStatusBanner";
 import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
-import ValueChart from "@/components/ValueChart";
+
+const AllocationChart = dynamic(() => import("@/components/AllocationChart"), { ssr: false });
+const ValueChart = dynamic(() => import("@/components/ValueChart"), { ssr: false });
 
 export default function DashboardPage() {
   const { user } = useAuth();

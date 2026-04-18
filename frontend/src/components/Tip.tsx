@@ -26,7 +26,7 @@ export default function Tip({ text, position = "top" }: TipProps) {
         <path d="M12 16v-4M12 8h.01" />
       </svg>
       <span
-        className={`pointer-events-none absolute z-50 w-64 rounded-lg border border-border-strong bg-card px-3 py-2 text-xs leading-relaxed text-secondary opacity-0 shadow-xl transition-opacity group-hover/tip:opacity-100 ${positionClasses[position]}`}
+        className={`pointer-events-none absolute z-50 w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-border-strong bg-card px-3 py-2 text-xs leading-relaxed text-secondary opacity-0 shadow-xl transition-opacity group-hover/tip:opacity-100 ${positionClasses[position]}`}
       >
         {text}
       </span>

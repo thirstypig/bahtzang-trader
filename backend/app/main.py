@@ -48,6 +48,27 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def add_cache_headers(request: Request, call_next):
+    """Add Cache-Control headers to GET responses for read-only endpoints."""
+    response = await call_next(request)
+    if request.method == "GET" and response.status_code == 200:
+        path = request.url.path
+        if path == "/health":
+            response.headers["Cache-Control"] = "no-cache"
+        elif path.startswith("/portfolio/snapshots") or path.startswith("/portfolio/metrics"):
+            response.headers["Cache-Control"] = "private, max-age=300"
+        elif path.startswith("/trades") and "/export" not in path:
+            response.headers["Cache-Control"] = "private, max-age=60"
+        elif path.startswith("/earnings"):
+            response.headers["Cache-Control"] = "private, max-age=3600"
+        elif path.startswith("/backtest"):
+            response.headers["Cache-Control"] = "private, max-age=300"
+        elif path == "/guardrails/presets":
+            response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
 # ---------------------------------------------------------------------------
 # Public
 # ---------------------------------------------------------------------------

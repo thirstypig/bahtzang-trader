@@ -36,6 +36,7 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     ...options,
     headers: { ...headers, ...(options?.headers as Record<string, string>) },
+    signal: options?.signal ?? AbortSignal.timeout(15000),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -60,6 +61,10 @@ export async function getPortfolio(): Promise<Portfolio> {
 
 export async function getTrades(limit = 50): Promise<Trade[]> {
   return fetchAPI<Trade[]>(`/trades?limit=${limit}`);
+}
+
+export async function getTradesSummary(limit = 500): Promise<Trade[]> {
+  return fetchAPI<Trade[]>(`/trades/summary?limit=${limit}`);
 }
 
 export async function exportTradesCsv(year?: number): Promise<void> {

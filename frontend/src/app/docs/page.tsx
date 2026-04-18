@@ -14,6 +14,12 @@ interface DocEntry {
 
 const DOCS: { category: string; items: DocEntry[] }[] = [
   {
+    category: "Getting Started",
+    items: [
+      { id: "daily-ops", title: "Daily Operations Guide", description: "What to check daily, how to use each page, getting started checklist", icon: "📋", file: "/docs/daily-operations.md" },
+    ],
+  },
+  {
     category: "Project Docs",
     items: [
       { id: "readme", title: "README", description: "Project overview, setup, and development", icon: "📖", file: "/docs/readme.md" },
@@ -69,7 +75,7 @@ function renderMarkdown(md: string): string {
 }
 
 export default function DocsPage() {
-  const [activeDoc, setActiveDoc] = useState<DocEntry>(DOCS[0].items[0]);
+  const [activeDoc, setActiveDoc] = useState<DocEntry>(DOCS[0].items[0]); // Daily Operations Guide
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState(true);
 

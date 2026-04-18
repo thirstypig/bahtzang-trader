@@ -119,7 +119,9 @@ export default function Sidebar() {
                     <Link
                       href={item.href}
                       title={expanded ? undefined : item.label}
-                      className={`group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                      aria-label={expanded ? undefined : item.label}
+                      aria-current={active ? "page" : undefined}
+                      className={`group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card ${
                         active
                           ? "bg-accent/10 text-accent"
                           : "text-secondary hover:bg-card-alt hover:text-primary"

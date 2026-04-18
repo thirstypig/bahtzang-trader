@@ -10,7 +10,9 @@ import { formatCurrency } from "@/lib/utils";
 import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
 import ConfirmModal from "@/components/ConfirmModal";
-import PlanAllocationChart from "@/components/PlanAllocationChart";
+import dynamic from "next/dynamic";
+
+const PlanAllocationChart = dynamic(() => import("@/components/PlanAllocationChart"), { ssr: false });
 
 const GOAL_LABELS: Record<TradingGoal, { label: string; icon: string }> = {
   maximize_returns: { label: "Max Returns", icon: "📈" },
