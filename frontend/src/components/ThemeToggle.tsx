@@ -8,8 +8,9 @@ export default function ThemeToggle({ expanded = true }: { expanded?: boolean })
   return (
     <button
       onClick={toggle}
-      className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-secondary transition-colors hover:bg-card-alt hover:text-primary"
+      className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-secondary transition-colors hover:bg-card-alt hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
       title={expanded ? undefined : (theme === "dark" ? "Light mode" : "Dark mode")}
+      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
     >
       {theme === "dark" ? (
         <svg className="h-5 w-5 shrink-0 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

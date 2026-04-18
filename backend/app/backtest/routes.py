@@ -84,19 +84,28 @@ def list_backtests(
     user: dict = Depends(require_auth),
 ):
     """List all backtests with config + summary metrics."""
+    from sqlalchemy.orm import subqueryload
+
     configs = (
         db.query(BacktestConfig)
         .order_by(BacktestConfig.created_at.desc())
         .all()
     )
+    # Batch-load all results in one query instead of N+1
+    config_ids = [c.id for c in configs]
+    results_map: dict[int, BacktestResult] = {}
+    if config_ids:
+        results = (
+            db.query(BacktestResult)
+            .filter(BacktestResult.config_id.in_(config_ids))
+            .all()
+        )
+        results_map = {r.config_id: r for r in results}
+
     items = []
     for config in configs:
-        result = (
-            db.query(BacktestResult)
-            .filter(BacktestResult.config_id == config.id)
-            .first()
-        )
         item = config.to_dict()
+        result = results_map.get(config.id)
         if result:
             item.update(result.to_summary())
         items.append(item)

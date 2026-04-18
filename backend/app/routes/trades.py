@@ -42,6 +42,39 @@ def get_trades(
     ]
 
 
+@router.get("/trades/summary")
+def get_trades_summary(
+    limit: int = Query(500, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
+    """Lightweight trade history for analytics — excludes reasoning text."""
+    trades = (
+        db.query(
+            Trade.id, Trade.timestamp, Trade.ticker, Trade.action,
+            Trade.quantity, Trade.price, Trade.confidence,
+            Trade.guardrail_passed, Trade.executed,
+        )
+        .order_by(Trade.timestamp.desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": t.id,
+            "timestamp": t.timestamp.isoformat(),
+            "ticker": t.ticker,
+            "action": t.action,
+            "quantity": t.quantity,
+            "price": t.price,
+            "confidence": t.confidence,
+            "guardrail_passed": t.guardrail_passed,
+            "executed": t.executed,
+        }
+        for t in trades
+    ]
+
+
 @router.get("/trades/export")
 def export_trades(
     year: int | None = Query(None, ge=2020, le=2100),

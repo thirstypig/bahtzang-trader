@@ -9,7 +9,9 @@ import { formatCurrency } from "@/lib/utils";
 import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
 import PlanPositions from "@/components/PlanPositions";
-import PlanEquityCurve from "@/components/PlanEquityCurve";
+import dynamic from "next/dynamic";
+
+const PlanEquityCurve = dynamic(() => import("@/components/PlanEquityCurve"), { ssr: false });
 import TradeTable from "@/components/TradeTable";
 
 const GOAL_LABELS: Record<TradingGoal, string> = {
@@ -87,8 +89,15 @@ export default function PlanDetailPage() {
 
   if (loading || !data) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Spinner />
+      <div className="mx-auto max-w-5xl px-6 py-8">
+        <div className="flex h-48 items-center justify-center">
+          <Spinner />
+        </div>
+        {/* Mount children immediately so they fetch in parallel with getPlan */}
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <PlanPositions planId={planId} />
+          <PlanEquityCurve planId={planId} />
+        </div>
       </div>
     );
   }

@@ -25,7 +25,7 @@ export default function PortfolioCard({
         <h2 className="text-sm font-medium text-secondary">Portfolio Summary</h2>
         <Tip text="Your portfolio is the total of all your investments plus uninvested cash. This updates in real-time from your Alpaca brokerage account." />
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-6">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
         <div>
           <p className="flex items-center gap-1 text-xs text-muted">Total Value <Tip text="Everything you own in your account — stocks + cash combined. This is your net worth in the brokerage." /></p>
           <p className="mt-1 text-2xl font-bold text-primary">

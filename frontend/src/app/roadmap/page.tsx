@@ -1,7 +1,5 @@
-"use client";
-
 import { roadmapItems, RoadmapItem } from "@/data/roadmap";
-import { useHashScroll } from "@/lib/useHashScroll";
+import HashScroll from "@/components/HashScroll";
 
 const STATUS_CONFIG = {
   planned: { label: "Planned", dot: "bg-muted" },
@@ -49,8 +47,6 @@ function Column({ status, items }: { status: keyof typeof STATUS_CONFIG; items: 
 }
 
 export default function RoadmapPage() {
-  useHashScroll();
-
   const grouped = {
     "in-progress": roadmapItems.filter((i) => i.status === "in-progress"),
     planned: roadmapItems.filter((i) => i.status === "planned"),
@@ -59,6 +55,7 @@ export default function RoadmapPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
+      <HashScroll />
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-primary">Roadmap</h1>
         <p className="mt-1 text-sm text-muted">
