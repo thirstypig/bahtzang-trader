@@ -5,7 +5,6 @@ import {
   EarningsEvent,
   Guardrails,
   InvestmentPlan,
-  PlanMetrics,
   PlanPosition,
   PlanSnapshotData,
   Portfolio,
@@ -300,9 +299,9 @@ export async function getPlan(id: number): Promise<InvestmentPlan & { trades: Tr
 export async function createPlan(plan: {
   name: string;
   budget: number;
-  trading_goal: string;
-  risk_profile?: string;
-  trading_frequency?: string;
+  trading_goal: InvestmentPlan["trading_goal"];
+  risk_profile?: InvestmentPlan["risk_profile"];
+  trading_frequency?: InvestmentPlan["trading_frequency"];
   target_amount?: number | null;
   target_date?: string | null;
 }): Promise<InvestmentPlan> {
@@ -327,7 +326,10 @@ export async function deletePlan(id: number): Promise<void> {
 }
 
 export async function runPlan(id: number): Promise<CycleResult> {
-  return fetchAPI<CycleResult>(`/plans/${id}/run`, { method: "POST" });
+  return fetchAPI<CycleResult>(`/plans/${id}/run`, {
+    method: "POST",
+    signal: AbortSignal.timeout(45000),
+  });
 }
 
 export async function exportPlanTradesCsv(id: number): Promise<void> {
@@ -353,13 +355,6 @@ export async function getPlanSnapshots(
   days = 90,
 ): Promise<PlanSnapshotData[]> {
   return fetchAPI<PlanSnapshotData[]>(`/plans/${id}/snapshots?days=${days}`);
-}
-
-export async function getPlanMetrics(
-  id: number,
-  days = 90,
-): Promise<PlanMetrics> {
-  return fetchAPI<PlanMetrics>(`/plans/${id}/metrics?days=${days}`);
 }
 
 export async function getEarningsCalendar(

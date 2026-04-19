@@ -43,7 +43,7 @@ class NewsItem(TypedDict):
 class TradeDecision(TypedDict):
     action: str          # "buy" | "sell" | "hold"
     ticker: str
-    quantity: int
+    quantity: float
     reasoning: str
     confidence: float
     price: float | None
@@ -53,7 +53,7 @@ class CycleResult(TypedDict):
     trade_id: int
     action: str
     ticker: str
-    quantity: int
+    quantity: float
     price: float | None
     executed: bool
     guardrail_passed: bool

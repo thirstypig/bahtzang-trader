@@ -48,6 +48,7 @@ const NAV: NavGroup[] = [
       { href: "/errors", label: "Errors", icon: Icons.Errors },
       { href: "/changelog", label: "Changelog", icon: Icons.Changelog },
       { href: "/about", label: "About", icon: Icons.About },
+      { href: "/testing", label: "Testing", icon: Icons.Testing },
       { href: "/docs", label: "Docs", icon: Icons.Docs },
     ],
   },

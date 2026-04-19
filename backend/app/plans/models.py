@@ -86,7 +86,6 @@ class PlanTrade(Base):
         Index("ix_plan_trades_plan_timestamp", "plan_id", timestamp.desc()),
         Index("ix_plan_trades_plan_ticker", "plan_id", "ticker", "timestamp"),
         Index("ix_plan_trades_plan_executed", "plan_id", "executed", "timestamp"),
-        Index("ix_plan_trades_timestamp_desc", timestamp.desc()),
     )
 
     def to_dict(self) -> dict:

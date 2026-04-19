@@ -27,9 +27,7 @@ _plan_locks: dict[int, asyncio.Lock] = {}
 
 def _get_plan_lock(plan_id: int) -> asyncio.Lock:
     """Return the asyncio lock for a given plan_id, creating it on first use."""
-    if plan_id not in _plan_locks:
-        _plan_locks[plan_id] = asyncio.Lock()
-    return _plan_locks[plan_id]
+    return _plan_locks.setdefault(plan_id, asyncio.Lock())
 
 
 def compute_virtual_positions(db: Session, plan_id: int) -> dict[str, float]:
@@ -110,14 +108,15 @@ async def _execute_plan_cycle(
     virtual_positions = compute_virtual_positions(db, plan.id)
     plan_config = _plan_to_guardrails_config(plan)
 
+    # 098-fix: Build price lookup dict once instead of O(T) linear scans per ticker
+    price_map = {q["ticker"]: q["price"] for q in quotes}
+
     # Convert virtual positions to the format Claude expects
     plan_positions = [
         {
             "instrument": {"symbol": ticker, "asset_type": "stock"},
             "quantity": qty,
-            "market_value": qty * next(
-                (q["price"] for q in quotes if q["ticker"] == ticker), 0
-            ),
+            "market_value": qty * price_map.get(ticker, 0),
             "cost_basis": 0,
             "unrealized_pnl": 0,
             "unrealized_pnl_pct": 0,
@@ -143,9 +142,9 @@ async def _execute_plan_cycle(
     for decision in decisions:
         price = None
         if decision["ticker"] and decision["action"] != "hold":
-            cached = next((q for q in quotes if q["ticker"] == decision["ticker"]), None)
-            if cached:
-                price = cached["price"]
+            cached_price = price_map.get(decision["ticker"])
+            if cached_price is not None:
+                price = cached_price
             else:
                 quote = await market_data.get_quote(decision["ticker"])
                 price = quote["price"]
@@ -305,6 +304,43 @@ async def _execute_plan_cycle(
     return results
 
 
+async def fetch_market_data(
+    db: Session,
+    plan_ids: list[int],
+) -> tuple[list, dict, list, list, str, str, str]:
+    """Fetch shared market data for one or more plans.
+
+    089-fix: Extracted from run_all_plans so run_plan route can reuse it.
+    068-fix: Unions Alpaca account tickers with per-plan virtual position tickers.
+
+    Returns (positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv).
+    """
+    positions, balance = await asyncio.gather(
+        broker.get_positions("default"),
+        broker.get_account_balance("default"),
+    )
+
+    # Union account tickers with per-plan virtual position tickers.
+    all_tickers = {p.get("instrument", {}).get("symbol", "") for p in positions}
+    for pid in plan_ids:
+        all_tickers.update(compute_virtual_positions(db, pid).keys())
+    all_tickers.discard("")
+    held_tickers = sorted(all_tickers)
+
+    quotes_task = market_data.get_quotes(held_tickers) if held_tickers else asyncio.sleep(0, result=[])
+    news_task = market_data.get_news(held_tickers if held_tickers else None)
+    indicators_task = get_indicators(held_tickers) if held_tickers else asyncio.sleep(0, result={})
+    sector_task = get_sector_signals()
+    quotes, news, indicators, sector_signals = await asyncio.gather(
+        quotes_task, news_task, indicators_task, sector_task
+    )
+    technicals_csv = format_indicators_csv(indicators)
+    sector_csv = format_sector_csv(sector_signals)
+    earnings_csv = format_earnings_csv(db, held_tickers) if held_tickers else ""
+
+    return positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv
+
+
 async def run_all_plans(db: Session) -> dict[int, list[CycleResult]]:
     """Run trading cycles for all active plans with shared market data."""
 
@@ -315,7 +351,7 @@ async def run_all_plans(db: Session) -> dict[int, list[CycleResult]]:
         return {}
 
     # 2. Shared data fetch (once for all plans)
-    positions, balance = await asyncio.gather(
+    positions_raw, balance = await asyncio.gather(
         broker.get_positions("default"),
         broker.get_account_balance("default"),
     )
@@ -334,24 +370,10 @@ async def run_all_plans(db: Session) -> dict[int, list[CycleResult]]:
         logger.info("No active plans")
         return {}
 
-    # 068-fix: Union account tickers with per-plan virtual position tickers.
-    # Plans may hold virtual positions not reflected in Alpaca's merged view.
-    all_tickers = {p.get("instrument", {}).get("symbol", "") for p in positions}
-    for plan in active_plans:
-        all_tickers.update(compute_virtual_positions(db, plan.id).keys())
-    all_tickers.discard("")
-    held_tickers = sorted(all_tickers)
-
-    quotes_task = market_data.get_quotes(held_tickers) if held_tickers else asyncio.sleep(0, result=[])
-    news_task = market_data.get_news(held_tickers if held_tickers else None)
-    indicators_task = get_indicators(held_tickers) if held_tickers else asyncio.sleep(0, result={})
-    sector_task = get_sector_signals()
-    quotes, news, indicators, sector_signals = await asyncio.gather(
-        quotes_task, news_task, indicators_task, sector_task
+    # 089-fix: Use shared fetch_market_data for consistent ticker union
+    positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv = (
+        await fetch_market_data(db, [p.id for p in active_plans])
     )
-    technicals_csv = format_indicators_csv(indicators)
-    sector_csv = format_sector_csv(sector_signals)
-    earnings_csv = format_earnings_csv(db, held_tickers) if held_tickers else ""
 
     # 4. Run each plan's cycle (Claude call happens inside run_plan_cycle).
     # 064-fix: removed wasted asyncio.gather of Claude calls whose results

@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.auth import require_auth
@@ -52,5 +52,6 @@ async def manual_refresh(
         count = await refresh_earnings(db, symbols)
         return {"status": "refreshed", "events_cached": count, "symbols_checked": len(symbols)}
     except Exception as e:
+        # 096-fix: Don't leak internal details (DB strings, paths) to client
         logger.error("Earnings refresh failed: %s", e)
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(status_code=500, detail="Earnings refresh failed. Check server logs.")

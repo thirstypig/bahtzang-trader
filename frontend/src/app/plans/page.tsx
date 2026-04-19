@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { getPlans, deletePlan } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { InvestmentPlan, TradingGoal } from "@/lib/types";
+import { GOAL_CONFIG } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
@@ -14,16 +15,7 @@ import dynamic from "next/dynamic";
 
 const PlanAllocationChart = dynamic(() => import("@/components/PlanAllocationChart"), { ssr: false });
 
-const GOAL_LABELS: Record<TradingGoal, { label: string; icon: string }> = {
-  maximize_returns: { label: "Max Returns", icon: "📈" },
-  steady_income: { label: "Income", icon: "💰" },
-  capital_preservation: { label: "Preserve", icon: "🏦" },
-  beat_sp500: { label: "Beat S&P", icon: "🏆" },
-  swing_trading: { label: "Swing", icon: "⚡" },
-  passive_index: { label: "Passive", icon: "🌊" },
-};
-
-const RISK_COLORS: Record<string, string> = {
+const RISK_COLORS: Record<InvestmentPlan["risk_profile"], string> = {
   conservative: "text-emerald-400",
   moderate: "text-blue-400",
   aggressive: "text-amber-400",
@@ -144,7 +136,7 @@ export default function PlansPage() {
           {/* Plan cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {plans.map((plan) => {
-              const goal = GOAL_LABELS[plan.trading_goal] || { label: plan.trading_goal, icon: "📊" };
+              const goal = GOAL_CONFIG[plan.trading_goal] || { label: plan.trading_goal, icon: "📊" };
               const invested = plan.invested ?? 0;
               const investedPct = plan.budget > 0 ? (invested / plan.budget) * 100 : 0;
 

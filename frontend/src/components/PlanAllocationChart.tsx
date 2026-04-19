@@ -13,21 +13,22 @@ interface Props {
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 function PlanAllocationChart({ plans, onSliceClick }: Props) {
-  const data = useMemo(() => {
-    if (plans.length === 0) return [];
-    const totalBudget = plans.reduce((s, p) => s + p.budget, 0);
-    return plans.map((p, i) => ({
-      name: p.name,
-      value: p.budget,
-      pct: totalBudget > 0 ? ((p.budget / totalBudget) * 100).toFixed(1) : "0",
-      planId: p.id,
-      color: COLORS[i % COLORS.length],
-    }));
+  const { data, totalBudget } = useMemo(() => {
+    if (plans.length === 0) return { data: [], totalBudget: 0 };
+    const total = plans.reduce((s, p) => s + p.budget, 0);
+    return {
+      data: plans.map((p, i) => ({
+        name: p.name,
+        value: p.budget,
+        pct: total > 0 ? ((p.budget / total) * 100).toFixed(1) : "0",
+        planId: p.id,
+        color: COLORS[i % COLORS.length],
+      })),
+      totalBudget: total,
+    };
   }, [plans]);
 
   if (plans.length === 0) return null;
-
-  const totalBudget = plans.reduce((s, p) => s + p.budget, 0);
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">

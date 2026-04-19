@@ -3,16 +3,8 @@
 import { useEffect, useState } from "react";
 import { getBotStatus, BotStatus } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { GOAL_CONFIG } from "@/lib/constants";
 import { getTimezone } from "@/lib/utils";
-
-const GOAL_LABELS: Record<string, string> = {
-  maximize_returns: "Maximize Returns",
-  steady_income: "Steady Income",
-  capital_preservation: "Capital Preservation",
-  beat_sp500: "Beat S&P 500",
-  swing_trading: "Swing Trading",
-  passive_index: "Passive Index",
-};
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -96,7 +88,7 @@ export default function BotStatusBanner() {
         {/* Strategy */}
         <div className="text-xs text-secondary">
           <span className="text-muted">Goal:</span>{" "}
-          {GOAL_LABELS[status.trading_goal] || status.trading_goal}
+          {GOAL_CONFIG[status.trading_goal as keyof typeof GOAL_CONFIG]?.label || status.trading_goal}
           <span className="mx-1 text-zinc-700">·</span>
           <span className="text-muted">Risk:</span>{" "}
           <span className="capitalize">{status.risk_profile}</span>

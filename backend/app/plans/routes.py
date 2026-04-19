@@ -3,8 +3,10 @@
 import logging
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
@@ -23,6 +25,9 @@ _broker = AlpacaBroker()
 
 # Advisory lock key for budget validation (arbitrary constant)
 _BUDGET_LOCK_KEY = 9001
+
+# 096-fix: Rate limiter for trade-triggering endpoints (real money)
+_limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -54,7 +59,7 @@ class PlanUpdate(BaseModel):
 def _total_budgets(db: Session, exclude_plan_id: int | None = None) -> float:
     """Sum of all plan budgets, optionally excluding one plan (for updates)."""
     q = db.query(func.coalesce(func.sum(Plan.budget), 0.0))
-    if exclude_plan_id:
+    if exclude_plan_id is not None:
         q = q.filter(Plan.id != exclude_plan_id)
     return q.scalar()
 
@@ -255,18 +260,32 @@ async def update_plan(
     if not plan:
         raise HTTPException(404, "Plan not found")
 
-    updates = body.model_dump(exclude_none=True)
+    # 097-fix: Use exclude_unset so explicitly-sent null values (e.g.,
+    # target_amount: null) are applied, while omitted fields are skipped.
+    updates = body.model_dump(exclude_unset=True)
 
     # Budget validation if changing budget
     if "budget" in updates:
         new_budget = updates["budget"]
+        # 092-fix: Prevent reducing budget below currently invested amount
+        invested = plan.budget - plan.virtual_cash
+        if new_budget < invested:
+            raise HTTPException(
+                400,
+                f"Cannot reduce budget below invested amount (${invested:,.2f}). "
+                "Sell positions first or set a higher budget.",
+            )
         await _validate_budget(db, new_budget, exclude_plan_id=plan_id)
         # Adjust virtual cash proportionally
         budget_diff = new_budget - plan.budget
         plan.virtual_cash = max(0, plan.virtual_cash + budget_diff)
 
+    # 096-fix: Guard against future mass-assignment if sensitive fields
+    # are accidentally added to PlanUpdate.
+    _IMMUTABLE_FIELDS = {"id", "created_at", "virtual_cash"}
     for key, value in updates.items():
-        setattr(plan, key, value)
+        if key not in _IMMUTABLE_FIELDS:
+            setattr(plan, key, value)
 
     db.commit()
     db.refresh(plan)
@@ -318,7 +337,9 @@ def delete_plan(
 
 
 @router.post("/{plan_id}/run")
+@_limiter.limit("2/minute")
 async def run_plan(
+    request: Request,
     plan_id: int,
     db: Session = Depends(get_db),
     user: dict = Depends(require_auth),
@@ -330,63 +351,26 @@ async def run_plan(
     if not plan.is_active:
         raise HTTPException(400, "Plan is paused")
 
-    from app.plans.executor import run_plan_cycle
-    from app.brokers.alpaca import AlpacaBroker
-    from app import market_data, guardrails
-    from app.technical_analysis import get_indicators, format_indicators_csv
-    from app.sector_rotation import get_sector_signals, format_sector_csv
-    from app.earnings.client import format_earnings_csv
-    import asyncio
+    # 089-fix: Use shared fetch_market_data to include virtual-position tickers.
+    # Previously this route only fetched quotes for Alpaca account positions,
+    # missing tickers held only in the plan's virtual positions.
+    from app.plans.executor import fetch_market_data, run_plan_cycle
 
-    broker = AlpacaBroker()
-    positions, balance = await asyncio.gather(
-        broker.get_positions("default"),
-        broker.get_account_balance("default"),
-    )
-    held_tickers = [p.get("instrument", {}).get("symbol", "") for p in positions]
-    quotes_task = market_data.get_quotes(held_tickers) if held_tickers else asyncio.sleep(0, result=[])
-    news_task = market_data.get_news(held_tickers if held_tickers else None)
-    indicators_task = get_indicators(held_tickers) if held_tickers else asyncio.sleep(0, result={})
-    sector_task = get_sector_signals()
-    quotes, news, indicators, sectors = await asyncio.gather(
-        quotes_task, news_task, indicators_task, sector_task
+    positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv = (
+        await fetch_market_data(db, [plan_id])
     )
 
     results = await run_plan_cycle(
         db, plan, positions, balance, quotes, news,
-        format_indicators_csv(indicators),
-        format_sector_csv(sectors),
-        format_earnings_csv(db, held_tickers) if held_tickers else "",
+        technicals_csv, sector_csv, earnings_csv,
     )
     return results[0] if results else {"action": "hold", "ticker": "", "quantity": 0}
-
-
-@router.get("/{plan_id}/trades")
-def get_plan_trades(
-    plan_id: int,
-    limit: int = 100,
-    db: Session = Depends(get_db),
-    user: dict = Depends(require_auth),
-):
-    """Trade history for a specific plan."""
-    plan = db.query(Plan).filter(Plan.id == plan_id).first()
-    if not plan:
-        raise HTTPException(404, "Plan not found")
-
-    trades = (
-        db.query(PlanTrade)
-        .filter(PlanTrade.plan_id == plan_id)
-        .order_by(PlanTrade.timestamp.desc())
-        .limit(limit)
-        .all()
-    )
-    return [t.to_dict() for t in trades]
 
 
 @router.get("/{plan_id}/snapshots")
 def get_plan_snapshots(
     plan_id: int,
-    days: int = 90,
+    days: int = Query(90, ge=1, le=365),
     db: Session = Depends(get_db),
     user: dict = Depends(require_auth),
 ):
@@ -414,64 +398,6 @@ def get_plan_snapshots(
         }
         for s in snapshots
     ]
-
-
-@router.get("/{plan_id}/metrics")
-def get_plan_metrics(
-    plan_id: int,
-    days: int = 90,
-    db: Session = Depends(get_db),
-    user: dict = Depends(require_auth),
-):
-    """Computed analytics for a plan: total return, best/worst day, trading days."""
-    plan = db.query(Plan).filter(Plan.id == plan_id).first()
-    if not plan:
-        raise HTTPException(404, "Plan not found")
-
-    since = date.today() - timedelta(days=days)
-    snapshots = (
-        db.query(PlanSnapshot)
-        .filter(PlanSnapshot.plan_id == plan_id, PlanSnapshot.date >= since)
-        .order_by(PlanSnapshot.date.asc())
-        .all()
-    )
-
-    num_trading_days = len(snapshots)
-
-    if num_trading_days == 0:
-        return {
-            "total_return_pct": 0,
-            "best_day_pct": 0,
-            "worst_day_pct": 0,
-            "num_trading_days": 0,
-        }
-
-    # Total return from first snapshot to last
-    first = snapshots[0]
-    last = snapshots[-1]
-    total_return_pct = (
-        ((last.total_value - first.budget) / first.budget * 100)
-        if first.budget > 0
-        else 0
-    )
-
-    # Daily returns (day-over-day pnl_pct change)
-    daily_changes: list[float] = []
-    for i in range(1, len(snapshots)):
-        prev_val = snapshots[i - 1].total_value
-        curr_val = snapshots[i].total_value
-        if prev_val > 0:
-            daily_changes.append((curr_val - prev_val) / prev_val * 100)
-
-    best_day_pct = max(daily_changes) if daily_changes else 0
-    worst_day_pct = min(daily_changes) if daily_changes else 0
-
-    return {
-        "total_return_pct": round(total_return_pct, 2),
-        "best_day_pct": round(best_day_pct, 2),
-        "worst_day_pct": round(worst_day_pct, 2),
-        "num_trading_days": num_trading_days,
-    }
 
 
 @router.get("/{plan_id}/export")

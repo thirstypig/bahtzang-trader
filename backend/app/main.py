@@ -1,6 +1,7 @@
 """FastAPI application — route registration and middleware."""
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
@@ -35,7 +36,15 @@ async def lifespan(app: FastAPI):
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
-app = FastAPI(title="bahtzang-trader API", version="0.1.0", lifespan=lifespan)
+# 096-fix: Disable Swagger/OpenAPI docs in production to reduce attack surface
+_is_prod = os.getenv("RAILWAY_ENVIRONMENT") == "production"
+app = FastAPI(
+    title="bahtzang-trader API",
+    version="0.1.0",
+    lifespan=lifespan,
+    docs_url=None if _is_prod else "/docs",
+    redoc_url=None,
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -64,6 +73,8 @@ async def add_cache_headers(request: Request, call_next):
             response.headers["Cache-Control"] = "private, max-age=3600"
         elif path.startswith("/backtest"):
             response.headers["Cache-Control"] = "private, max-age=300"
+        elif path.startswith("/plans") and "/run" not in path and "/export" not in path:
+            response.headers["Cache-Control"] = "private, max-age=60"
         elif path == "/guardrails/presets":
             response.headers["Cache-Control"] = "private, max-age=86400"
     return response

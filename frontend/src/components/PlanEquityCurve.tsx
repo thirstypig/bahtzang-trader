@@ -71,7 +71,6 @@ export default function PlanEquityCurve({ planId }: Props) {
   const data = snapshots.map((s) => ({
     date: s.date.slice(5), // "MM-DD"
     total_value: s.total_value,
-    return_pct: +((s.total_value / firstValue - 1) * 100).toFixed(2),
   }));
 
   return (
@@ -82,7 +81,7 @@ export default function PlanEquityCurve({ planId }: Props) {
       <ResponsiveContainer width="100%" height={280}>
         <AreaChart data={data}>
           <defs>
-            <linearGradient id="planEquityGrad" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`planEquityGrad-${planId}`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
               <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
             </linearGradient>
@@ -116,7 +115,7 @@ export default function PlanEquityCurve({ planId }: Props) {
             name="Total Value"
             stroke="#10b981"
             strokeWidth={2}
-            fill="url(#planEquityGrad)"
+            fill={`url(#planEquityGrad-${planId})`}
             dot={false}
           />
         </AreaChart>
