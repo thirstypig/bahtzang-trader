@@ -38,12 +38,38 @@ const TESTS = {
     ],
   },
   "Frontend Unit Tests": {
-    framework: "Vitest + Testing Library (planned)",
+    framework: "Vitest + Testing Library",
     command: "npm run test:frontend",
     frequency: "Every commit / pre-push",
     description:
-      "Component and utility tests. Not yet implemented — next priority after backend coverage.",
-    suites: [],
+      "Component rendering, API client, and utility function tests. Runs in jsdom with mocked fetch and Recharts.",
+    suites: [
+      {
+        file: "src/lib/utils.test.ts",
+        tests: 6,
+        covers: "formatCurrency (positive/negative/zero/large/rounding), formatDateTime, formatDate",
+      },
+      {
+        file: "src/lib/constants.test.ts",
+        tests: 3,
+        covers: "GOAL_CONFIG completeness, unique labels, unique icons",
+      },
+      {
+        file: "src/lib/api.test.ts",
+        tests: 10,
+        covers: "Auth headers, error handling (detail/structured/fallback), CRUD operations, runPlan timeout",
+      },
+      {
+        file: "src/components/PlanAllocationChart.test.tsx",
+        tests: 5,
+        covers: "Empty state, chart rendering, total budget, percentages, legend click handler",
+      },
+      {
+        file: "src/components/PlanPositions.test.tsx",
+        tests: 7,
+        covers: "Loading state, empty state, positions table, error state, positive/negative P&L rendering",
+      },
+    ],
   },
   "E2E Browser Tests": {
     framework: "Playwright (planned)",
@@ -56,8 +82,9 @@ const TESTS = {
 };
 
 const COMMANDS = [
-  { cmd: "npm test", desc: "Run all tests (currently backend only)" },
+  { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
   { cmd: "npm run test:backend", desc: "All backend tests (unit + integration)" },
+  { cmd: "npm run test:frontend", desc: "All frontend tests (Vitest)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
   { cmd: "npm run test:backend:cov", desc: "Backend tests with coverage report" },
@@ -101,8 +128,8 @@ export default function TestingPage() {
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs text-muted">Run Time</p>
-          <p className="mt-1 text-2xl font-bold text-primary">~1.4s</p>
-          <p className="mt-0.5 text-[10px] text-muted">backend suite</p>
+          <p className="mt-1 text-2xl font-bold text-primary">~3s</p>
+          <p className="mt-0.5 text-[10px] text-muted">full suite</p>
         </div>
       </div>
 

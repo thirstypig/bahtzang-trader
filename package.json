@@ -9,11 +9,12 @@
     "install:frontend": "cd frontend && npm install",
     "install:backend": "cd backend && pip install -r requirements.txt",
     "build:frontend": "cd frontend && npm run build",
-    "test": "npm run test:backend",
+    "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "cd backend && python -m pytest tests/ -v --tb=short",
     "test:backend:cov": "cd backend && python -m pytest tests/ --cov=app --cov-report=term-missing",
     "test:unit": "cd backend && python -m pytest tests/ -m unit -v",
-    "test:integration": "cd backend && python -m pytest tests/ -m integration -v"
+    "test:integration": "cd backend && python -m pytest tests/ -m integration -v",
+    "test:frontend": "cd frontend && npx vitest run"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
