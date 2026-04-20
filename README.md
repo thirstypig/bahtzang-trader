@@ -9,7 +9,7 @@ AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. 
 ```
 ┌─────────────────────────────────┐
 │  Next.js 14 Frontend (Railway)  │  www.bahtzang.com
-│  Dashboard · Trades · Analytics  │  15 pages + login
+│  Dashboard · Trades · Analytics  │  18 pages + login
 │  Backtest · Earnings · Settings │
 └──────────────┬──────────────────┘
                │ REST API + Bearer JWT
@@ -43,7 +43,7 @@ AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. 
 bahtzang-trader/
 ├── frontend/                # Next.js 14 (App Router)
 │   └── src/
-│       ├── app/             # 15 pages (dashboard, trades, analytics, backtest, etc.)
+│       ├── app/             # 18 pages (dashboard, trades, plans, analytics, backtest, etc.)
 │       ├── components/      # Reusable UI (Sidebar, ThemeToggle, charts, etc.)
 │       ├── lib/             # API client, auth, theme, sidebar, Supabase, types
 │       └── data/            # Static data (roadmap, changelog, concepts)
@@ -65,7 +65,7 @@ bahtzang-trader/
 │   └── data/
 │       └── todo-tasks.json  # Admin todo tasks (runtime, file-based)
 ├── docs/plans/              # Architecture roadmap + feature plans
-├── todos/                   # Code review findings (59 items)
+├── todos/                   # Code review findings (100 items, most resolved)
 ├── CLAUDE.md                # Project conventions for Claude Code
 └── package.json             # Root scripts (npm run dev)
 ```
@@ -88,6 +88,10 @@ bahtzang-trader/
 | `/status` | Live service health checks |
 | `/about` | Architecture diagram, tech stack, design philosophy |
 | `/docs` | Documentation links (GitHub, Swagger, Supabase, Railway) |
+| `/plans` | Investment plans — pie-style portfolio slices with independent budgets |
+| `/plans/[id]` | Plan detail — positions, equity curve, trade history, run/export |
+| `/testing` | Test inventory, execution cadence, 79 tests (48 backend + 31 frontend) |
+| `/concepts` | Feature concepts — tabbed: Strategic/SEO/Integrations/UX |
 | `/login` | Google Sign-In via Supabase |
 
 ## Getting Started
@@ -131,7 +135,18 @@ npm run dev:backend      # http://localhost:4060
 ## API Documentation
 
 - **Local:** [http://localhost:4060/docs](http://localhost:4060/docs)
-- **Production:** [https://bahtzang-backend-production.up.railway.app/docs](https://bahtzang-backend-production.up.railway.app/docs)
+- Production Swagger is disabled for security (096-fix)
+
+## Testing
+
+79 tests (48 backend + 31 frontend), all passing in ~3s.
+
+```bash
+npm test                   # Run all tests (backend + frontend)
+npm run test:backend       # pytest (42 unit + 6 integration)
+npm run test:frontend      # Vitest + Testing Library (31 tests)
+npm run test:backend:cov   # Backend with coverage report
+```
 
 ## Trading Pipeline
 

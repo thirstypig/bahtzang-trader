@@ -91,8 +91,8 @@ export const roadmapItems: RoadmapItem[] = [
   },
   {
     id: "admin-pages",
-    title: "Admin system (13 pages)",
-    description: "Todo CRUD API, Concepts tabs, cross-linking, AdminNav, changelog with security badges",
+    title: "Admin system (18 pages)",
+    description: "Todo CRUD, Concepts tabs, cross-linking, changelog, testing inventory, 3 trading pages",
     status: "done",
     priority: "medium",
     phase: "Phase 5",
@@ -112,6 +112,22 @@ export const roadmapItems: RoadmapItem[] = [
     status: "done",
     priority: "high",
     phase: "Phase F",
+  },
+  {
+    id: "investment-plans",
+    title: "Investment Plans (pie-style portfolio slices)",
+    description: "Virtual sub-accounts with independent budgets, goals, risk profiles. 5-phase build: data model, executor, positions, snapshots, charts. 2 code review rounds (40 findings resolved).",
+    status: "done",
+    priority: "high",
+    phase: "Phase E",
+  },
+  {
+    id: "testing-infra",
+    title: "Test infrastructure (79 tests)",
+    description: "pytest + Vitest from zero. 48 backend tests (models, executor, routes, snapshots, earnings) + 31 frontend tests (utils, API client, components). Admin /testing page. Slash commands: /test-run, /test-new, /test-audit.",
+    status: "done",
+    priority: "high",
+    phase: "Phase E",
   },
   // Planned
   {

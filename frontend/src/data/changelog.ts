@@ -10,6 +10,46 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.14.0",
+    date: "2026-04-19",
+    roadmapLink: "/roadmap#testing-infra",
+    changes: [
+      { type: "feat", title: "79 automated tests: 48 backend (pytest) + 31 frontend (Vitest)" },
+      { type: "feat", title: "Admin /testing page with test inventory, cadence, and commands" },
+      { type: "feat", title: "Slash commands: /test-run, /test-new, /test-audit, /doc" },
+      { type: "feat", title: "SQLite in-memory test fixtures with StaticPool for fast isolated tests" },
+      { type: "feat", title: "Component tests for PlanAllocationChart, PlanPositions (Testing Library)" },
+    ],
+  },
+  {
+    version: "0.13.0",
+    date: "2026-04-18",
+    changes: [
+      { type: "fix", title: "12 code review findings resolved (3 P1, 6 P2, 3 P3) from 7-agent analysis" },
+      { type: "fix", title: "P1: run_plan missing virtual-position tickers — shared fetch_market_data()" },
+      { type: "fix", title: "P1: Frontend double-fetch — PlanPositions/PlanEquityCurve stable tree position" },
+      { type: "fix", title: "P1: runPlan timeout 15s → 45s for Claude API calls" },
+      { type: "security", title: "setattr guard, query bounds, error leak fix, plan run rate limit" },
+      { type: "perf", title: "Quote lookup O(1) dict, cache headers for /plans, 76 LOC dead code removed" },
+      { type: "refactor", title: "GOAL_LABELS consolidated to single source of truth (lib/constants.ts)" },
+    ],
+  },
+  {
+    version: "0.12.0",
+    date: "2026-04-16",
+    roadmapLink: "/roadmap#investment-plans",
+    changes: [
+      { type: "feat", title: "Investment Plans — pie-style portfolio slices with independent budgets" },
+      { type: "feat", title: "Per-plan trading executor with virtual cash + asyncio locks" },
+      { type: "feat", title: "Plan positions, equity curve, donut allocation chart, CSV export" },
+      { type: "feat", title: "Budget validation against real Alpaca equity (pg_advisory_xact_lock)" },
+      { type: "feat", title: "Fractional share auto-sizing + cross-plan sell theft prevention" },
+      { type: "feat", title: "Daily operations guide at /docs" },
+      { type: "perf", title: "Recharts lazy-loaded (-43% bundle), /trades/summary endpoint, HTTP caching" },
+      { type: "feat", title: "Error boundary, custom 404, loading states, accessibility (WCAG AA)" },
+    ],
+  },
+  {
     version: "0.11.0",
     date: "2026-04-13",
     roadmapLink: "/roadmap#risk-management",
