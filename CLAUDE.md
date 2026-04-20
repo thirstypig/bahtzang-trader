@@ -27,6 +27,10 @@ npm run dev:frontend     # Next.js on localhost:3060
 npm run dev:backend      # FastAPI on localhost:4060
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
+npm test                 # Run all tests (backend + frontend)
+npm run test:backend     # pytest (48 tests, ~2.5s)
+npm run test:frontend    # Vitest (31 tests, ~1.5s)
+npm run test:backend:cov # Backend with coverage report
 ```
 
 ### Environment Variables
@@ -46,7 +50,7 @@ npm run install:backend  # pip install in /backend
 - Chart components (Recharts) lazy-loaded via `dynamic(() => import(...), { ssr: false })`
 - Global focus-visible ring, prefers-reduced-motion, skip-to-content link
 - Error boundary (`error.tsx`), custom 404 (`not-found.tsx`), loading state (`loading.tsx`)
-- 15s fetch timeout via `AbortSignal.timeout()` on all API calls
+- 15s fetch timeout via `AbortSignal.timeout()` on most API calls (45s for `runPlan` — Claude API is slow)
 
 ### Backend (`/backend`)
 - Python FastAPI
@@ -72,6 +76,17 @@ Every decision logged — even holds and blocked trades
 Alpaca SDK calls wrapped in asyncio.to_thread() to avoid blocking the event loop
 Earnings data: position sizing reduced 50% at 0-1 days, 70% at 2 days before earnings
 Pipeline types: Position, Quote, NewsItem, TradeDecision, CycleResult (pipeline_types.py)
+```
+
+### Investment Plans (plans/)
+```
+Virtual sub-accounts: each Plan gets its own budget, virtual_cash, trading goal, and risk profile.
+All plans share one Alpaca account — budget validation ensures SUM(budgets) <= real equity.
+Per-plan asyncio locks prevent concurrent runs from double-spending virtual cash.
+Budget validation uses pg_advisory_xact_lock for cross-process serialization.
+Sell validation prevents cross-plan position theft (checks virtual positions, not Alpaca).
+Per-trade atomic commits (063-fix) — each trade committed immediately after Alpaca order.
+fetch_market_data() shared between scheduled runs and manual "Run Now" (089-fix).
 ```
 
 ### Frontend Auth Guard
@@ -107,6 +122,11 @@ backend/
       models.py       # EarningsEvent table (Finnhub cache)
       client.py       # Finnhub API + DB cache + format_csv() + days_until_earnings()
       routes.py       # GET /earnings, POST /earnings/refresh
+    plans/            # Feature module: investment plans (pie-style portfolio slices)
+      models.py       # Plan, PlanTrade, PlanSnapshot tables (FK RESTRICT/CASCADE)
+      executor.py     # Per-plan trading cycle with asyncio locks, virtual cash, fractional shares
+      routes.py       # CRUD + run + export (advisory lock budget validation, rate-limited)
+      snapshots.py    # Daily snapshot capture for equity curves
     analytics.py      # Portfolio metrics: Sharpe, Sortino, drawdown, win rate, profit factor
     pipeline_types.py # TypedDict definitions for pipeline data (Position, Quote, TradeDecision, etc.)
     claude_brain.py   # AsyncAnthropic → Claude Sonnet → CSV prompt (30s timeout) + earnings context
@@ -125,6 +145,11 @@ backend/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
   guardrails.json     # Default config (runtime config is in PostgreSQL)
   railway.toml        # Railway deploy config
+  pytest.ini          # Test config (markers: unit, integration, e2e)
+  tests/              # Test suites (48 tests)
+    conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
+    plans/            # Plan model, executor, route, snapshot tests
+    earnings/         # Earnings route integration tests
 
 frontend/
   src/
@@ -142,6 +167,8 @@ frontend/
       analytics/      # /analytics
       backtest/       # /backtest (configure + run backtests, view results)
       earnings/       # /earnings (upcoming earnings calendar, color-coded proximity)
+      plans/          # /plans (investment plan list + /plans/[id] detail + /plans/new)
+      testing/        # /testing (test inventory, execution cadence, 79 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       error.tsx       # Error boundary with retry
@@ -154,14 +181,15 @@ frontend/
       CrossLink.tsx   # Reusable cross-link badge (pill-shaped, color-coded by type)
       KillSwitchButton.tsx # Kill switch with activate + deactivate
     lib/
-      api.ts          # fetchAPI with Bearer token, 15s timeout, admin todo CRUD functions
+      api.ts          # fetchAPI with Bearer token, 15s timeout (45s for runPlan), admin todo CRUD
+      constants.ts    # Shared constants (GOAL_CONFIG — single source of truth for trading goals)
       auth.tsx        # AuthProvider, useAuth hook
       theme.tsx       # ThemeProvider, useTheme hook (light/dark, localStorage)
       sidebar.tsx     # SidebarProvider, useSidebar hook (expanded/collapsed state)
       supabase.ts     # Lazy Supabase client singleton
       types.ts        # TypeScript interfaces
       utils.ts        # formatCurrency, formatDateTime
-      useHashScroll.ts # Scroll-to-anchor hook for cross-page linking
+      useHashScroll.ts # (removed — replaced by HashScroll.tsx component)
       useApiQuery.ts  # Reusable data-fetching hook (loading + error state)
     data/             # Static data (roadmap, changelog, concepts)
   railway.toml        # Railway deploy config (HOSTNAME=0.0.0.0)
@@ -194,6 +222,16 @@ frontend/
 - Kill switch: activate via POST /killswitch, deactivate via POST /killswitch/deactivate
 - Rate limiting: slowapi (2/min on /run, 60/min global default)
 - Trade logging: every cycle logs to `trades` table regardless of outcome
+
+### Testing
+- Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
+- Frontend: Vitest + @testing-library/react + jsdom
+- 79 total tests (48 backend + 31 frontend), ~3s full suite
+- Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
+- Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
+- Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)
+- Recharts mocked in component tests (jsdom lacks SVG rendering)
+- Slash commands: `/test-run`, `/test-new <feature>`, `/test-audit`
 
 ### Feature Module Isolation
 New features go in their own Python packages under `backend/app/`:
