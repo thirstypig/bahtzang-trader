@@ -35,6 +35,11 @@ const TESTS = {
         tests: 18,
         covers: "CRUD lifecycle, input validation (422), 404 handling, CSV export, target field nulling, plan snapshots endpoint",
       },
+      {
+        file: "tests/earnings/test_routes.py",
+        tests: 6,
+        covers: "Earnings calendar GET, symbol lookup, day bounds validation, refresh error sanitization (096-fix)",
+      },
     ],
   },
   "Frontend Unit Tests": {
