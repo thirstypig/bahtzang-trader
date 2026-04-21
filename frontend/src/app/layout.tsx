@@ -33,6 +33,10 @@ export default function RootLayout({
         <Script id="theme-init" strategy="beforeInteractive">{
           `try{var t=localStorage.getItem("theme");if(t==="light")document.documentElement.classList.remove("dark");else document.documentElement.classList.add("dark")}catch(e){}`
         }</Script>
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-P1W4024MVE" strategy="afterInteractive" />
+        <Script id="gtag-init" strategy="afterInteractive">{
+          `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-P1W4024MVE');`
+        }</Script>
         <Providers>{children}</Providers>
       </body>
     </html>
