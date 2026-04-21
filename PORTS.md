@@ -2,6 +2,6 @@
 
 | Service    | Port     |
 |------------|----------|
-| Frontend   | 3060     |
-| API        | 4060     |
+| Frontend   | 3070     |
+| API        | 4070     |
 | PostgreSQL | Supabase |

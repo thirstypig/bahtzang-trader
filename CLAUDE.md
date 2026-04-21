@@ -17,14 +17,14 @@ Domain:   www.bahtzang.com (Squarespace DNS → Railway CNAME)
 ### Ports (from master-ports.md)
 | Service  | Port |
 |----------|------|
-| Frontend | 3060 |
-| Backend  | 4060 |
+| Frontend | 3070 |
+| Backend  | 4070 |
 
 ### Commands
 ```bash
 npm run dev              # Run both frontend + backend concurrently
-npm run dev:frontend     # Next.js on localhost:3060
-npm run dev:backend      # FastAPI on localhost:4060
+npm run dev:frontend     # Next.js on localhost:3070
+npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
