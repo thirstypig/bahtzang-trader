@@ -108,7 +108,7 @@ def export_trades(
             csv_safe(t.ticker),
             t.quantity,
             f"{t.price:.2f}" if t.price else "",
-            f"{(t.price or 0) * t.quantity:.2f}",
+            f"{float(t.price or 0) * t.quantity:.2f}",
             f"{(t.confidence or 0):.0%}",
             csv_safe((t.claude_reasoning or "").replace("\n", " ")),
         ])
