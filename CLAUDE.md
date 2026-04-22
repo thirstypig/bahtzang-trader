@@ -168,7 +168,7 @@ frontend/
       backtest/       # /backtest (configure + run backtests, view results)
       earnings/       # /earnings (upcoming earnings calendar, color-coded proximity)
       plans/          # /plans (investment plan list + /plans/[id] detail + /plans/new)
-      testing/        # /testing (test inventory, execution cadence, 79 tests)
+      testing/        # /testing (test inventory, execution cadence, 297 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       error.tsx       # Error boundary with retry
@@ -226,12 +226,14 @@ frontend/
 ### Testing
 - Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
 - Frontend: Vitest + @testing-library/react + jsdom
-- 79 total tests (48 backend + 31 frontend), ~3s full suite
+- 79 total tests (229 backend + 68 frontend), ~3s full suite
 - Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
 - Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
 - Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)
 - Recharts mocked in component tests (jsdom lacks SVG rendering)
-- Slash commands: `/test-run`, `/test-new <feature>`, `/test-audit`
+- Pre-commit hook runs tsc + pytest + vitest on every commit (~5s)
+- GitHub Actions CI on push/PR to main
+- Slash commands: `/test-run`, `/test-new <feature>`, `/test-audit`, `/doc`
 
 ### Feature Module Isolation
 New features go in their own Python packages under `backend/app/`:

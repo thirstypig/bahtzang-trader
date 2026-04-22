@@ -90,7 +90,7 @@ bahtzang-trader/
 | `/docs` | Documentation links (GitHub, Swagger, Supabase, Railway) |
 | `/plans` | Investment plans — pie-style portfolio slices with independent budgets |
 | `/plans/[id]` | Plan detail — positions, equity curve, trade history, run/export |
-| `/testing` | Test inventory, execution cadence, 79 tests (48 backend + 31 frontend) |
+| `/testing` | Test inventory, execution cadence, 297 tests (229 backend + 68 frontend) |
 | `/concepts` | Feature concepts — tabbed: Strategic/SEO/Integrations/UX |
 | `/login` | Google Sign-In via Supabase |
 
@@ -139,7 +139,7 @@ npm run dev:backend      # http://localhost:4060
 
 ## Testing
 
-79 tests (48 backend + 31 frontend), all passing in ~3s.
+297 tests (229 backend + 68 frontend), all passing in ~5s. Pre-commit hook + GitHub Actions CI.
 
 ```bash
 npm test                   # Run all tests (backend + frontend)
