@@ -1,5 +1,11 @@
 # CLAUDE.md — bahtzang-trader
 
+## Current status
+
+<!-- now-tldr -->
+AI trading bot that uses Claude Sonnet to make buy/sell/hold decisions, with a Next.js dashboard and Alpaca brokerage integration. Just shipped a 7-agent code review (100 findings resolved), unified the trade data model, and built a 297-test suite with pre-commit hooks and GitHub Actions CI — all AI-assisted. Currently paper trading on Alpaca while waiting for live account approval; next step is 30+ paper trades to validate the pipeline before flipping to real money.
+<!-- /now-tldr -->
+
 ## Project Overview
 AI-powered trading bot with a Next.js dashboard and FastAPI backend. Claude Sonnet analyzes portfolio, market data, and news to make buy/sell/hold decisions. Guardrails enforce risk limits before execution.
 
