@@ -188,8 +188,11 @@ def make_plan(db_session, **overrides):
 
 
 def make_trade(db_session, plan_id, **overrides):
-    """Insert a PlanTrade row with sensible defaults."""
-    from app.plans.models import PlanTrade
+    """Insert a Trade row for a plan with sensible defaults.
+
+    067-fix: Uses unified Trade table with plan_id instead of PlanTrade.
+    """
+    from app.models import Trade
 
     defaults = {
         "plan_id": plan_id,
@@ -203,7 +206,7 @@ def make_trade(db_session, plan_id, **overrides):
         "virtual_cash_after": 4850.0,
     }
     defaults.update(overrides)
-    trade = PlanTrade(**defaults)
+    trade = Trade(**defaults)
     db_session.add(trade)
     db_session.commit()
     db_session.refresh(trade)

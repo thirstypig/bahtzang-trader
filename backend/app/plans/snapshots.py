@@ -47,14 +47,15 @@ async def take_plan_snapshots(db: Session) -> int:
         positions = all_positions.get(plan.id, {})
 
         # Compute invested value from virtual positions x current prices
+        # 071-fix: Convert to float for arithmetic with Decimal plan fields
         invested_value = sum(
             qty * price_map.get(ticker, 0)
             for ticker, qty in positions.items()
         )
 
-        total_value = invested_value + plan.virtual_cash
-        pnl = total_value - plan.budget
-        pnl_pct = (pnl / plan.budget * 100) if plan.budget > 0 else 0
+        total_value = invested_value + float(plan.virtual_cash)
+        pnl = total_value - float(plan.budget)
+        pnl_pct = (pnl / float(plan.budget) * 100) if plan.budget > 0 else 0
 
         # Upsert: update existing snapshot for today or create new one
         existing = (

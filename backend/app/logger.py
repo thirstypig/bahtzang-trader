@@ -7,7 +7,7 @@ def log_trade(
     db: Session,
     ticker: str,
     action: str,
-    quantity: int,
+    quantity: float,
     price: float | None,
     claude_reasoning: str | None,
     confidence: float | None,

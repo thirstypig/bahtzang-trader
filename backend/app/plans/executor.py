@@ -13,7 +13,8 @@ from app.circuit_breaker import check_circuit_breakers, RED
 from app.technical_analysis import get_indicators, format_indicators_csv
 from app.sector_rotation import get_sector_signals, format_sector_csv
 from app.brokers.alpaca import AlpacaBroker
-from app.plans.models import Plan, PlanTrade
+from app.models import Trade
+from app.plans.models import Plan
 
 logger = logging.getLogger(__name__)
 
@@ -31,36 +32,41 @@ def _get_plan_lock(plan_id: int) -> asyncio.Lock:
 
 
 def compute_virtual_positions(db: Session, plan_id: int) -> dict[str, float]:
-    """Compute net shares per ticker from executed PlanTrades."""
+    """Compute net shares per ticker from executed trades for a plan."""
     rows = (
         db.query(
-            PlanTrade.ticker,
+            Trade.ticker,
             func.sum(
                 case(
-                    (PlanTrade.action == "buy", PlanTrade.quantity),
-                    (PlanTrade.action == "sell", -PlanTrade.quantity),
+                    (Trade.action == "buy", Trade.quantity),
+                    (Trade.action == "sell", -Trade.quantity),
                     else_=0,
                 )
             ).label("net_qty"),
         )
-        .filter(PlanTrade.plan_id == plan_id, PlanTrade.executed.is_(True))
-        .group_by(PlanTrade.ticker)
+        .filter(Trade.plan_id == plan_id, Trade.executed.is_(True))
+        .group_by(Trade.ticker)
         .all()
     )
     return {row.ticker: row.net_qty for row in rows if row.net_qty > 0}
 
 
 def _plan_to_guardrails_config(plan: Plan) -> dict:
-    """Convert a Plan to a guardrails config dict for Claude."""
+    """Convert a Plan to a guardrails config dict for Claude.
+
+    071-fix: Convert Decimal fields to float at the boundary — guardrails
+    and Claude prompt use float arithmetic throughout.
+    """
     from app.guardrails import apply_risk_preset
-    config = apply_risk_preset(plan.risk_profile, plan.budget)
+    budget = float(plan.budget)
+    config = apply_risk_preset(plan.risk_profile, budget)
     config["trading_goal"] = plan.trading_goal
     config["trading_frequency"] = plan.trading_frequency
-    config["max_total_invested"] = plan.budget
-    config["max_single_trade_size"] = min(config["max_single_trade_size"], plan.budget * 0.5)
+    config["max_total_invested"] = budget
+    config["max_single_trade_size"] = min(config["max_single_trade_size"], budget * 0.5)
     config["kill_switch"] = False
     if plan.target_amount:
-        config["target_amount"] = plan.target_amount
+        config["target_amount"] = float(plan.target_amount)
     if plan.target_date:
         config["target_date"] = plan.target_date
     return config
@@ -253,7 +259,7 @@ async def _execute_plan_cycle(
         # 063-fix: Log trade + update plan cash + commit atomically per decision,
         # immediately after the Alpaca order. This closes the cash-duplication
         # window where a later commit failure would leave a real order unlogged.
-        plan_trade = PlanTrade(
+        plan_trade = Trade(
             plan_id=plan.id,
             ticker=decision.get("ticker", ""),
             action=decision["action"],

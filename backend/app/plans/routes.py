@@ -15,8 +15,9 @@ from app.brokers.alpaca import AlpacaBroker
 from app.auth import require_auth
 from app.database import get_db
 from app.guardrails import VALID_GOALS
+from app.models import Trade
 from app.plans.executor import compute_virtual_positions
-from app.plans.models import Plan, PlanSnapshot, PlanTrade
+from app.plans.models import Plan, PlanSnapshot
 
 logger = logging.getLogger(__name__)
 
@@ -112,9 +113,9 @@ def list_plans(
 
     # 065-fix: Single GROUP BY query instead of N+1
     counts = dict(
-        db.query(PlanTrade.plan_id, func.count(PlanTrade.id))
-        .filter(PlanTrade.executed.is_(True))
-        .group_by(PlanTrade.plan_id)
+        db.query(Trade.plan_id, func.count(Trade.id))
+        .filter(Trade.executed.is_(True))
+        .group_by(Trade.plan_id)
         .all()
     )
 
@@ -169,9 +170,9 @@ def get_plan(
 
     # Recent trades
     trades = (
-        db.query(PlanTrade)
-        .filter(PlanTrade.plan_id == plan_id)
-        .order_by(PlanTrade.timestamp.desc())
+        db.query(Trade)
+        .filter(Trade.plan_id == plan_id)
+        .order_by(Trade.timestamp.desc())
         .limit(50)
         .all()
     )
@@ -197,18 +198,18 @@ async def get_plan_positions(
     # 065-fix: Single aggregated query grouped by ticker instead of N+1
     rows = (
         db.query(
-            PlanTrade.ticker,
-            func.sum(PlanTrade.quantity * PlanTrade.price).label("total_cost"),
-            func.sum(PlanTrade.quantity).label("total_qty"),
+            Trade.ticker,
+            func.sum(Trade.quantity * Trade.price).label("total_cost"),
+            func.sum(Trade.quantity).label("total_qty"),
         )
         .filter(
-            PlanTrade.plan_id == plan_id,
-            PlanTrade.ticker.in_(list(positions.keys())),
-            PlanTrade.action == "buy",
-            PlanTrade.executed.is_(True),
-            PlanTrade.price.isnot(None),
+            Trade.plan_id == plan_id,
+            Trade.ticker.in_(list(positions.keys())),
+            Trade.action == "buy",
+            Trade.executed.is_(True),
+            Trade.price.isnot(None),
         )
-        .group_by(PlanTrade.ticker)
+        .group_by(Trade.ticker)
         .all()
     )
     avg_costs: dict[str, float] = {
@@ -308,8 +309,8 @@ def delete_plan(
     # 062-fix: FK is RESTRICT, so delete would fail if trades exist.
     # Surface this as a clear error rather than a raw IntegrityError.
     executed_count = (
-        db.query(func.count(PlanTrade.id))
-        .filter(PlanTrade.plan_id == plan_id, PlanTrade.executed.is_(True))
+        db.query(func.count(Trade.id))
+        .filter(Trade.plan_id == plan_id, Trade.executed.is_(True))
         .scalar()
     )
     if executed_count > 0 and not force:
@@ -324,7 +325,7 @@ def delete_plan(
     plan_name = plan.name
     if force:
         # When forcing, drop all trades first (FK is RESTRICT so manual delete needed)
-        db.query(PlanTrade).filter(PlanTrade.plan_id == plan_id).delete(synchronize_session=False)
+        db.query(Trade).filter(Trade.plan_id == plan_id).delete(synchronize_session=False)
     db.delete(plan)
     db.commit()
 
@@ -417,9 +418,9 @@ def export_plan_trades(
         raise HTTPException(404, "Plan not found")
 
     trades = (
-        db.query(PlanTrade)
-        .filter(PlanTrade.plan_id == plan_id, PlanTrade.executed.is_(True))
-        .order_by(PlanTrade.timestamp.asc())
+        db.query(Trade)
+        .filter(Trade.plan_id == plan_id, Trade.executed.is_(True))
+        .order_by(Trade.timestamp.asc())
         .all()
     )
 
