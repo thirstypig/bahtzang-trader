@@ -68,7 +68,8 @@ def get_metrics(
             "num_snapshots": len(snapshots),
         }
 
-    equities = [s.total_equity for s in snapshots]
+    # 071-fix: Convert Decimal to float — analytics uses float arithmetic
+    equities = [float(s.total_equity) for s in snapshots]
     metrics = compute_metrics(equities)
     return metrics.to_dict()
 
