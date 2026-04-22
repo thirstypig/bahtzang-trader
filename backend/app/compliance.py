@@ -121,7 +121,12 @@ def check_wash_sale(
             if sell_trade.price is not None:
                 avg_cost = _get_avg_cost(db, ticker, sell_trade.timestamp)
                 if avg_cost > 0 and float(sell_trade.price) < avg_cost:
-                    days_ago = (datetime.now(timezone.utc) - sell_trade.timestamp).days
+                    # Handle both timezone-aware (PostgreSQL) and naive (SQLite) timestamps
+                    now = datetime.now(timezone.utc)
+                    ts = sell_trade.timestamp
+                    if ts.tzinfo is None:
+                        ts = ts.replace(tzinfo=timezone.utc)
+                    days_ago = (now - ts).days
                     return True, (
                         f"Wash sale warning: {ticker} was sold at a loss "
                         f"{days_ago} days ago. Buying within 30 days "
