@@ -49,8 +49,9 @@ def check_circuit_breakers(
         return None, None
 
     latest_equity = portfolio_value
-    yesterday_equity = snapshots[-1].total_equity if snapshots else latest_equity
-    week_start_equity = snapshots[0].total_equity
+    # 071-fix: Convert Decimal to float for arithmetic
+    yesterday_equity = float(snapshots[-1].total_equity) if snapshots else latest_equity
+    week_start_equity = float(snapshots[0].total_equity)
 
     # Daily P&L
     daily_pnl_pct = (latest_equity - yesterday_equity) / yesterday_equity if yesterday_equity > 0 else 0

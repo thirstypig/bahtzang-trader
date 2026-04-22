@@ -120,7 +120,7 @@ def check_wash_sale(
         for sell_trade in recent_sells:
             if sell_trade.price is not None:
                 avg_cost = _get_avg_cost(db, ticker, sell_trade.timestamp)
-                if avg_cost > 0 and sell_trade.price < avg_cost:
+                if avg_cost > 0 and float(sell_trade.price) < avg_cost:
                     days_ago = (datetime.now(timezone.utc) - sell_trade.timestamp).days
                     return True, (
                         f"Wash sale warning: {ticker} was sold at a loss "
@@ -146,6 +146,7 @@ def _get_avg_cost(db: Session, ticker: str, before: datetime) -> float:
     if not buys:
         return 0.0
 
-    total_cost = sum(t.price * t.quantity for t in buys if t.price)
+    # 071-fix: Convert Decimal price to float for arithmetic with float quantity
+    total_cost = sum(float(t.price) * t.quantity for t in buys if t.price)
     total_qty = sum(t.quantity for t in buys if t.price)
     return total_cost / total_qty if total_qty > 0 else 0.0

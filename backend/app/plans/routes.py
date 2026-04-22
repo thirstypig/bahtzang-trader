@@ -123,7 +123,7 @@ def list_plans(
     for plan in plans:
         d = plan.to_dict()
         d["trade_count"] = counts.get(plan.id, 0)
-        d["invested"] = plan.budget - plan.virtual_cash
+        d["invested"] = float(plan.budget) - float(plan.virtual_cash)
         result.append(d)
     return result
 
@@ -166,7 +166,7 @@ def get_plan(
         raise HTTPException(404, "Plan not found")
 
     d = plan.to_dict()
-    d["invested"] = plan.budget - plan.virtual_cash
+    d["invested"] = float(plan.budget) - float(plan.virtual_cash)
 
     # Recent trades
     trades = (
@@ -269,7 +269,8 @@ async def update_plan(
     if "budget" in updates:
         new_budget = updates["budget"]
         # 092-fix: Prevent reducing budget below currently invested amount
-        invested = plan.budget - plan.virtual_cash
+        # 071-fix: Convert Decimal to float for comparison with Pydantic float
+        invested = float(plan.budget) - float(plan.virtual_cash)
         if new_budget < invested:
             raise HTTPException(
                 400,
@@ -278,8 +279,8 @@ async def update_plan(
             )
         await _validate_budget(db, new_budget, exclude_plan_id=plan_id)
         # Adjust virtual cash proportionally
-        budget_diff = new_budget - plan.budget
-        plan.virtual_cash = max(0, plan.virtual_cash + budget_diff)
+        budget_diff = new_budget - float(plan.budget)
+        plan.virtual_cash = max(0, float(plan.virtual_cash) + budget_diff)
 
     # 096-fix: Guard against future mass-assignment if sensitive fields
     # are accidentally added to PlanUpdate.
@@ -390,12 +391,12 @@ def get_plan_snapshots(
     return [
         {
             "date": s.date.isoformat(),
-            "budget": s.budget,
-            "virtual_cash": s.virtual_cash,
-            "invested_value": s.invested_value,
-            "total_value": s.total_value,
-            "pnl": s.pnl,
-            "pnl_pct": s.pnl_pct,
+            "budget": float(s.budget),
+            "virtual_cash": float(s.virtual_cash),
+            "invested_value": float(s.invested_value),
+            "total_value": float(s.total_value),
+            "pnl": float(s.pnl),
+            "pnl_pct": float(s.pnl_pct),
         }
         for s in snapshots
     ]
@@ -443,10 +444,10 @@ def export_plan_trades(
             csv_safe(t.action.upper()),
             csv_safe(t.ticker),
             f"{t.quantity:.4f}",
-            f"{t.price:.2f}" if t.price else "",
-            f"{(t.price or 0) * t.quantity:.2f}",
+            f"{float(t.price):.2f}" if t.price else "",
+            f"{float(t.price or 0) * t.quantity:.2f}",
             f"{(t.confidence or 0):.0%}",
-            f"{t.virtual_cash_after:.2f}",
+            f"{float(t.virtual_cash_after):.2f}" if t.virtual_cash_after is not None else "",
             csv_safe((t.claude_reasoning or "").replace("\n", " ")),
         ])
 

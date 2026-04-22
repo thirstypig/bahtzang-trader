@@ -53,7 +53,8 @@ def update_guardrails(
     if config.risk_profile:
         # 028-fix: Use actual portfolio value from latest snapshot (not hardcoded 100k)
         latest = db.query(PortfolioSnapshot).order_by(PortfolioSnapshot.date.desc()).first()
-        portfolio_value = latest.total_equity if latest else 100_000
+        # 071-fix: Convert Decimal to float for risk preset arithmetic
+        portfolio_value = float(latest.total_equity) if latest else 100_000
         preset = apply_risk_preset(config.risk_profile, portfolio_value)
         preset["kill_switch"] = current.get("kill_switch", False)
         preset["trading_goal"] = current.get("trading_goal", "maximize_returns")

@@ -133,7 +133,7 @@ async def _execute_plan_cycle(
     # Get Claude's decisions for this plan
     decisions = await claude_brain.get_trade_decision(
         positions=plan_positions,
-        cash_available=plan.virtual_cash,
+        cash_available=float(plan.virtual_cash),
         market_data=quotes,
         news=news,
         guardrails_config=plan_config,
@@ -143,7 +143,8 @@ async def _execute_plan_cycle(
     )
 
     results: list[CycleResult] = []
-    remaining_cash = plan.virtual_cash
+    # 071-fix: Convert Decimal to float — executor uses float arithmetic throughout
+    remaining_cash = float(plan.virtual_cash)
 
     for decision in decisions:
         price = None
@@ -162,7 +163,7 @@ async def _execute_plan_cycle(
                 ed = days_until_earnings(db, decision["ticker"])
                 max_size = kelly_position_size(
                     confidence=decision.get("confidence", 0.5),
-                    portfolio_value=plan.budget,
+                    portfolio_value=float(plan.budget),
                     db=db,
                     earnings_days=ed,
                 )
@@ -208,7 +209,7 @@ async def _execute_plan_cycle(
 
         # Guardrail check with plan-scoped values
         trade_value = (price or 0) * decision.get("quantity", 0)
-        invested = plan.budget - remaining_cash
+        invested = float(plan.budget) - remaining_cash
         passed = True
         block_reason = None
 
@@ -219,9 +220,9 @@ async def _execute_plan_cycle(
             elif trade_value < 1.0:
                 passed = False
                 block_reason = f"Trade value $${trade_value:.2f} below $1 minimum"
-            elif invested + trade_value > plan.budget:
+            elif invested + trade_value > float(plan.budget):
                 passed = False
-                block_reason = f"Would exceed plan budget of ${plan.budget:.0f}"
+                block_reason = f"Would exceed plan budget of ${float(plan.budget):.0f}"
             elif decision.get("confidence", 0) < plan_config.get("min_confidence", 0.6):
                 passed = False
                 block_reason = f"Confidence {decision.get('confidence', 0):.0%} below minimum {plan_config.get('min_confidence', 0.6):.0%}"
