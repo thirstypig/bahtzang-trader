@@ -132,7 +132,7 @@ def test_jwks_publishes_ec_keys():
 
 ## Cross-References
 
-- **Same pattern (external API silent change):** `/Users/jameschang/Projects/fbst/docs/solutions/api-changes/mlb-api-recent-stats-deprecation.md`
+- **Same pattern (external API silent change):** `/Users/jameschang/Projects/thefantasticleagues/thefantasticleagues-app/docs/solutions/api-changes/mlb-api-recent-stats-deprecation.md`
 - **Supabase OAuth timing issues:** `/Users/jameschang/Projects/alephco.io/alephco.io-app/docs/solutions/integration-issues/oauth-login-flash-after-google-callback.md`
 - **Supabase PKCE flow failures:** `/Users/jameschang/Projects/alephco.io/alephco.io-app/docs/solutions/integration-issues/full-stack-deployment-pipeline-auth-dns-spa-fixes.md`
 - **KTV Singer Apple Sign In (also ES256):** `/Users/jameschang/Projects/ktv-singer/ktv-singer-tvos/docs/DEVELOPMENT_LOG.md` (lines 192-213)

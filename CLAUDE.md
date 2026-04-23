@@ -3,7 +3,7 @@
 ## Current status
 
 <!-- now-tldr -->
-AI trading bot that uses Claude Sonnet to make buy/sell/hold decisions, with a Next.js dashboard and Alpaca brokerage integration. Just shipped a 7-agent code review (100 findings resolved), unified the trade data model, and built a 297-test suite with pre-commit hooks and GitHub Actions CI — all AI-assisted. Currently paper trading on Alpaca while waiting for live account approval; next step is 30+ paper trades to validate the pipeline before flipping to real money.
+An AI trading-decision experiment — Claude Sonnet makes buy/sell/hold calls, a FastAPI + Next.js stack handles data and execution, and an Alpaca paper-trading account is the live target (not real money yet). Just wrapped a 7-agent code review (100 findings resolved), unified the trade data model, and stood up a 297-test suite with pre-commit hooks and CI — all AI-assisted. Next up: 30+ paper trades to validate the pipeline before flipping the live switch.
 <!-- /now-tldr -->
 
 ## Project Overview
