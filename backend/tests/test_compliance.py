@@ -162,7 +162,8 @@ class TestCountDayTrades:
 
     def test_single_round_trip(self, db_session):
         """A buy and sell of the same ticker on the same day = 1 day trade."""
-        now = datetime.now(timezone.utc)
+        # Use naive timestamps firmly in "today" to avoid midnight UTC crossing
+        today = datetime.now(timezone.utc).replace(tzinfo=None, hour=10, minute=0)
         buy = Trade(
             ticker="AAPL",
             action="buy",
@@ -170,7 +171,7 @@ class TestCountDayTrades:
             price=Decimal("150.00"),
             guardrail_passed=True,
             executed=True,
-            timestamp=now - timedelta(hours=2),
+            timestamp=today,
         )
         sell = Trade(
             ticker="AAPL",
@@ -179,7 +180,7 @@ class TestCountDayTrades:
             price=Decimal("155.00"),
             guardrail_passed=True,
             executed=True,
-            timestamp=now - timedelta(hours=1),
+            timestamp=today + timedelta(minutes=30),
         )
         db_session.add_all([buy, sell])
         db_session.commit()
@@ -307,10 +308,14 @@ class TestCheckPdtCompliance:
 
     def test_pdt_blocked_at_three_day_trades(self, db_session):
         """With 3 existing day trades, a 4th should be blocked for small account."""
-        now = datetime.now(timezone.utc)
+        # Use naive timestamps matching what SQLite stores and compliance.py queries
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        # Ensure all trades are firmly "today" (use minutes, not hours, to avoid
+        # crossing midnight boundary in UTC)
+        today_morning = now.replace(hour=10, minute=0, second=0, microsecond=0)
 
         # Create 3 existing day-trade round-trips with different tickers
-        for ticker in ["GOOG", "MSFT", "TSLA"]:
+        for i, ticker in enumerate(["GOOG", "MSFT", "TSLA"]):
             buy = Trade(
                 ticker=ticker,
                 action="buy",
@@ -318,7 +323,7 @@ class TestCheckPdtCompliance:
                 price=Decimal("100.00"),
                 guardrail_passed=True,
                 executed=True,
-                timestamp=now - timedelta(hours=4),
+                timestamp=today_morning + timedelta(minutes=i * 10),
             )
             sell = Trade(
                 ticker=ticker,
@@ -327,7 +332,7 @@ class TestCheckPdtCompliance:
                 price=Decimal("101.00"),
                 guardrail_passed=True,
                 executed=True,
-                timestamp=now - timedelta(hours=3),
+                timestamp=today_morning + timedelta(minutes=i * 10 + 5),
             )
             db_session.add_all([buy, sell])
 
@@ -339,7 +344,7 @@ class TestCheckPdtCompliance:
             price=Decimal("150.00"),
             guardrail_passed=True,
             executed=True,
-            timestamp=now - timedelta(hours=1),
+            timestamp=today_morning + timedelta(minutes=60),
         )
         db_session.add(aapl_buy)
         db_session.commit()

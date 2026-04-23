@@ -16,7 +16,9 @@ def count_day_trades(db: Session, lookback_days: int = 7) -> int:
     Count day trades in rolling 5 business day window.
     A day trade = buy and sell of same ticker on the same calendar day.
     """
-    cutoff = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+    # Strip tz for SQLite compat (naive timestamps), keep tz for PostgreSQL
+    now = datetime.now(timezone.utc)
+    cutoff = now.replace(tzinfo=None) - timedelta(days=lookback_days)
 
     recent_trades = (
         db.query(Trade)
@@ -63,7 +65,7 @@ def check_pdt_compliance(
 
     # Check if we bought this ticker today
     today_start = datetime.now(timezone.utc).replace(
-        hour=0, minute=0, second=0, microsecond=0
+        hour=0, minute=0, second=0, microsecond=0, tzinfo=None,
     )
     bought_today = (
         db.query(Trade)
