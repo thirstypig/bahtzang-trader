@@ -59,7 +59,7 @@ def require_auth(
     email = payload.get("email", "")
     logger.info("Authenticated: %s", email)
 
-    if email != settings.ALLOWED_EMAIL:
+    if email.lower() not in settings.allowed_emails:
         logger.warning("Unauthorized email: %s", email)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

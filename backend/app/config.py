@@ -10,7 +10,12 @@ class Settings(BaseSettings):
     ALPHA_VANTAGE_KEY: str
     DATABASE_URL: str
     SUPABASE_URL: str  # e.g. https://xxx.supabase.co
-    ALLOWED_EMAIL: str
+    ALLOWED_EMAIL: str  # one email or comma-separated list of emails
+
+    @property
+    def allowed_emails(self) -> list[str]:
+        """Parsed allow-list. Lowercased for case-insensitive comparison."""
+        return [e.strip().lower() for e in self.ALLOWED_EMAIL.split(",") if e.strip()]
     CORS_ORIGINS: str = "http://localhost:3060"  # comma-separated
     ALPACA_API_KEY: str = ""
     ALPACA_SECRET_KEY: str = ""
