@@ -3,7 +3,7 @@
 ## Current status
 
 <!-- now-tldr -->
-An AI trading-decision experiment — Claude Sonnet makes buy/sell/hold calls, a FastAPI + Next.js stack handles data and execution, and an Alpaca paper-trading account is the live target (not real money yet). Just wrapped a 7-agent code review (100 findings resolved), unified the trade data model, and stood up a 297-test suite with pre-commit hooks and CI — all AI-assisted. Next up: 30+ paper trades to validate the pipeline before flipping the live switch.
+An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). Just wrapped a thorough AI-assisted code review, unified how trade data is stored across the app, and stood up an automated test suite that runs on every change. Next up: 30+ paper trades to prove the pipeline works end-to-end before flipping the live switch.
 <!-- /now-tldr -->
 
 ## Project Overview
