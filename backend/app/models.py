@@ -20,6 +20,7 @@ from app.database import Base
 # Import feature module models so create_all() picks them up
 from app.backtest.models import BacktestConfig, BacktestResult, OHLCVCache  # noqa: F401
 from app.earnings.models import EarningsEvent  # noqa: F401
+from app.forex.models import ForexBacktestRun, ForexBar  # noqa: F401
 from app.plans.models import Plan, PlanSnapshot  # noqa: F401
 
 

@@ -182,3 +182,66 @@ export interface EarningsEvent {
   revenue_estimate: number | null;
   hour: string | null;
 }
+
+export type ForexEarlyExitMode = "none" | "progress" | "time_band";
+
+export interface ForexBacktestCreate {
+  name: string;
+  symbols: string[];
+  start_date: string;
+  end_date: string;
+  initial_equity: number;
+  risk_pct: number;
+  sl_buffer_pct: number;
+  pivot_lookback_weeks: number;
+  cluster_pct: number;
+  early_exit_mode: ForexEarlyExitMode;
+  early_exit_min_bars: number;
+  early_exit_threshold_r: number;
+}
+
+export interface ForexBacktestSummary {
+  id: number;
+  name: string;
+  created_at: string | null;
+  status: string;
+  error_message: string | null;
+  symbols: string[];
+  start_date: string;
+  end_date: string;
+  initial_equity: number;
+  risk_pct: number;
+  final_equity: number | null;
+  total_return_pct: number | null;
+  total_trades: number | null;
+  win_rate_pct: number | null;
+  profit_factor: number | null;
+  max_drawdown_pct: number | null;
+}
+
+export interface ForexTrade {
+  symbol: string;
+  direction: "long" | "short";
+  entry_date: string;
+  exit_date: string;
+  entry_price: number;
+  exit_price: number;
+  stop_loss: number;
+  take_profit: number;
+  units: number;
+  pnl_usd: number;
+  exit_reason: string;
+  zone_top: number;
+  zone_bottom: number;
+}
+
+export interface ForexBacktestDetail extends ForexBacktestSummary {
+  sl_buffer_pct: number;
+  pivot_lookback_weeks: number;
+  cluster_pct: number;
+  early_exit_mode: ForexEarlyExitMode;
+  early_exit_min_bars: number;
+  early_exit_threshold_r: number;
+  equity_curve: { date: string; equity: number }[];
+  trades_log: ForexTrade[];
+}

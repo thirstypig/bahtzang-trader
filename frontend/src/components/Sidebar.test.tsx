@@ -46,11 +46,11 @@ describe("Sidebar", () => {
     }
   });
 
-  it("renders correct number of links (16 pages)", () => {
+  it("renders correct number of links (17 pages)", () => {
     render(<Sidebar />);
     const links = screen.getAllByRole("link");
-    // 16 nav links + 1 logo link = 17
-    expect(links.length).toBe(17);
+    // 17 nav links + 1 logo link = 18
+    expect(links.length).toBe(18);
   });
 
   it("marks Dashboard as active on root path", () => {

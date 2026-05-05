@@ -3,6 +3,9 @@ import {
   BacktestItem,
   CycleResult,
   EarningsEvent,
+  ForexBacktestCreate,
+  ForexBacktestDetail,
+  ForexBacktestSummary,
   Guardrails,
   InvestmentPlan,
   PlanPosition,
@@ -373,4 +376,39 @@ export async function refreshEarnings(): Promise<{
     "/earnings/refresh",
     { method: "POST" }
   );
+}
+
+// ── Forex (separate tool — swing-zone strategy) ──────────────
+
+export async function getForexSymbols(): Promise<string[]> {
+  return fetchAPI<string[]>("/forex/symbols");
+}
+
+export async function listForexBacktests(): Promise<ForexBacktestSummary[]> {
+  return fetchAPI<ForexBacktestSummary[]>("/forex/backtests");
+}
+
+export async function getForexBacktest(
+  id: number
+): Promise<ForexBacktestDetail> {
+  return fetchAPI<ForexBacktestDetail>(`/forex/backtests/${id}`);
+}
+
+export async function createForexBacktest(
+  body: ForexBacktestCreate
+): Promise<{ run_id: number; status: string }> {
+  return fetchAPI<{ run_id: number; status: string }>("/forex/backtests", {
+    method: "POST",
+    body: JSON.stringify(body),
+    // Backtests run in background; the request itself returns instantly,
+    // so we can use the default 15s timeout.
+  });
+}
+
+export async function deleteForexBacktest(
+  id: number
+): Promise<{ status: string }> {
+  return fetchAPI<{ status: string }>(`/forex/backtests/${id}`, {
+    method: "DELETE",
+  });
 }

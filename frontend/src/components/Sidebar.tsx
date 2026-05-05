@@ -40,6 +40,12 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    title: "Forex (Independent Tool)",
+    items: [
+      { href: "/forex", label: "Forex Backtest", icon: Icons.Forex },
+    ],
+  },
+  {
     title: "Admin",
     items: [
       { href: "/todos", label: "Todos", icon: Icons.Todos },

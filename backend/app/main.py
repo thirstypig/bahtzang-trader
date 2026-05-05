@@ -16,6 +16,7 @@ from app.config import settings
 from app.database import Base, engine
 from app.backtest.routes import router as backtest_router
 from app.earnings.routes import router as earnings_router
+from app.forex.routes import router as forex_router
 from app.plans.routes import router as plans_router
 from app.routes import bot, guardrails, portfolio, todos, trades
 from app.scheduler import start_scheduler, stop_scheduler
@@ -109,4 +110,5 @@ app.include_router(bot.router)
 app.include_router(todos.router)
 app.include_router(backtest_router)
 app.include_router(earnings_router)
+app.include_router(forex_router)
 app.include_router(plans_router)
