@@ -40,7 +40,9 @@ const nextConfig = {
             // Hash-only CSP for script-src is not feasible without Next.js nonce support.
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              // 'unsafe-eval' is required by Next.js dev-mode HMR (react-refresh runtime).
+              // Production bundles do not use eval, so the prod CSP stays strict.
+              `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV !== "production" ? " 'unsafe-eval'" : ""}`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https://lh3.googleusercontent.com",
               "font-src 'self'",
