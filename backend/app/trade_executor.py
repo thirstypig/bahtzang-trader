@@ -2,10 +2,12 @@
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
 from app import claude_brain, guardrails, market_data, notifier
+from app.models import Trade
 from app.pipeline_types import CycleResult
 from app.earnings.client import days_until_earnings, format_earnings_csv
 from app.circuit_breaker import check_circuit_breakers, YELLOW, ORANGE, RED
@@ -90,7 +92,15 @@ async def _execute_cycle(db: Session, account_id: str) -> CycleResult:
     sector_csv = format_sector_csv(sector_signals)
     earnings_csv = format_earnings_csv(db, held_tickers) if held_tickers else ""
 
-    # 3. Get Claude's decisions (guardrails_config already loaded in step 1b)
+    # 3. Compute usage stats so Claude can size proposals to fit within limits
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    orders_used_today = await asyncio.to_thread(
+        lambda: db.query(Trade)
+        .filter(Trade.timestamp >= today_start, Trade.executed.is_(True))
+        .count()
+    )
+
+    # 4. Get Claude's decisions (guardrails_config already loaded in step 1b)
     decisions = await claude_brain.get_trade_decision(
         positions=positions,
         cash_available=cash_available,
@@ -100,6 +110,8 @@ async def _execute_cycle(db: Session, account_id: str) -> CycleResult:
         technicals_csv=technicals_csv,
         sector_csv=sector_csv,
         earnings_csv=earnings_csv,
+        total_invested=total_invested,
+        orders_used_today=orders_used_today,
     )
 
     # Process each decision; track remaining cash for multi-trade guardrail checks

@@ -62,6 +62,11 @@ const TESTS = {
         covers: "Trade logging to DB, field persistence, None price for holds, blocked trades",
       },
       {
+        file: "tests/test_claude_brain_prompt.py",
+        tests: 6,
+        covers: "Headroom block in Claude prompt: invested/limit, orders used, position slots, effective buy ceiling, sizing requirement, backward-compat",
+      },
+      {
         file: "tests/test_allowed_emails.py",
         tests: 5,
         covers: "ALLOWED_EMAIL CSV parser: single/multi, whitespace, case-insensitive, empty segments",

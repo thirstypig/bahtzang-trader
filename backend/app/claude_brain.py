@@ -121,8 +121,16 @@ async def get_trade_decision(
     technicals_csv: str = "",
     sector_csv: str = "",
     earnings_csv: str = "",
+    total_invested: float = 0.0,
+    orders_used_today: int = 0,
 ) -> list[TradeDecision]:
-    """Send portfolio context to Claude and get a structured trade decision."""
+    """Send portfolio context to Claude and get a structured trade decision.
+
+    `total_invested`, `orders_used_today`, and `len(positions)` let Claude
+    compute headroom against guardrail limits BEFORE proposing a trade —
+    closes the information-asymmetry that previously caused valid signals
+    to be blocked at validation time.
+    """
     risk_profile = guardrails_config.get("risk_profile", "moderate")
     trading_goal = guardrails_config.get("trading_goal", "maximize_returns")
 
@@ -137,6 +145,25 @@ async def get_trade_decision(
     }
     safe_config = {k: v for k, v in guardrails_config.items() if k in _SAFE_KEYS}
 
+    # Compute headroom against binding guardrails so Claude can plan within them.
+    # Without these, Claude sees only the limits — not how much of each is already used —
+    # and ends up proposing trades that pass intent but fail validation.
+    max_total_invested = float(safe_config.get("max_total_invested", 0) or 0)
+    max_single_trade_size = float(safe_config.get("max_single_trade_size", 0) or 0)
+    daily_order_limit = int(safe_config.get("daily_order_limit", 0) or 0)
+    max_positions = int(safe_config.get("max_positions", 0) or 0)
+    min_confidence = float(safe_config.get("min_confidence", 0.6) or 0.6)
+
+    invest_headroom = max(0.0, max_total_invested - total_invested) if max_total_invested else 0.0
+    orders_remaining = max(0, daily_order_limit - orders_used_today) if daily_order_limit else 0
+    position_slots_open = max(0, max_positions - len(positions)) if max_positions else 0
+    # Effective single-trade ceiling is whichever of (cash, max_single, invest_headroom) is smallest
+    effective_buy_ceiling = cash_available
+    if max_single_trade_size:
+        effective_buy_ceiling = min(effective_buy_ceiling, max_single_trade_size)
+    if max_total_invested:
+        effective_buy_ceiling = min(effective_buy_ceiling, invest_headroom)
+
     # Build prompt with CSV sections for token efficiency (56% fewer tokens than JSON)
     prompt_parts = [
         risk_instruction,
@@ -146,6 +173,13 @@ async def get_trade_decision(
         json.dumps(positions),
         "",
         f"GUARDRAILS: {json.dumps(safe_config)}",
+        "",
+        "USAGE / HEADROOM (you must size every proposal to fit these):",
+        f"- Total invested: ${total_invested:,.0f} / ${max_total_invested:,.0f}  →  ${invest_headroom:,.0f} buy headroom",
+        f"- Orders today:   {orders_used_today} / {daily_order_limit}  →  {orders_remaining} slots remaining",
+        f"- Open positions: {len(positions)} / {max_positions}  →  {position_slots_open} slots open",
+        f"- Max single buy this cycle: ${effective_buy_ceiling:,.0f}  (min of cash, max_single_trade, invest_headroom)",
+        f"- Min confidence to clear validation: {min_confidence:.0%}",
     ]
 
     # Add technicals if available
@@ -184,16 +218,21 @@ async def get_trade_decision(
     prompt_parts.append("")
     prompt_parts.append(
         "Analyze the portfolio, technicals, sector rotation, earnings calendar, and news. "
-        "You may suggest UP TO 3 trades if you see multiple opportunities. "
+        f"You may suggest UP TO {min(3, orders_remaining) if daily_order_limit else 3} trades. "
         "For each trade, decide: buy, sell, or hold. "
         "If nothing looks good, return a single hold. "
         "IMPORTANT: If a held stock has earnings within 2 days, consider reducing exposure. "
         "If buying a stock with earnings within 2 days, factor in binary event risk. "
-        f"Minimum confidence to trade: {guardrails_config.get('min_confidence', 0.6)}. "
+        f"Minimum confidence to trade: {min_confidence}. "
         "NaN means insufficient history for that indicator. "
-        "FRACTIONAL SHARES are supported — if cash is limited, suggest fractional qty "
-        "(e.g., 0.5 shares of a $200 stock for a $100 budget). Quantity can be a decimal. "
-        "Don't suggest whole-share trades that exceed the available cash. "
+        "SIZING REQUIREMENT — every proposed buy MUST satisfy ALL of: "
+        f"(price × qty) ≤ ${effective_buy_ceiling:,.0f}; "
+        f"price × qty ≤ ${max_single_trade_size:,.0f} (max_single_trade_size); "
+        f"running total of all your buys this cycle ≤ ${invest_headroom:,.0f} (invest_headroom); "
+        f"confidence ≥ {min_confidence}. "
+        f"Skip the trade if you can't fit it; do NOT propose oversized trades expecting validation to clamp them. "
+        "FRACTIONAL SHARES are supported — use decimal qty (e.g., 0.5 of a $200 stock for $100). "
+        "Sells are not gated by these dollar ceilings, only by holdings. "
         "Respond with JSON array: [{action, ticker, quantity, reasoning, confidence}, ...] "
         "Even for a single decision, wrap it in an array."
     )
