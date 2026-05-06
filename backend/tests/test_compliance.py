@@ -189,7 +189,10 @@ class TestCountDayTrades:
 
     def test_four_day_trades_pdt_violation(self, db_session):
         """4+ day trades in the lookback window is a PDT concern."""
-        now = datetime.now(timezone.utc)
+        # Anchor timestamps to noon UTC so the 6-hour spread stays within a
+        # single calendar day regardless of when the test runs. Using
+        # datetime.now() here previously caused flakes in early-morning UTC.
+        anchor = datetime.now(timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0)
         tickers = ["AAPL", "GOOG", "MSFT", "TSLA"]
 
         for i, ticker in enumerate(tickers):
@@ -200,7 +203,7 @@ class TestCountDayTrades:
                 price=Decimal("100.00"),
                 guardrail_passed=True,
                 executed=True,
-                timestamp=now - timedelta(hours=3 + i),
+                timestamp=anchor - timedelta(hours=3 + i),
             )
             sell = Trade(
                 ticker=ticker,
@@ -209,7 +212,7 @@ class TestCountDayTrades:
                 price=Decimal("101.00"),
                 guardrail_passed=True,
                 executed=True,
-                timestamp=now - timedelta(hours=2 + i),
+                timestamp=anchor - timedelta(hours=2 + i),
             )
             db_session.add_all([buy, sell])
 
