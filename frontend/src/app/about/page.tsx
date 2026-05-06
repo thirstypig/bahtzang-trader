@@ -39,7 +39,7 @@ export default function AboutPage() {
       </div>
 
       {/* Architecture */}
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="bz-glass p-6">
         <h2 className="text-lg font-semibold text-primary">Architecture</h2>
         <div className="mt-4 overflow-x-auto rounded-lg bg-surface p-6 font-mono text-xs text-secondary">
           <pre>{`
@@ -80,7 +80,7 @@ export default function AboutPage() {
         {Object.entries(TECH_STACK).map(([category, items]) => (
           <div
             key={category}
-            className="rounded-xl border border-border bg-card p-6"
+            className="bz-glass p-6"
           >
             <h3 className="text-sm font-semibold text-accent">
               {category}
@@ -100,7 +100,7 @@ export default function AboutPage() {
       </div>
 
       {/* Design Philosophy */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+      <div className="mt-6 bz-glass p-6">
         <h2 className="text-lg font-semibold text-primary">Design Philosophy</h2>
         <div className="mt-4 space-y-3 text-sm text-secondary">
           <p>

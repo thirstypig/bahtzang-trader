@@ -148,7 +148,7 @@ export default function BacktestPage() {
       </p>
 
       {/* Config Form */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+      <div className="mt-6 bz-glass p-6">
         <h2 className="mb-4 text-sm font-semibold text-primary">
           New Backtest
         </h2>
@@ -160,7 +160,7 @@ export default function BacktestPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="My backtest"
-              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary placeholder-zinc-600 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary placeholder-zinc-600 focus:border-pos focus:outline-none"
             />
           </div>
 
@@ -171,7 +171,7 @@ export default function BacktestPage() {
             <select
               value={strategy}
               onChange={(e) => setStrategy(e.target.value)}
-              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-pos focus:outline-none"
             >
               {strategies.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -193,7 +193,7 @@ export default function BacktestPage() {
             <input
               value={tickers}
               onChange={(e) => setTickers(e.target.value)}
-              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary placeholder-zinc-600 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary placeholder-zinc-600 focus:border-pos focus:outline-none"
             />
           </div>
 
@@ -205,7 +205,7 @@ export default function BacktestPage() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-pos focus:outline-none"
             />
           </div>
 
@@ -217,7 +217,7 @@ export default function BacktestPage() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-pos focus:outline-none"
             />
           </div>
 
@@ -229,7 +229,7 @@ export default function BacktestPage() {
               type="number"
               value={capital}
               onChange={(e) => setCapital(Number(e.target.value))}
-              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-pos focus:outline-none"
             />
           </div>
 
@@ -242,7 +242,7 @@ export default function BacktestPage() {
               step="0.01"
               value={maxPosPct}
               onChange={(e) => setMaxPosPct(Number(e.target.value))}
-              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-pos focus:outline-none"
             />
           </div>
 
@@ -254,7 +254,7 @@ export default function BacktestPage() {
               type="number"
               value={maxPositions}
               onChange={(e) => setMaxPositions(Number(e.target.value))}
-              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-pos focus:outline-none"
             />
           </div>
 
@@ -267,7 +267,7 @@ export default function BacktestPage() {
               step="0.01"
               value={stopLoss}
               onChange={(e) => setStopLoss(Number(e.target.value))}
-              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary focus:border-pos focus:outline-none"
             />
           </div>
         </div>
@@ -275,7 +275,7 @@ export default function BacktestPage() {
         <button
           onClick={handleRun}
           disabled={running}
-          className="mt-4 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-emerald-500 disabled:opacity-50"
+          className="mt-4 rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-primary transition-colors hover:opacity-90 disabled:opacity-50"
         >
           {running ? (
             <span className="flex items-center gap-2">
@@ -289,7 +289,7 @@ export default function BacktestPage() {
 
       {/* Past Backtests */}
       {backtests.length > 0 && (
-        <div className="mt-6 rounded-xl border border-border bg-card p-6">
+        <div className="mt-6 bz-glass p-6">
           <h2 className="mb-4 text-sm font-semibold text-primary">
             Past Backtests
           </h2>
@@ -432,7 +432,7 @@ export default function BacktestPage() {
 
           {/* Equity Curve */}
           {detail.equity_curve.length > 1 && (
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className="bz-glass p-5">
               <h3 className="mb-4 text-sm font-semibold text-primary">
                 Equity Curve
               </h3>
@@ -482,7 +482,7 @@ export default function BacktestPage() {
 
           {/* Trades Table */}
           {detail.trades_log.length > 0 && (
-            <div className="rounded-xl border border-border bg-card p-6">
+            <div className="bz-glass p-6">
               <h3 className="mb-4 text-sm font-semibold text-primary">
                 Simulated Trades ({detail.trades_log.length})
               </h3>
@@ -565,7 +565,7 @@ function MetricCard({
   tip?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="bz-glass p-6">
       <p className="flex items-center gap-1 text-xs text-muted">
         {label}
         {tip && <Tip text={tip} />}

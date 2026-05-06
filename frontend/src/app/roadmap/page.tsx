@@ -16,7 +16,7 @@ const PRIORITY_BADGE: Record<string, string> = {
 function Column({ status, items }: { status: keyof typeof STATUS_CONFIG; items: RoadmapItem[] }) {
   const config = STATUS_CONFIG[status];
   return (
-    <div className="rounded-xl border border-border bg-card/50 p-4">
+    <div className="bz-glass/50 p-4">
       <div className="mb-4 flex items-center gap-2">
         <div className={`h-2.5 w-2.5 rounded-full ${config.dot}`} />
         <h2 className="text-sm font-semibold text-primary">{config.label}</h2>

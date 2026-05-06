@@ -14,7 +14,7 @@ interface ServiceCheck {
 }
 
 const STATUS_STYLES = {
-  operational: { dot: "bg-emerald-500", text: "text-emerald-400", label: "Operational" },
+  operational: { dot: "bg-pos", text: "text-pos", label: "Operational" },
   degraded: { dot: "bg-amber-500", text: "text-amber-400", label: "Degraded" },
   down: { dot: "bg-red-500", text: "text-red-400", label: "Down" },
   checking: { dot: "bg-zinc-500 animate-pulse", text: "text-secondary", label: "Checking..." },
@@ -97,17 +97,17 @@ export default function StatusPage() {
       <div
         className={`rounded-xl border p-4 ${
           allOperational
-            ? "border-emerald-900/50 bg-emerald-950/20"
+            ? "border-pos/30 bg-pos/10"
             : "border-amber-900/50 bg-amber-950/20"
         }`}
       >
         <div className="flex items-center gap-2">
           <div
             className={`h-2.5 w-2.5 rounded-full ${
-              allOperational ? "bg-emerald-500" : "bg-amber-500"
+              allOperational ? "bg-pos" : "bg-amber-500"
             }`}
           />
-          <span className={allOperational ? "text-emerald-400" : "text-amber-400"}>
+          <span className={allOperational ? "text-pos" : "text-amber-400"}>
             {allOperational
               ? "All systems operational"
               : "Some systems may be experiencing issues"}
@@ -121,7 +121,7 @@ export default function StatusPage() {
           return (
             <div
               key={service.name}
-              className="flex items-center justify-between rounded-xl border border-border bg-card px-6 py-4"
+              className="flex items-center justify-between bz-glass px-6 py-4"
             >
               <div className="flex items-center gap-3">
                 <div className={`h-2.5 w-2.5 rounded-full ${style.dot}`} />

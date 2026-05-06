@@ -240,7 +240,7 @@ export default function TopNav() {
             id={`mega-menu-${currentGroup.title}`}
             role="menu"
             onMouseLeave={() => setOpenGroup(null)}
-            className="bz-glass absolute inset-x-0 top-full mx-auto mt-2 max-w-7xl !rounded-2xl"
+            className="bz-glass-strong absolute inset-x-0 top-full mx-auto mt-2 max-w-7xl !rounded-2xl"
           >
             <div className="grid grid-cols-1 gap-1 p-3 sm:grid-cols-2 lg:grid-cols-3">
               {currentGroup.items.map((item) => {
@@ -253,8 +253,8 @@ export default function TopNav() {
                     aria-current={active ? "page" : undefined}
                     className={`group flex items-start gap-3 rounded-xl p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                       active
-                        ? "bg-accent/10"
-                        : "hover:bg-white/30 dark:hover:bg-white/5"
+                        ? "bg-accent/15 ring-1 ring-accent/30"
+                        : "hover:bg-accent/8"
                     }`}
                   >
                     <span className={`mt-0.5 ${active ? "text-accent" : "text-muted group-hover:text-secondary"}`}>
@@ -304,8 +304,8 @@ export default function TopNav() {
                             aria-current={active ? "page" : undefined}
                             className={`flex items-start gap-3 rounded-xl p-3 ${
                               active
-                                ? "bg-accent/10"
-                                : "hover:bg-white/30 dark:hover:bg-white/5"
+                                ? "bg-accent/15 ring-1 ring-accent/30"
+                                : "hover:bg-accent/8"
                             }`}
                           >
                             <span className={`mt-0.5 ${active ? "text-accent" : "text-muted"}`}>

@@ -73,7 +73,7 @@ export default function ErrorsPage() {
       </div>
 
       {errors.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-8 text-center">
+        <div className="bz-glass p-8 text-center">
           <p className="text-accent text-sm font-medium">No errors recorded</p>
           <p className="mt-1 text-xs text-muted">Errors from /run and other endpoints will appear here</p>
         </div>

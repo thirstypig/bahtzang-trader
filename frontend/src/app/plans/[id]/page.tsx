@@ -161,7 +161,7 @@ export default function PlanDetailPage() {
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
                 plan.is_active
                   ? "border border-amber-800 bg-amber-900/20 text-amber-400 hover:bg-amber-900/40"
-                  : "bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "bg-accent text-white hover:bg-accent"
               }`}
             >
               {toggling ? "..." : plan.is_active ? "Pause Plan" : "Resume Plan"}
@@ -170,20 +170,20 @@ export default function PlanDetailPage() {
 
           {/* Stats */}
           <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="bz-glass p-4">
               <p className="text-xs text-muted">Budget</p>
               <p className="mt-1 text-xl font-bold text-primary">{formatCurrency(plan.budget)}</p>
             </div>
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="bz-glass p-4">
               <p className="text-xs text-muted">Virtual Cash</p>
               <p className="mt-1 text-xl font-bold text-primary">{formatCurrency(plan.virtual_cash)}</p>
             </div>
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="bz-glass p-4">
               <p className="text-xs text-muted">Invested</p>
               <p className="mt-1 text-xl font-bold text-primary">{formatCurrency(invested)}</p>
               <p className="mt-0.5 text-[10px] text-muted">{investedPct.toFixed(0)}% of budget</p>
             </div>
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="bz-glass p-4">
               <p className="text-xs text-muted">Trades</p>
               <p className="mt-1 text-xl font-bold text-primary">{trades.filter((t) => t.executed).length}</p>
               <p className="mt-0.5 text-[10px] text-muted">{trades.length} total decisions</p>
@@ -231,7 +231,7 @@ export default function PlanDetailPage() {
 
       {/* Trade History — only show after data loads */}
       {!loading && plan && (
-        <div className="rounded-xl border border-border bg-card">
+        <div className="bz-glass">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
             <div className="flex items-center gap-2">
               <h2 className="font-semibold text-primary">Trade History</h2>

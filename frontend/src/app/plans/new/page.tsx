@@ -78,7 +78,7 @@ export default function NewPlanPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Name + Budget */}
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="bz-glass p-6">
           <h2 className="text-lg font-semibold text-primary">Basics</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
@@ -89,7 +89,7 @@ export default function NewPlanPage() {
                 placeholder="e.g. Growth Slice"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2.5 text-sm text-primary placeholder-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="mt-1.5 w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2.5 text-sm text-primary placeholder-muted focus:border-pos focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
             <div>
@@ -107,7 +107,7 @@ export default function NewPlanPage() {
                   placeholder="100"
                   value={budget}
                   onChange={(e) => setBudget(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-card-alt py-2.5 pl-7 pr-3 text-sm text-primary placeholder-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-full rounded-lg border border-border-strong bg-card-alt py-2.5 pl-7 pr-3 text-sm text-primary placeholder-muted focus:border-pos focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -115,7 +115,7 @@ export default function NewPlanPage() {
         </div>
 
         {/* Trading Goal */}
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="bz-glass p-6">
           <h2 className="text-lg font-semibold text-primary">Trading Goal</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {GOALS.map((g) => (
@@ -125,7 +125,7 @@ export default function NewPlanPage() {
                 onClick={() => setGoal(g.id)}
                 className={`rounded-xl border p-4 text-left transition-all ${
                   goal === g.id
-                    ? "border-emerald-500 bg-emerald-900/30 ring-1 ring-emerald-500"
+                    ? "border-pos bg-pos/15 ring-1 ring-emerald-500"
                     : "border-border bg-surface hover:border-border-strong"
                 }`}
               >
@@ -141,7 +141,7 @@ export default function NewPlanPage() {
         </div>
 
         {/* Risk + Frequency */}
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="bz-glass p-6">
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <h2 className="text-lg font-semibold text-primary">Risk Profile</h2>
@@ -153,7 +153,7 @@ export default function NewPlanPage() {
                     onClick={() => setRisk(r.id)}
                     className={`flex w-full items-center gap-2 rounded-lg border px-4 py-3 text-left text-sm transition-all ${
                       risk === r.id
-                        ? "border-emerald-500 bg-emerald-900/30"
+                        ? "border-pos bg-pos/15"
                         : "border-border bg-surface hover:border-border-strong"
                     }`}
                   >
@@ -186,7 +186,7 @@ export default function NewPlanPage() {
         </div>
 
         {/* Timeline Goal (optional) */}
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="bz-glass p-6">
           <h2 className="text-lg font-semibold text-primary">Timeline Goal (optional)</h2>
           <p className="mt-1 text-sm text-muted">Set a target for the AI to work towards</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -200,7 +200,7 @@ export default function NewPlanPage() {
                   placeholder="500"
                   value={targetAmt}
                   onChange={(e) => setTargetAmt(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-card-alt py-2.5 pl-7 pr-3 text-sm text-primary placeholder-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-full rounded-lg border border-border-strong bg-card-alt py-2.5 pl-7 pr-3 text-sm text-primary placeholder-muted focus:border-pos focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -210,7 +210,7 @@ export default function NewPlanPage() {
                 type="date"
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2.5 text-sm text-primary focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="mt-1.5 w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2.5 text-sm text-primary focus:border-pos focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
           </div>
@@ -221,7 +221,7 @@ export default function NewPlanPage() {
           <button
             type="submit"
             disabled={saving || !name.trim() || !budget}
-            className="rounded-lg bg-emerald-600 px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            className="rounded-lg bg-accent px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent disabled:opacity-50"
           >
             {saving ? "Creating..." : "Create Plan"}
           </button>

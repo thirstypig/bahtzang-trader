@@ -204,7 +204,7 @@ export default function ForexPage() {
       )}
 
       {/* ── Configuration panel ────────────────────────────── */}
-      <section className="rounded-lg border border-border bg-card p-5 space-y-4">
+      <section className="bz-glass-soft p-5 space-y-4">
         <h2 className="text-lg font-medium text-primary">Configuration</h2>
 
         {/* Symbols */}
@@ -222,8 +222,8 @@ export default function ForexPage() {
                   onClick={() => toggleSymbol(s)}
                   className={`rounded-md px-3 py-1.5 text-xs font-medium border transition-colors ${
                     on
-                      ? "border-emerald-500 bg-emerald-500/15 text-emerald-300"
-                      : "border-border bg-card-alt text-secondary hover:border-emerald-500/50"
+                      ? "border-pos bg-pos/15 text-pos"
+                      : "border-border bg-card-alt text-secondary hover:border-pos/50"
                   }`}
                 >
                   {s}
@@ -357,7 +357,7 @@ export default function ForexPage() {
             type="button"
             disabled={running || !symbols.length}
             onClick={handleRun}
-            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {running ? "Running..." : "Run Backtest"}
           </button>
@@ -365,7 +365,7 @@ export default function ForexPage() {
       </section>
 
       {/* ── Past Runs ──────────────────────────────────────── */}
-      <section className="rounded-lg border border-border bg-card p-5">
+      <section className="bz-glass-soft p-5">
         <h2 className="text-lg font-medium text-primary mb-3">Past Runs</h2>
         {loading ? (
           <p className="text-sm text-secondary">Loading...</p>
@@ -412,7 +412,7 @@ export default function ForexPage() {
                         r.total_return_pct == null
                           ? "text-secondary"
                           : r.total_return_pct >= 0
-                          ? "text-emerald-400"
+                          ? "text-pos"
                           : "text-red-400"
                       }`}
                     >
@@ -454,7 +454,7 @@ export default function ForexPage() {
 
       {/* ── Detail ─────────────────────────────────────────── */}
       {detail && (
-        <section className="rounded-lg border border-border bg-card p-5 space-y-4">
+        <section className="bz-glass-soft p-5 space-y-4">
           <div className="flex items-baseline justify-between">
             <h2 className="text-lg font-medium text-primary">{detail.name}</h2>
             <button
@@ -526,7 +526,7 @@ export default function ForexPage() {
                       </td>
                       <td
                         className={`px-2 py-1.5 text-right font-medium ${
-                          t.pnl_usd >= 0 ? "text-emerald-400" : "text-red-400"
+                          t.pnl_usd >= 0 ? "text-pos" : "text-red-400"
                         }`}
                       >
                         {t.pnl_usd >= 0 ? "+" : ""}${t.pnl_usd.toFixed(2)}
@@ -575,7 +575,7 @@ function Stat({
 }) {
   const color =
     tone === "good"
-      ? "text-emerald-400"
+      ? "text-pos"
       : tone === "bad"
       ? "text-red-400"
       : "text-primary";
@@ -591,7 +591,7 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     pending: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
     running: "bg-blue-500/15 text-blue-300 border-blue-500/30",
-    completed: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+    completed: "bg-pos/15 text-pos border-pos/30",
     failed: "bg-red-500/15 text-red-300 border-red-500/30",
   };
   const cls = map[status] ?? "bg-card-alt text-secondary border-border";

@@ -11,7 +11,7 @@ const STATUS_ORDER: TodoTask["status"][] = ["not_started", "in_progress", "done"
 const STATUS_STYLES: Record<string, { dot: string; text: string; label: string }> = {
   not_started: { dot: "bg-zinc-500", text: "text-secondary", label: "To Do" },
   in_progress: { dot: "bg-blue-500", text: "text-blue-400", label: "In Progress" },
-  done: { dot: "bg-emerald-500", text: "text-emerald-400", label: "Done" },
+  done: { dot: "bg-pos", text: "text-pos", label: "Done" },
 };
 
 const PRIORITY_STYLES: Record<string, string> = {
@@ -22,7 +22,7 @@ const PRIORITY_STYLES: Record<string, string> = {
 };
 
 const CATEGORY_STYLES: Record<string, string> = {
-  "analytics-setup": "text-emerald-400",
+  "analytics-setup": "text-pos",
   infrastructure: "text-blue-400",
   "trading-brain": "text-purple-400",
   "risk-management": "text-neg",
@@ -139,7 +139,7 @@ export default function TodosPage() {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-primary hover:bg-emerald-700"
+          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-primary hover:bg-accent"
         >
           + Add Task
         </button>
@@ -162,7 +162,7 @@ export default function TodosPage() {
           />
         ))}
         {sortedCategories.length === 0 && (
-          <div className="rounded-xl border border-border bg-card p-8 text-center">
+          <div className="bz-glass p-8 text-center">
             <p className="text-muted">No tasks match filter</p>
           </div>
         )}
@@ -192,7 +192,7 @@ function CategorySection({
 
   return (
     <details open>
-      <summary className="flex cursor-pointer select-none list-none items-center gap-3 rounded-lg border border-border bg-card px-5 py-3 hover:border-border-strong">
+      <summary className="flex cursor-pointer select-none list-none items-center gap-3 bz-glass-soft px-5 py-3 hover:border-border-strong">
         <span className={`text-xs font-semibold uppercase tracking-wider ${categoryColor}`}>
           {category.replace(/-/g, " ")}
         </span>
@@ -201,7 +201,7 @@ function CategorySection({
         </span>
         <div className="ml-auto h-1.5 w-24 overflow-hidden rounded-full bg-card-alt">
           <div
-            className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+            className="h-full rounded-full bg-pos transition-all duration-300"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -240,7 +240,7 @@ function TodoRow({
   return (
     <div
       id={todo.id}
-      className="rounded-xl border border-border bg-card transition-colors hover:border-border-strong"
+      className="bz-glass transition-colors hover:border-border-strong"
     >
       <button
         onClick={onToggleExpand}
@@ -349,17 +349,17 @@ function AddTaskForm({
   }
 
   return (
-    <div className="mb-4 rounded-xl border border-emerald-800/50 bg-card p-5">
+    <div className="mb-4 rounded-xl border border-pos/30 bg-card p-5">
       <div className="mb-3 flex items-center gap-2">
-        <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-        <span className="text-sm font-medium text-emerald-400">New Task</span>
+        <div className="h-2.5 w-2.5 rounded-full bg-pos" />
+        <span className="text-sm font-medium text-pos">New Task</span>
       </div>
       <input
         ref={inputRef}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Task title..."
-        className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary placeholder-zinc-500 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+        className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2 text-sm text-primary placeholder-muted focus:border-pos focus:outline-none focus:ring-1 focus:ring-pos"
         onKeyDown={(e) => {
           if (e.key === "Enter") handleSubmit();
           if (e.key === "Escape") onCancel();
@@ -393,7 +393,7 @@ function AddTaskForm({
           </button>
           <button
             onClick={handleSubmit}
-            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-primary hover:bg-emerald-700"
+            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-primary hover:bg-accent"
           >
             Add
           </button>

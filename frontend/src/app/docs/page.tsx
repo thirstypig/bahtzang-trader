@@ -154,7 +154,7 @@ export default function DocsPage() {
         </div>
 
         {/* Content panel */}
-        <div className="rounded-xl border border-border bg-card p-6 lg:p-8">
+        <div className="bz-glass p-6 lg:p-8">
           {loading ? (
             <div className="flex h-64 items-center justify-center">
               <Spinner />

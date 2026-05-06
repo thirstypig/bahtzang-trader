@@ -16,7 +16,7 @@ import dynamic from "next/dynamic";
 const PlanAllocationChart = dynamic(() => import("@/components/PlanAllocationChart"), { ssr: false });
 
 const RISK_COLORS: Record<InvestmentPlan["risk_profile"], string> = {
-  conservative: "text-emerald-400",
+  conservative: "text-pos",
   moderate: "text-blue-400",
   aggressive: "text-amber-400",
 };
@@ -76,7 +76,7 @@ export default function PlansPage() {
         </div>
         <Link
           href="/plans/new"
-          className="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent"
         >
           + New Plan
         </Link>
@@ -93,14 +93,14 @@ export default function PlansPage() {
           <Spinner />
         </div>
       ) : error ? null : plans.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-12 text-center">
+        <div className="bz-glass p-12 text-center">
           <p className="text-lg font-medium text-primary">No plans yet</p>
           <p className="mt-2 text-sm text-muted">
             Create your first investment plan to get started. Each plan gets its own budget, goal, and trade history.
           </p>
           <Link
             href="/plans/new"
-            className="mt-6 inline-block rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+            className="mt-6 inline-block rounded-lg bg-accent px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-accent"
           >
             Create First Plan
           </Link>
@@ -109,15 +109,15 @@ export default function PlansPage() {
         <>
           {/* Summary bar */}
           <div className="mb-6 grid grid-cols-3 gap-4">
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="bz-glass p-4">
               <p className="text-xs text-muted">Total Budget</p>
               <p className="mt-1 text-xl font-bold text-primary">{formatCurrency(totalBudget)}</p>
             </div>
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="bz-glass p-4">
               <p className="text-xs text-muted">Invested</p>
               <p className="mt-1 text-xl font-bold text-primary">{formatCurrency(totalInvested)}</p>
             </div>
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="bz-glass p-4">
               <p className="text-xs text-muted">Plans</p>
               <p className="mt-1 text-xl font-bold text-primary">{plans.length}</p>
             </div>
@@ -144,7 +144,7 @@ export default function PlansPage() {
                 <Link
                   key={plan.id}
                   href={`/plans/${plan.id}`}
-                  className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-border-strong hover:bg-card-alt/30"
+                  className="group bz-glass p-5 transition-colors hover:border-border-strong hover:bg-card-alt/30"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">

@@ -2,22 +2,39 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
-import ThemeToggle from "@/components/ThemeToggle";
+import { useTheme } from "@/lib/theme";
 
 export default function LoginPage() {
   const { signIn, denied } = useAuth();
+  const { theme, toggle } = useTheme();
   const [loading, setLoading] = useState(false);
+
+  const themeButton = (
+    <button
+      onClick={toggle}
+      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      className="bz-glass-soft fixed right-6 top-6 rounded-full p-2 text-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+    >
+      {theme === "dark" ? (
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+        </svg>
+      ) : (
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+        </svg>
+      )}
+    </button>
+  );
 
   if (denied) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface">
-        <div className="fixed right-6 top-6">
-          <ThemeToggle expanded={false} />
-        </div>
+      <div className="flex min-h-screen items-center justify-center p-4">
+        {themeButton}
         <div className="w-full max-w-md text-center">
-          <div className="rounded-2xl border border-danger/30 bg-card p-10 shadow-lg">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-danger/10">
-              <svg className="h-8 w-8 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="bz-glass-strong p-10">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-neg/15">
+              <svg className="h-8 w-8 text-neg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
             </div>
@@ -30,7 +47,7 @@ export default function LoginPage() {
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-8 rounded-lg border border-border bg-card-alt px-6 py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-border-strong/30 hover:text-primary"
+              className="bz-glass-soft mt-8 px-6 py-2.5 text-sm font-medium text-secondary transition-colors hover:text-primary"
             >
               Try a different account
             </button>
@@ -41,19 +58,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface">
-      <div className="fixed right-6 top-6">
-        <ThemeToggle expanded={false} />
-      </div>
+    <div className="flex min-h-screen items-center justify-center p-4">
+      {themeButton}
 
       <div className="w-full max-w-sm">
-        <div className="rounded-2xl border border-border bg-card p-8 shadow-lg">
+        <div className="bz-glass-strong p-8">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-lg font-bold text-white">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-lg font-bold text-white shadow-lg shadow-accent/20">
               B
             </div>
             <h1 className="text-xl font-bold text-primary">
-              bahtzang<span className="text-accent">.trader</span>
+              bahtzang<span className="bz-gradient-text">.trader</span>
             </h1>
             <p className="mt-2 text-sm text-muted">
               Sign in to access your trading dashboard
@@ -66,7 +81,7 @@ export default function LoginPage() {
               signIn();
             }}
             disabled={loading}
-            className="flex w-full items-center justify-center gap-3 rounded-lg border border-border-strong bg-card-alt px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-border-strong/30 disabled:opacity-50"
+            className="bz-glass-soft flex w-full items-center justify-center gap-3 px-4 py-3 text-sm font-medium text-primary transition-colors hover:text-primary disabled:opacity-50"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path

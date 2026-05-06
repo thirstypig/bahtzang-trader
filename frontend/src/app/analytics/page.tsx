@@ -216,7 +216,7 @@ function MetricCard({
   tip?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="bz-glass p-6">
       <p className="flex items-center gap-1 text-xs text-muted">
         {label}
         {tip && <Tip text={tip} />}

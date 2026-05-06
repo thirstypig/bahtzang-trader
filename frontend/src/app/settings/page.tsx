@@ -17,8 +17,8 @@ const RISK_PROFILES = [
     icon: "🛡️",
     description: "Preserve capital. Few trades, high conviction only.",
     details: "30% invested · 3% stop · 75% confidence · 3/day",
-    border: "border-emerald-800", bg: "bg-emerald-900/20",
-    activeBorder: "border-emerald-500", activeBg: "bg-emerald-900/40", ring: "ring-emerald-500",
+    border: "border-pos/30", bg: "bg-pos/10",
+    activeBorder: "border-pos", activeBg: "bg-pos/15", ring: "ring-emerald-500",
   },
   {
     id: "moderate" as const,
@@ -208,7 +208,7 @@ export default function SettingsPage() {
       {feedback && (
         <div className={`mb-4 rounded-lg px-4 py-3 text-sm ${
           feedback.type === "saved"
-            ? "border border-emerald-800 bg-emerald-950/30 text-accent"
+            ? "border border-pos/30 bg-pos/10 text-accent"
             : "border border-neg/30 bg-neg/10 text-neg"
         }`}>
           {feedback.message}
@@ -216,7 +216,7 @@ export default function SettingsPage() {
       )}
 
       {/* Trading Goal */}
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="bz-glass p-6">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-primary">Trading Goal</h2>
           <Tip text="This is the most important setting. It tells the AI what you're trying to achieve — steady income, maximum growth, or just matching the market. The goal determines which stocks Claude considers and how aggressively it trades." />
@@ -234,7 +234,7 @@ export default function SettingsPage() {
                 disabled={saving}
                 className={`rounded-xl border p-4 text-left transition-all ${
                   isActive
-                    ? "border-emerald-500 bg-emerald-900/30 ring-1 ring-emerald-500"
+                    ? "border-pos bg-pos/15 ring-1 ring-emerald-500"
                     : "border-border bg-surface hover:border-border-strong"
                 } disabled:opacity-50`}
               >
@@ -255,7 +255,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Timeline Goal */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+      <div className="mt-6 bz-glass p-6">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-primary">Timeline Goal</h2>
           <Tip text="Set a dollar target and date. The AI will factor this into its urgency — if you're behind schedule, it'll look harder for opportunities. Leave blank to disable." />
@@ -273,7 +273,7 @@ export default function SettingsPage() {
                 placeholder="e.g. 500"
                 value={guardrails.target_amount ?? ""}
                 onChange={(e) => setGuardrails({ ...guardrails, target_amount: e.target.value ? Number(e.target.value) : null })}
-                className="w-full rounded-lg border border-border-strong bg-card-alt py-2.5 pl-7 pr-3 text-sm text-primary placeholder-muted transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full rounded-lg border border-border-strong bg-card-alt py-2.5 pl-7 pr-3 text-sm text-primary placeholder-muted transition-colors focus:border-pos focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
           </div>
@@ -283,7 +283,7 @@ export default function SettingsPage() {
               type="date"
               value={guardrails.target_date ?? ""}
               onChange={(e) => setGuardrails({ ...guardrails, target_date: e.target.value || null })}
-              className="mt-1.5 w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2.5 text-sm text-primary transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="mt-1.5 w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2.5 text-sm text-primary transition-colors focus:border-pos focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
         </div>
@@ -295,14 +295,14 @@ export default function SettingsPage() {
         <button
           onClick={() => handleUpdate({ target_amount: guardrails.target_amount, target_date: guardrails.target_date })}
           disabled={saving}
-          className="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-emerald-700 disabled:opacity-50"
+          className="mt-4 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-accent disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save Goal"}
         </button>
       </div>
 
       {/* Trading Frequency */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+      <div className="mt-6 bz-glass p-6">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-primary">Trading Frequency</h2>
           <Tip text="How often the bot analyzes the market and makes decisions. 1x/day is calm and conservative. 5x/day is active — more chances to catch opportunities but also more trading costs." />
@@ -333,7 +333,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Risk Profile */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+      <div className="mt-6 bz-glass p-6">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-primary">Risk Profile</h2>
           <Tip text="How much risk you're comfortable with. Conservative = small positions, strict limits, rarely trades. Aggressive = larger positions, looser limits, trades more often. This overrides the fine-tune settings below with preset values." />
@@ -368,7 +368,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Fine-Tune Guardrails */}
-      <form onSubmit={handleSave} className="mt-6 rounded-xl border border-border bg-card p-6">
+      <form onSubmit={handleSave} className="mt-6 bz-glass p-6">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-primary">Fine-Tune Guardrails</h2>
           <Tip text="Guardrails are safety limits that prevent the bot from doing anything too risky. Even if Claude wants to make a big trade, guardrails can block it. Think of them as guard rails on a highway — they keep you from going off the edge." />
@@ -404,7 +404,7 @@ export default function SettingsPage() {
         </div>
         <div className="mt-6 flex items-center gap-4">
           <button type="submit" disabled={saving}
-            className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-accent disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save Guardrails"}
           </button>
@@ -414,7 +414,7 @@ export default function SettingsPage() {
       </form>
 
       {/* Kill Switch */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+      <div className="mt-6 bz-glass p-6">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-primary">Emergency Controls</h2>
           <Tip text="The kill switch immediately stops ALL automated trading. The bot won't buy or sell anything until you turn it back off. Use this if something seems wrong or you want to pause trading." />
@@ -429,7 +429,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Manual Run */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+      <div className="mt-6 bz-glass p-6">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-primary">Manual Trigger</h2>
           <span className="rounded bg-amber-900/30 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-400">
@@ -481,7 +481,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Alpaca Account */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+      <div className="mt-6 bz-glass p-6">
         <h2 className="text-lg font-semibold text-primary">Broker Account</h2>
         <p className="mt-1 text-sm text-muted">
           Manage your Alpaca account, deposit/withdraw funds, and view order history
@@ -505,7 +505,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Display Timezone */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-6">
+      <div className="mt-6 bz-glass p-6">
         <h2 className="text-lg font-semibold text-primary">Display Timezone</h2>
         <p className="mt-1 text-sm text-muted">
           All dates and times across the app will display in this timezone
@@ -517,7 +517,7 @@ export default function SettingsPage() {
               setTz(e.target.value);
               setTimezone(e.target.value);
             }}
-            className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2.5 text-sm text-primary focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="w-full rounded-lg border border-border-strong bg-card-alt px-3 py-2.5 text-sm text-primary focus:border-pos focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             <option value="America/New_York">Eastern (ET)</option>
             <option value="America/Chicago">Central (CT)</option>
@@ -552,7 +552,7 @@ function Field({ label, prefix, suffix, value, onChange, ...inputProps }: {
       <div className="relative mt-1.5">
         {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">{prefix}</span>}
         <input {...inputProps} value={value} onChange={(e) => onChange(e.target.value)}
-          className={`w-full rounded-lg border border-border-strong bg-card-alt py-2.5 text-sm text-primary placeholder-zinc-500 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
+          className={`w-full rounded-lg border border-border-strong bg-card-alt py-2.5 text-sm text-primary placeholder-muted transition-colors focus:border-pos focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
             prefix ? "pl-7 pr-3" : suffix ? "pl-3 pr-7" : "px-3"
           }`}
         />

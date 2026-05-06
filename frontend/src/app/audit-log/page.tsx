@@ -23,7 +23,7 @@ const SEVERITY_STYLES = {
 };
 
 const TYPE_STYLES: Record<string, string> = {
-  trade: "text-emerald-400",
+  trade: "text-pos",
   guardrail: "text-amber-400",
   auth: "text-blue-400",
   config: "text-purple-400",
@@ -85,7 +85,7 @@ export default function AuditLogPage() {
           <Spinner />
         </div>
       ) : entries.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-8 text-center">
+        <div className="bz-glass p-8 text-center">
           <p className="text-muted">No audit entries yet</p>
         </div>
       ) : (

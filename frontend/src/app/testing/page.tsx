@@ -254,20 +254,20 @@ export default function TestingPage() {
 
       {/* Summary cards */}
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="bz-glass p-4">
           <p className="text-xs text-muted">Total Tests</p>
           <p className="mt-1 text-2xl font-bold text-primary">{totalTests}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="bz-glass p-4">
           <p className="text-xs text-muted">Test Suites</p>
           <p className="mt-1 text-2xl font-bold text-primary">{totalSuites}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="bz-glass p-4">
           <p className="text-xs text-muted">Categories</p>
           <p className="mt-1 text-2xl font-bold text-accent">{implemented} active</p>
           <p className="mt-0.5 text-[10px] text-muted">{planned} planned</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="bz-glass p-4">
           <p className="text-xs text-muted">Run Time</p>
           <p className="mt-1 text-2xl font-bold text-primary">~5s</p>
           <p className="mt-0.5 text-[10px] text-muted">full suite</p>
@@ -275,7 +275,7 @@ export default function TestingPage() {
       </div>
 
       {/* Test types explained */}
-      <div className="mb-8 rounded-xl border border-border bg-card p-6">
+      <div className="mb-8 bz-glass p-6">
         <h2 className="text-lg font-semibold text-primary">Unit vs E2E Tests</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="rounded-lg border border-border bg-surface p-4">
@@ -306,7 +306,7 @@ export default function TestingPage() {
       </div>
 
       {/* Automation */}
-      <div className="mb-8 rounded-xl border border-border bg-card p-6">
+      <div className="mb-8 bz-glass p-6">
         <h2 className="text-lg font-semibold text-primary">Automation</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -339,7 +339,7 @@ export default function TestingPage() {
       </div>
 
       {/* Commands */}
-      <div className="mb-8 rounded-xl border border-border bg-card p-6">
+      <div className="mb-8 bz-glass p-6">
         <h2 className="text-lg font-semibold text-primary">Commands</h2>
         <div className="mt-4 space-y-2">
           {COMMANDS.map((c) => (
@@ -356,7 +356,7 @@ export default function TestingPage() {
 
       {/* Test suites detail */}
       {Object.entries(TESTS).map(([category, info]) => (
-        <div key={category} className="mb-6 rounded-xl border border-border bg-card">
+        <div key={category} className="mb-6 bz-glass">
           <div className="border-b border-border px-6 py-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-primary">{category}</h2>
@@ -381,7 +381,7 @@ export default function TestingPage() {
                 <div key={suite.file} className="px-6 py-3">
                   <div className="flex items-center justify-between">
                     <code className="text-xs text-accent">{suite.file}</code>
-                    <span className="rounded bg-emerald-900/30 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                    <span className="rounded bg-pos/15 px-2 py-0.5 text-[10px] font-medium text-pos">
                       {suite.tests} tests
                     </span>
                   </div>

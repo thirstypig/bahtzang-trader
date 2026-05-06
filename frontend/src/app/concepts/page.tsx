@@ -18,7 +18,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   exploring: { bg: "bg-amber-900/30", text: "text-amber-400" },
   planned: { bg: "bg-blue-900/30", text: "text-blue-400" },
   building: { bg: "bg-purple-900/30", text: "text-purple-400" },
-  shipped: { bg: "bg-emerald-900/30", text: "text-emerald-400" },
+  shipped: { bg: "bg-pos/15", text: "text-pos" },
 };
 
 function useTabs(defaultTab: TabKey = "strategic") {
@@ -82,7 +82,7 @@ export default function ConceptsPage() {
             {tab.label}
             <span className="ml-1.5 text-[10px] text-muted">{tabCounts[tab.key]}</span>
             {activeTab === tab.key && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pos" />
             )}
           </button>
         ))}
@@ -118,7 +118,7 @@ function ConceptCard({ concept }: { concept: Concept }) {
   return (
     <div
       id={concept.id}
-      className="rounded-xl border border-border bg-card p-5 transition-colors hover:border-border-strong"
+      className="bz-glass p-5 transition-colors hover:border-border-strong"
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-sm font-semibold text-primary">{concept.title}</h3>

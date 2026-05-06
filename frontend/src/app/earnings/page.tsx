@@ -43,7 +43,7 @@ export default function EarningsPage() {
   function proximityColor(days: number) {
     if (days <= 1) return "bg-red-500/10 border-red-500/20 text-red-400";
     if (days <= 3) return "bg-amber-500/10 border-amber-500/20 text-amber-400";
-    return "bg-emerald-500/10 border-emerald-500/20 text-accent";
+    return "bg-pos/10 border-pos/20 text-accent";
   }
 
   function proximityBadge(days: number) {
@@ -99,14 +99,14 @@ export default function EarningsPage() {
 
       {/* Summary cards */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="bz-glass p-6">
           <p className="text-xs text-muted">This Week</p>
           <p className="mt-2 text-3xl font-bold text-primary">
             {thisWeek.length}
           </p>
           <p className="mt-1 text-xs text-muted">earnings reports</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="bz-glass p-6">
           <p className="text-xs text-muted">Tomorrow / Today</p>
           <p
             className={`mt-2 text-3xl font-bold ${
@@ -119,14 +119,14 @@ export default function EarningsPage() {
             {tomorrow.length > 0 ? "position sizes reduced" : "all clear"}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="bz-glass p-6">
           <p className="text-xs text-muted">Total Tracked</p>
           <p className="mt-2 text-3xl font-bold text-accent">
             {earnings.length}
           </p>
           <p className="mt-1 text-xs text-muted">next 30 days</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="bz-glass p-6">
           <p className="text-xs text-muted">Next Report</p>
           <p className="mt-2 text-3xl font-bold text-primary">
             {nearest ? nearest.symbol : "—"}
@@ -141,7 +141,7 @@ export default function EarningsPage() {
 
       {/* Empty state */}
       {earnings.length === 0 && (
-        <div className="rounded-xl border border-border bg-card p-12 text-center">
+        <div className="bz-glass p-12 text-center">
           <p className="text-sm text-secondary">
             No upcoming earnings found. Click &quot;Refresh Data&quot; to fetch
             earnings for your current holdings from Finnhub.
