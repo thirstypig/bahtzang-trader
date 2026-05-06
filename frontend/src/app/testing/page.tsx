@@ -61,6 +61,36 @@ const TESTS = {
         tests: 4,
         covers: "Trade logging to DB, field persistence, None price for holds, blocked trades",
       },
+      {
+        file: "tests/test_allowed_emails.py",
+        tests: 5,
+        covers: "ALLOWED_EMAIL CSV parser: single/multi, whitespace, case-insensitive, empty segments",
+      },
+      {
+        file: "tests/forex/test_zones.py",
+        tests: 7,
+        covers: "Pivot detection (5-bar, strict <), single-linkage clustering (0.5%), zone construction",
+      },
+      {
+        file: "tests/forex/test_patterns.py",
+        tests: 10,
+        covers: "Bullish/bearish pin bar (2× wick / 0.5× opposing), body-engulfing, doji rejection",
+      },
+      {
+        file: "tests/forex/test_engine.py",
+        tests: 8,
+        covers: "quote_to_usd USD-quote/base, bracket exit precedence (SL > TP > zone-break), synthetic E2E",
+      },
+      {
+        file: "tests/forex/test_early_exit.py",
+        tests: 12,
+        covers: "Phase 1b dynamic management: progress vs time_band modes, R-unit math, min_bars gating",
+      },
+      {
+        file: "tests/forex/test_data.py",
+        tests: 10,
+        covers: "yfinance cache (hit/miss/partial/stale), upsert dedup, weekly W-FRI resample aggregation",
+      },
     ],
   },
   "Backend Integration Tests": {
@@ -109,6 +139,11 @@ const TESTS = {
         file: "tests/test_todos_routes.py",
         tests: 16,
         covers: "Todo CRUD with JSON persistence isolation, status filter, validation, 422/404 handling",
+      },
+      {
+        file: "tests/forex/test_routes.py",
+        tests: 6,
+        covers: "Forex backtest CRUD, validation (date order, unknown symbol), background runner stub",
       },
     ],
   },
