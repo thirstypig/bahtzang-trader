@@ -71,7 +71,7 @@ export default function NewPlanPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-800 bg-red-950/30 px-4 py-3 text-sm text-red-400">
+        <div className="mb-4 rounded-lg border border-neg/30 bg-neg/10 px-4 py-3 text-sm text-neg">
           {error}
         </div>
       )}

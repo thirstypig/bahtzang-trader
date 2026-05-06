@@ -42,7 +42,7 @@ export default function PlanEquityCurve({ planId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-xl border border-border bg-card">
+      <div className="flex h-64 items-center justify-center bz-glass">
         <p className="text-sm text-muted">Loading equity curve...</p>
       </div>
     );
@@ -50,15 +50,15 @@ export default function PlanEquityCurve({ planId }: Props) {
 
   if (error) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-xl border border-red-800 bg-red-950/30 p-6 text-center">
-        <p className="text-sm text-red-400">Failed to load equity curve: {error}</p>
+      <div className="flex h-64 items-center justify-center rounded-xl border border-neg/30 bg-neg/10 p-6 text-center">
+        <p className="text-sm text-neg">Failed to load equity curve: {error}</p>
       </div>
     );
   }
 
   if (snapshots.length < 2) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-xl border border-border bg-card">
+      <div className="flex h-64 items-center justify-center bz-glass">
         <p className="text-sm text-muted">
           Need at least 2 snapshots for equity curve ({snapshots.length}/2)
         </p>
@@ -72,7 +72,7 @@ export default function PlanEquityCurve({ planId }: Props) {
   }));
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="bz-glass p-5">
       <h3 className="mb-4 text-sm font-semibold text-primary">
         Plan Equity Curve
       </h3>
@@ -80,18 +80,18 @@ export default function PlanEquityCurve({ planId }: Props) {
         <AreaChart data={data}>
           <defs>
             <linearGradient id={`planEquityGrad-${planId}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+              <stop offset="0%" stopColor="rgb(var(--pos))" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="rgb(var(--pos))" stopOpacity={0} />
             </linearGradient>
           </defs>
           <XAxis
             dataKey="date"
-            tick={{ fill: "#71717a", fontSize: 10 }}
-            axisLine={{ stroke: "#3f3f46" }}
+            tick={{ fill: "rgb(var(--text-muted))", fontSize: 10 }}
+            axisLine={{ stroke: "rgb(var(--border-strong) / 0.35)" }}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: "#71717a", fontSize: 10 }}
+            tick={{ fill: "rgb(var(--text-muted))", fontSize: 10 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v: number) =>
@@ -100,8 +100,8 @@ export default function PlanEquityCurve({ planId }: Props) {
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#18181b",
-              border: "1px solid #3f3f46",
+              backgroundColor: "rgb(var(--card))",
+              border: "1px solid rgb(var(--border-strong) / 0.35)",
               borderRadius: 8,
               fontSize: 12,
             }}
@@ -111,7 +111,7 @@ export default function PlanEquityCurve({ planId }: Props) {
           <Area
             dataKey="total_value"
             name="Total Value"
-            stroke="#10b981"
+            stroke="rgb(var(--pos))"
             strokeWidth={2}
             fill={`url(#planEquityGrad-${planId})`}
             dot={false}

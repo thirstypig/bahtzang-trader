@@ -55,24 +55,18 @@ export default function BotStatusBanner() {
   const isHalted = status.kill_switch;
 
   return (
-    <div
-      className={`mb-6 rounded-xl border p-4 ${
-        isHalted
-          ? "border-red-800 bg-red-950/20"
-          : "border-emerald-800/50 bg-emerald-950/10"
-      }`}
-    >
+    <div className="bz-glass mb-6 p-4">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         {/* Status indicator */}
         <div className="flex items-center gap-2">
           <div
             className={`h-2.5 w-2.5 rounded-full ${
-              isHalted ? "bg-red-500" : "bg-emerald-500 animate-pulse"
+              isHalted ? "bg-neg" : "bg-pos animate-pulse"
             }`}
           />
           <span
             className={`text-sm font-semibold ${
-              isHalted ? "text-red-400" : "text-accent"
+              isHalted ? "text-neg" : "text-pos"
             }`}
           >
             {isHalted ? "Bot Halted" : "Bot Active"}
@@ -89,7 +83,7 @@ export default function BotStatusBanner() {
         <div className="text-xs text-secondary">
           <span className="text-muted">Goal:</span>{" "}
           {GOAL_CONFIG[status.trading_goal as keyof typeof GOAL_CONFIG]?.label || status.trading_goal}
-          <span className="mx-1 text-zinc-700">·</span>
+          <span className="mx-1 text-muted">·</span>
           <span className="text-muted">Risk:</span>{" "}
           <span className="capitalize">{status.risk_profile}</span>
         </div>

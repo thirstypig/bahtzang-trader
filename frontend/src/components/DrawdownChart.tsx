@@ -18,7 +18,7 @@ interface Props {
 export default function DrawdownChart({ snapshots }: Props) {
   if (snapshots.length < 2) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-xl border border-border bg-card">
+      <div className="flex h-48 items-center justify-center bz-glass">
         <p className="text-sm text-muted">
           Need at least 2 snapshots for drawdown chart ({snapshots.length}/2)
         </p>
@@ -37,41 +37,41 @@ export default function DrawdownChart({ snapshots }: Props) {
   });
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="bz-glass p-5">
       <h3 className="mb-4 text-sm font-semibold text-primary">Drawdown</h3>
       <ResponsiveContainer width="100%" height={200}>
         <AreaChart data={data}>
           <defs>
             <linearGradient id="drawdownGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4} />
-              <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+              <stop offset="5%" stopColor="rgb(var(--neg))" stopOpacity={0.4} />
+              <stop offset="95%" stopColor="rgb(var(--neg))" stopOpacity={0} />
             </linearGradient>
           </defs>
           <XAxis
             dataKey="date"
-            tick={{ fill: "#71717a", fontSize: 10 }}
-            axisLine={{ stroke: "#3f3f46" }}
+            tick={{ fill: "rgb(var(--text-muted))", fontSize: 10 }}
+            axisLine={{ stroke: "rgb(var(--border-strong) / 0.35)" }}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: "#71717a", fontSize: 10 }}
+            tick={{ fill: "rgb(var(--text-muted))", fontSize: 10 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => `${v}%`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#18181b",
-              border: "1px solid #3f3f46",
+              backgroundColor: "rgb(var(--card))",
+              border: "1px solid rgb(var(--border-strong) / 0.35)",
               borderRadius: 8,
               fontSize: 12,
             }}
             formatter={(value) => [`${Number(value).toFixed(2)}%`, "Drawdown"]}
           />
-          <ReferenceLine y={0} stroke="#3f3f46" />
+          <ReferenceLine y={0} stroke="rgb(var(--border-strong) / 0.35)" />
           <Area
             dataKey="drawdown"
-            stroke="#ef4444"
+            stroke="rgb(var(--neg))"
             fill="url(#drawdownGrad)"
             type="monotone"
           />

@@ -65,7 +65,7 @@ describe("ConfirmModal", () => {
     render(<ConfirmModal {...defaultProps} onCancel={onCancel} />);
 
     // The backdrop is the first fixed inset-0 div with onClick={onCancel}
-    const backdrop = document.querySelector(".bg-black\\/60");
+    const backdrop = document.querySelector(".bg-black\\/40");
     expect(backdrop).toBeTruthy();
     await user.click(backdrop!);
     expect(onCancel).toHaveBeenCalledTimes(1);

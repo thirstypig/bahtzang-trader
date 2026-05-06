@@ -15,7 +15,7 @@ const STATUS_STYLES: Record<string, { dot: string; text: string; label: string }
 };
 
 const PRIORITY_STYLES: Record<string, string> = {
-  p0: "bg-red-900/40 text-red-400 border-red-800",
+  p0: "bg-neg/15 text-neg border-neg/30",
   p1: "bg-amber-900/30 text-amber-400 border-amber-800",
   p2: "bg-blue-900/30 text-blue-400 border-blue-800",
   p3: "bg-card-alt text-muted border-border-strong",
@@ -25,7 +25,7 @@ const CATEGORY_STYLES: Record<string, string> = {
   "analytics-setup": "text-emerald-400",
   infrastructure: "text-blue-400",
   "trading-brain": "text-purple-400",
-  "risk-management": "text-red-400",
+  "risk-management": "text-neg",
   content: "text-amber-400",
   "code-quality": "text-secondary",
 };
@@ -317,7 +317,7 @@ function TodoRow({
           )}
 
           <div className="mt-3 border-t border-border/50 pt-3">
-            <button onClick={onDelete} className="text-[10px] text-red-500 hover:text-red-400">
+            <button onClick={onDelete} className="text-[10px] text-red-500 hover:text-neg">
               Delete task
             </button>
           </div>

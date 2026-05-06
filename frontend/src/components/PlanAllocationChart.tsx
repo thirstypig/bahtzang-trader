@@ -10,7 +10,7 @@ interface Props {
   onSliceClick?: (planId: number) => void;
 }
 
-const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+const COLORS = ["rgb(var(--pos))", "#3b82f6", "#f59e0b", "rgb(var(--neg))", "#8b5cf6", "#ec4899"];
 
 function PlanAllocationChart({ plans, onSliceClick }: Props) {
   const { data, totalBudget } = useMemo(() => {
@@ -31,7 +31,7 @@ function PlanAllocationChart({ plans, onSliceClick }: Props) {
   if (plans.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="bz-glass p-5">
       <h3 className="mb-4 text-sm font-semibold text-primary">Budget Allocation</h3>
       <div className="flex items-center gap-6">
         <div className="relative h-48 w-48 shrink-0">
@@ -54,8 +54,8 @@ function PlanAllocationChart({ plans, onSliceClick }: Props) {
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#18181b",
-                  border: "1px solid #3f3f46",
+                  backgroundColor: "rgb(var(--card))",
+                  border: "1px solid rgb(var(--border-strong) / 0.35)",
                   borderRadius: 8,
                   fontSize: 12,
                 }}

@@ -18,7 +18,7 @@ interface Props {
 export default function EquityCurveChart({ snapshots }: Props) {
   if (snapshots.length < 2) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-xl border border-border bg-card">
+      <div className="flex h-64 items-center justify-center bz-glass">
         <p className="text-sm text-muted">
           Need at least 2 snapshots for equity curve ({snapshots.length}/2)
         </p>
@@ -38,45 +38,45 @@ export default function EquityCurveChart({ snapshots }: Props) {
   }));
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="bz-glass p-5">
       <h3 className="mb-4 text-sm font-semibold text-primary">Equity Curve vs SPY</h3>
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data}>
           <XAxis
             dataKey="date"
-            tick={{ fill: "#71717a", fontSize: 10 }}
-            axisLine={{ stroke: "#3f3f46" }}
+            tick={{ fill: "rgb(var(--text-muted))", fontSize: 10 }}
+            axisLine={{ stroke: "rgb(var(--border-strong) / 0.35)" }}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: "#71717a", fontSize: 10 }}
+            tick={{ fill: "rgb(var(--text-muted))", fontSize: 10 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => `${v}%`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#18181b",
-              border: "1px solid #3f3f46",
+              backgroundColor: "rgb(var(--card))",
+              border: "1px solid rgb(var(--border-strong) / 0.35)",
               borderRadius: 8,
               fontSize: 12,
             }}
             formatter={(value) => [`${Number(value).toFixed(2)}%`]}
           />
           <Legend
-            wrapperStyle={{ fontSize: 11, color: "#a1a1aa" }}
+            wrapperStyle={{ fontSize: 11, color: "rgb(var(--text-secondary))" }}
           />
           <Line
             dataKey="portfolio"
             name="Portfolio"
-            stroke="#10b981"
+            stroke="rgb(var(--pos))"
             strokeWidth={2}
             dot={false}
           />
           <Line
             dataKey="spy"
             name="SPY"
-            stroke="#a1a1aa"
+            stroke="rgb(var(--text-secondary))"
             strokeWidth={1.5}
             strokeDasharray="4 2"
             dot={false}

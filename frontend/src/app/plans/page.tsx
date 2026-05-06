@@ -83,7 +83,7 @@ export default function PlansPage() {
       </div>
 
       {error && (
-        <div className="mb-6 rounded-xl border border-red-800 bg-red-950/30 p-6 text-red-400">
+        <div className="mb-6 rounded-xl border border-neg/30 bg-neg/10 p-6 text-neg">
           Failed to load plans: {error}
         </div>
       )}
@@ -188,7 +188,7 @@ export default function PlansPage() {
 
                   <button
                     onClick={(e) => { e.preventDefault(); setDeleteTarget(plan); }}
-                    className="mt-3 text-[10px] text-muted transition-colors hover:text-red-400"
+                    className="mt-3 text-[10px] text-muted transition-colors hover:text-neg"
                   >
                     Delete
                   </button>

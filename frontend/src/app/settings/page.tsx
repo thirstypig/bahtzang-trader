@@ -209,7 +209,7 @@ export default function SettingsPage() {
         <div className={`mb-4 rounded-lg px-4 py-3 text-sm ${
           feedback.type === "saved"
             ? "border border-emerald-800 bg-emerald-950/30 text-accent"
-            : "border border-red-800 bg-red-950/30 text-red-400"
+            : "border border-neg/30 bg-neg/10 text-neg"
         }`}>
           {feedback.message}
         </div>
@@ -409,7 +409,7 @@ export default function SettingsPage() {
             {saving ? "Saving..." : "Save Guardrails"}
           </button>
           {feedback?.type === "saved" && <span className="text-sm text-accent">{feedback.message}</span>}
-          {feedback?.type === "error" && <span className="text-sm text-red-400">{feedback.message}</span>}
+          {feedback?.type === "error" && <span className="text-sm text-neg">{feedback.message}</span>}
         </div>
       </form>
 
@@ -455,17 +455,17 @@ export default function SettingsPage() {
             )}
           </button>
           {guardrails.kill_switch && (
-            <p className="mt-2 text-xs text-red-400">Kill switch active — disable first</p>
+            <p className="mt-2 text-xs text-neg">Kill switch active — disable first</p>
           )}
           {runResult && (
             <div className={`mt-4 rounded-lg px-4 py-3 ${
               runResult.startsWith("ERROR")
-                ? "border border-red-800 bg-red-950/30"
+                ? "border border-neg/30 bg-neg/10"
                 : "bg-surface"
             }`}>
               {runResult.startsWith("ERROR") ? (
                 <>
-                  <p className="text-sm font-medium text-red-400">
+                  <p className="text-sm font-medium text-neg">
                     {runResult.split("]: ")[0]}]
                   </p>
                   <p className="mt-1 text-sm text-secondary">

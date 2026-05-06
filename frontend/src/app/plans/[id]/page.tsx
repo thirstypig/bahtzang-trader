@@ -70,7 +70,7 @@ export default function PlanDetailPage() {
         <button onClick={() => router.push("/plans")} className="mb-4 text-xs text-muted transition-colors hover:text-secondary">
           &larr; Back to Plans
         </button>
-        <div className="rounded-xl border border-red-800 bg-red-950/30 p-6 text-red-400">
+        <div className="rounded-xl border border-neg/30 bg-neg/10 p-6 text-neg">
           Failed to load: {error}
         </div>
       </div>
@@ -192,20 +192,20 @@ export default function PlanDetailPage() {
 
           {runResult && (
             <div className={`mb-6 rounded-xl px-4 py-3 text-sm ${
-              runResult.startsWith("Error") ? "border border-red-800 bg-red-950/30 text-red-400" : "bg-surface text-secondary"
+              runResult.startsWith("Error") ? "border border-neg/30 bg-neg/10 text-neg" : "bg-surface text-secondary"
             }`}>
               {runResult}
             </div>
           )}
 
           {toggleError && (
-            <div className="mb-6 rounded-xl border border-red-800 bg-red-950/30 px-4 py-3 text-sm text-red-400">
+            <div className="mb-6 rounded-xl border border-neg/30 bg-neg/10 px-4 py-3 text-sm text-neg">
               Failed to toggle plan: {toggleError}
             </div>
           )}
 
           {exportError && (
-            <div className="mb-6 rounded-xl border border-red-800 bg-red-950/30 px-4 py-3 text-sm text-red-400">
+            <div className="mb-6 rounded-xl border border-neg/30 bg-neg/10 px-4 py-3 text-sm text-neg">
               Failed to export CSV: {exportError}
             </div>
           )}

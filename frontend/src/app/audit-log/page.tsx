@@ -19,7 +19,7 @@ interface AuditEntry {
 const SEVERITY_STYLES = {
   info: "text-blue-400 bg-blue-900/20",
   warning: "text-amber-400 bg-amber-900/20",
-  error: "text-red-400 bg-red-900/20",
+  error: "text-neg bg-red-900/20",
 };
 
 const TYPE_STYLES: Record<string, string> = {

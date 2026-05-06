@@ -78,14 +78,14 @@ describe("TradeTable", () => {
     render(<TradeTable trades={[makeTrade({ action: "buy" })]} />);
     const badge = screen.getByText("buy");
     expect(badge).toBeInTheDocument();
-    expect(badge.className).toContain("bg-emerald-900/40");
+    expect(badge.className).toContain("bg-pos/15");
   });
 
   it("renders SELL action with correct text and color", () => {
     render(<TradeTable trades={[makeTrade({ action: "sell" })]} />);
     const badge = screen.getByText("sell");
     expect(badge).toBeInTheDocument();
-    expect(badge.className).toContain("bg-red-900/40");
+    expect(badge.className).toContain("bg-neg/15");
   });
 
   it("renders HOLD action with correct text and color", () => {

@@ -17,10 +17,10 @@ interface AllocationChartProps {
 }
 
 const COLORS = [
-  "#10b981",
+  "rgb(var(--pos))",
   "#3b82f6",
   "#f59e0b",
-  "#ef4444",
+  "rgb(var(--neg))",
   "#8b5cf6",
   "#ec4899",
   "#14b8a6",
@@ -42,14 +42,14 @@ export default function AllocationChart({
 
   if (data.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-xl border border-border bg-card p-6">
+      <div className="flex h-64 items-center justify-center bz-glass p-6">
         <p className="text-sm text-muted">No positions to chart</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="bz-glass p-6">
       <h2 className="text-sm font-medium text-secondary">
         Portfolio Allocation
       </h2>
@@ -75,15 +75,15 @@ export default function AllocationChart({
             </Pie>
             <Tooltip
               contentStyle={{
-                backgroundColor: "#18181b",
-                border: "1px solid #3f3f46",
+                backgroundColor: "rgb(var(--card))",
+                border: "1px solid rgb(var(--border-strong) / 0.35)",
                 borderRadius: "8px",
                 fontSize: "12px",
               }}
               formatter={(value) => formatCurrency(Number(value))}
             />
             <Legend
-              wrapperStyle={{ fontSize: "12px", color: "#a1a1aa" }}
+              wrapperStyle={{ fontSize: "12px", color: "rgb(var(--text-secondary))" }}
             />
           </PieChart>
         </ResponsiveContainer>

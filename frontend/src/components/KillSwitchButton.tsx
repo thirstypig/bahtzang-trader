@@ -36,10 +36,10 @@ export default function KillSwitchButton({
   if (isActive) {
     return (
       <>
-        <div className="flex items-center justify-between rounded-xl border border-red-900/50 bg-red-950/30 px-6 py-4">
+        <div className="flex items-center justify-between rounded-xl border border-neg/30 bg-neg/10 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="h-3 w-3 animate-pulse rounded-full bg-red-500" />
-            <span className="font-semibold text-red-400">
+            <div className="h-3 w-3 animate-pulse rounded-full bg-neg" />
+            <span className="font-semibold text-neg">
               Kill Switch Active — All Trading Halted
             </span>
           </div>
@@ -69,7 +69,7 @@ export default function KillSwitchButton({
       <button
         onClick={() => setShowModal(true)}
         disabled={loading}
-        className="rounded-xl bg-red-600 px-8 py-4 text-lg font-bold text-primary shadow-lg shadow-red-900/30 transition-all hover:bg-red-700 hover:shadow-red-900/50 active:scale-95 disabled:opacity-50"
+        className="rounded-xl bg-neg px-8 py-4 text-lg font-bold text-white shadow-lg shadow-neg/30 transition-all hover:opacity-90 hover:shadow-neg/50 active:scale-95 disabled:opacity-50"
       >
         {loading ? "Activating..." : "KILL SWITCH"}
       </button>

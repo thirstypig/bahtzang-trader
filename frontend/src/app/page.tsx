@@ -53,8 +53,8 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-7xl px-6 py-8">
-        <div className="rounded-xl border border-red-900/50 bg-red-950/20 p-6">
-          <p className="text-red-400">{error}</p>
+        <div className="rounded-xl border border-neg/30 bg-neg/10 p-6">
+          <p className="text-neg">{error}</p>
           <p className="mt-2 text-sm text-muted">
             Make sure the backend is running at{" "}
             {process.env.NEXT_PUBLIC_API_URL || "http://localhost:4060"}

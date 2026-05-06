@@ -20,7 +20,7 @@ export default function PortfolioCard({
   const isPositive = dailyPnL >= 0;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="bz-glass p-6">
       <div className="flex items-center gap-2">
         <h2 className="text-sm font-medium text-secondary">Portfolio Summary</h2>
         <Tip text="Your portfolio is the total of all your investments plus uninvested cash. This updates in real-time from your Alpaca brokerage account." />

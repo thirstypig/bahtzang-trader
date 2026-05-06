@@ -24,9 +24,9 @@ const COLUMNS: { key: SortKey; label: string; className?: string; tip?: string }
 ];
 
 const ACTION_BADGE: Record<string, string> = {
-  buy: "bg-emerald-900/40 text-accent",
-  sell: "bg-red-900/40 text-red-400",
-  hold: "bg-card-alt text-secondary",
+  buy: "bg-pos/15 text-pos",
+  sell: "bg-neg/15 text-neg",
+  hold: "bg-card-alt/40 text-secondary",
 };
 
 export default function TradeTable({ trades }: TradeTableProps) {
@@ -159,7 +159,7 @@ function ConfidenceBar({ value }: { value: number | null }) {
     <div className="flex items-center gap-2">
       <div className="h-1.5 w-16 overflow-hidden rounded-full bg-card-alt">
         <div
-          className="h-full rounded-full bg-emerald-500"
+          className="h-full rounded-full bg-pos"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -190,7 +190,7 @@ function GuardrailBadge({
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-red-400" title={reason || ""}>
+    <span className="inline-flex items-center gap-1 text-xs text-neg" title={reason || ""}>
       <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
         <path
           fillRule="evenodd"

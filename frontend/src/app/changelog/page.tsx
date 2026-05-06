@@ -4,7 +4,7 @@ import CrossLink from "@/components/CrossLink";
 
 const TYPE_STYLES: Record<string, string> = {
   feat: "bg-blue-900/30 text-blue-400",
-  fix: "bg-red-900/30 text-red-400",
+  fix: "bg-neg/15 text-neg",
   docs: "bg-amber-900/30 text-amber-400",
   perf: "bg-emerald-900/30 text-emerald-400",
   refactor: "bg-purple-900/30 text-purple-400",

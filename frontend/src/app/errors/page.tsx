@@ -84,11 +84,11 @@ export default function ErrorsPage() {
               <button
                 onClick={() => handleSelectError(err.ref)}
                 className={`w-full rounded-xl border bg-card px-5 py-3 text-left transition-colors hover:border-border-strong ${
-                  selectedRef === err.ref ? "border-red-800" : "border-border"
+                  selectedRef === err.ref ? "border-neg/30" : "border-border"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="shrink-0 rounded bg-red-900/40 px-2 py-0.5 text-[10px] font-bold text-red-400 font-mono">
+                  <span className="shrink-0 rounded bg-neg/15 px-2 py-0.5 text-[10px] font-bold text-neg font-mono">
                     {err.ref}
                   </span>
                   <span className="shrink-0 rounded bg-card-alt px-2 py-0.5 text-[10px] font-semibold uppercase text-secondary">
@@ -130,7 +130,7 @@ export default function ErrorsPage() {
                           <span className="text-secondary">{new Date(detail.timestamp).toLocaleString("en-US", { timeZone: getTimezone() })}</span>
                         </div>
                       </div>
-                      <p className="mb-3 text-sm text-red-400">{detail.message}</p>
+                      <p className="mb-3 text-sm text-neg">{detail.message}</p>
                       <details open>
                         <summary className="cursor-pointer text-xs text-muted hover:text-secondary">
                           Stack Trace

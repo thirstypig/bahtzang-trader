@@ -15,7 +15,7 @@ export default function ConfirmModal({
   title,
   message,
   confirmLabel = "Confirm",
-  confirmClassName = "bg-red-600 hover:bg-red-700",
+  confirmClassName = "bg-neg hover:opacity-90",
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -23,8 +23,8 @@ export default function ConfirmModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/60" onClick={onCancel} />
-      <div className="relative z-10 w-full max-w-md rounded-xl border border-border-strong bg-card p-6 shadow-2xl">
+      <div className="fixed inset-0 bg-black/40" onClick={onCancel} />
+      <div className="bz-glass-strong relative z-10 w-full max-w-md p-6">
         <h3 className="text-lg font-semibold text-primary">{title}</h3>
         <p className="mt-2 text-sm text-secondary">{message}</p>
         <div className="mt-6 flex justify-end gap-3">

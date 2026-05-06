@@ -25,15 +25,15 @@ function cleanReasoning(text: string | null): string {
 }
 
 const ACTION_STYLES = {
-  buy: "bg-emerald-900/40 text-accent border-emerald-800",
-  sell: "bg-red-900/40 text-red-400 border-red-800",
-  hold: "bg-card-alt text-secondary border-border-strong",
+  buy: "bg-pos/15 text-pos border border-pos/30",
+  sell: "bg-neg/15 text-neg border border-neg/30",
+  hold: "bg-card-alt/40 text-secondary border border-border-strong/30",
 };
 
 export default function DecisionCard({ trade }: DecisionCardProps) {
   if (!trade) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="bz-glass p-6">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-medium text-secondary">
             Claude&apos;s Last Decision
@@ -49,7 +49,7 @@ export default function DecisionCard({ trade }: DecisionCardProps) {
   const confidencePct = ((trade.confidence || 0) * 100).toFixed(0);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="bz-glass p-6">
       <div className="flex items-start justify-between">
         <h2 className="text-sm font-medium text-secondary">
           Claude&apos;s Last Decision
@@ -61,7 +61,7 @@ export default function DecisionCard({ trade }: DecisionCardProps) {
 
       <div className="mt-4 flex items-center gap-3">
         <span
-          className={`rounded-md border px-3 py-1 text-sm font-semibold uppercase ${style}`}
+          className={`rounded-md px-3 py-1 text-sm font-semibold uppercase ${style}`}
         >
           {trade.action}
         </span>
@@ -80,7 +80,7 @@ export default function DecisionCard({ trade }: DecisionCardProps) {
           <span className="flex items-center gap-1 text-xs text-muted">Confidence <Tip text="How sure the AI is about its decision, from 0% to 100%. Higher confidence means stronger conviction. Trades below the minimum confidence threshold (set in Settings) are blocked." /></span>
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-card-alt">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all"
+              className="h-full rounded-full bg-pos transition-all"
               style={{ width: `${confidencePct}%` }}
             />
           </div>
@@ -91,7 +91,7 @@ export default function DecisionCard({ trade }: DecisionCardProps) {
       </div>
 
       {trade.claude_reasoning && (
-        <div className="mt-4 rounded-lg bg-surface p-4">
+        <div className="bz-glass-soft mt-4 p-4">
           <p className="text-xs font-medium text-muted">Reasoning</p>
           <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-secondary">
             {cleanReasoning(trade.claude_reasoning)}
@@ -100,8 +100,8 @@ export default function DecisionCard({ trade }: DecisionCardProps) {
       )}
 
       {!trade.guardrail_passed && trade.guardrail_block_reason && (
-        <div className="mt-3 rounded-lg border border-red-900/50 bg-red-950/20 px-4 py-3">
-          <p className="text-xs font-medium text-red-400">
+        <div className="mt-3 rounded-lg border border-neg/30 bg-neg/10 px-4 py-3">
+          <p className="text-xs font-medium text-neg">
             Blocked: {trade.guardrail_block_reason}
           </p>
         </div>

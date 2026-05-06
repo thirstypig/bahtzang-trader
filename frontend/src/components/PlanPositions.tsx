@@ -35,7 +35,7 @@ export default function PlanPositions({ planId }: PlanPositionsProps) {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-border bg-card">
+      <div className="bz-glass">
         <div className="border-b border-border px-6 py-4">
           <h2 className="font-semibold text-primary">Virtual Positions</h2>
         </div>
@@ -46,7 +46,7 @@ export default function PlanPositions({ planId }: PlanPositionsProps) {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-border bg-card">
+      <div className="bz-glass">
         <div className="border-b border-border px-6 py-4">
           <h2 className="font-semibold text-primary">Virtual Positions</h2>
         </div>
@@ -61,7 +61,7 @@ export default function PlanPositions({ planId }: PlanPositionsProps) {
   const totalPnlPct = totalCostBasis > 0 ? (totalPnl / totalCostBasis) * 100 : 0;
 
   return (
-    <div className="rounded-xl border border-border bg-card">
+    <div className="bz-glass">
       <div className="border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-primary">Virtual Positions</h2>

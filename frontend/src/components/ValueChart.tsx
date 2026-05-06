@@ -40,14 +40,14 @@ export default function ValueChart({ trades }: ValueChartProps) {
 
   if (data.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-xl border border-border bg-card p-6">
+      <div className="flex h-64 items-center justify-center bz-glass p-6">
         <p className="text-sm text-muted">No trade history to chart</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="bz-glass p-6">
       <h2 className="text-sm font-medium text-secondary">
         Portfolio Value Over Time
       </h2>
@@ -56,27 +56,27 @@ export default function ValueChart({ trades }: ValueChartProps) {
           <AreaChart data={data}>
             <defs>
               <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                <stop offset="5%" stopColor="rgb(var(--pos))" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="rgb(var(--pos))" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border-strong) / 0.25)" />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11, fill: "#71717a" }}
-              axisLine={{ stroke: "#3f3f46" }}
+              tick={{ fontSize: 11, fill: "rgb(var(--text-muted))" }}
+              axisLine={{ stroke: "rgb(var(--border-strong) / 0.35)" }}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "#71717a" }}
-              axisLine={{ stroke: "#3f3f46" }}
+              tick={{ fontSize: 11, fill: "rgb(var(--text-muted))" }}
+              axisLine={{ stroke: "rgb(var(--border-strong) / 0.35)" }}
               tickLine={false}
               tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#18181b",
-                border: "1px solid #3f3f46",
+                backgroundColor: "rgb(var(--card))",
+                border: "1px solid rgb(var(--border-strong) / 0.35)",
                 borderRadius: "8px",
                 fontSize: "12px",
               }}
@@ -85,7 +85,7 @@ export default function ValueChart({ trades }: ValueChartProps) {
             <Area
               type="monotone"
               dataKey="value"
-              stroke="#10b981"
+              stroke="rgb(var(--pos))"
               strokeWidth={2}
               fill="url(#valueGradient)"
             />
