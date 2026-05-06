@@ -68,13 +68,16 @@
     --scrollbar-thumb: 60 68 98;
     --scrollbar-hover: 100 110 140;
 
-    --glass-tint:     255 255 255;
-    --glass-a1:       0.10;
-    --glass-a2:       0.04;
+    /* Dark glass uses a NAVY tint (not white) so frosted surfaces read
+       as opaque chrome against the vivid radial backdrops. White edge
+       highlights are layered on top via border + inset shadow. */
+    --glass-tint:     18 24 48;
+    --glass-a1:       0.55;
+    --glass-a2:       0.40;
     --glass-border:   255 255 255;
-    --glass-border-a: 0.18;
-    --glass-inset:    0.18;
-    --glass-shadow:   0.30;
+    --glass-border-a: 0.16;
+    --glass-inset:    0.14;
+    --glass-shadow:   0.40;
   }
 }
 
