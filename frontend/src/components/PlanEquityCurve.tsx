@@ -66,8 +66,6 @@ export default function PlanEquityCurve({ planId }: Props) {
     );
   }
 
-  const firstValue = snapshots[0].total_value;
-
   const data = snapshots.map((s) => ({
     date: s.date.slice(5), // "MM-DD"
     total_value: s.total_value,

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { getPlans, deletePlan } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { InvestmentPlan, TradingGoal } from "@/lib/types";
+import { InvestmentPlan } from "@/lib/types";
 import { GOAL_CONFIG } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import Spinner from "@/components/Spinner";

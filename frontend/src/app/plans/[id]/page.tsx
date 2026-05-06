@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getPlan, updatePlan, runPlan, exportPlanTradesCsv } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { InvestmentPlan, Trade, TradingGoal } from "@/lib/types";
+import { InvestmentPlan, Trade } from "@/lib/types";
 import { GOAL_CONFIG } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import Spinner from "@/components/Spinner";
