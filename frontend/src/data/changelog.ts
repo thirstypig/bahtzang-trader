@@ -10,6 +10,60 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.18.0",
+    date: "2026-05-06",
+    roadmapLink: "/roadmap#guardrails-asymmetry-fix",
+    changes: [
+      { type: "fix", title: "Coerce zero-qty buy/sell decisions to holds before validation — eliminates 82% of audit-log block noise" },
+      { type: "fix", title: "Plan executor now passes total_invested + orders_used_today to Claude prompt — closes the cash-asymmetry that produced 'Insufficient plan cash $0.21 < $99' blocks" },
+      { type: "fix", title: "Coerce buy/sell with bad price (0/null/negative) to hold before validation — clean audit trail when symbol lookup fails" },
+      { type: "feat", title: "USAGE/HEADROOM block in Claude prompt: effective_buy_ceiling = min(cash, max_single, invest_headroom) precomputed for both global trader and plan executor" },
+      { type: "feat", title: "Compound doc: zero-qty trades pollute audit log — diagnostic process captured for future LLM-input/validation pipelines" },
+      { type: "docs", title: "Roadmap, todos, CLAUDE.md File Structure all synced with shipped work — 22 done items, 2 planned" },
+    ],
+  },
+  {
+    version: "0.17.0",
+    date: "2026-05-06",
+    roadmapLink: "/roadmap#liquid-glass-ui",
+    changes: [
+      { type: "feat", title: "Liquid-glass redesign: top-bar mega-menu replaces sidebar; vivid radial-gradient backdrops with frosted glass cards" },
+      { type: "feat", title: "Two themes (light pastel + dark navy) — both use the glass language; prefers-reduced-transparency fallback for accessibility" },
+      { type: "feat", title: "Login page redesigned with glass card + brand gradient wordmark" },
+      { type: "feat", title: ".bz-glass / .bz-glass-soft / .bz-glass-strong utility classes for opt-in glass surfaces" },
+      { type: "fix", title: "Dark-mode glass tint switched from white→navy (white at 10% alpha was invisible over dark backdrop; navy at 55% alpha reads as proper frosted dark glass)" },
+      { type: "fix", title: "Mega-menu .bz-glass → .bz-glass-strong matches nav weight; hover/active states use accent tokens (theme-aware)" },
+      { type: "fix", title: "60+ instances of border-border bg-card → .bz-glass; 22 emerald CTAs → bg-accent; Recharts hex literals → CSS-var theme tokens" },
+      { type: "fix", title: "Login bug: bg-surface on outer wrapper killed the body backdrop — now removed so vivid backdrop reaches glass cards" },
+    ],
+  },
+  {
+    version: "0.16.0",
+    date: "2026-05-06",
+    roadmapLink: "/roadmap#shared-access",
+    changes: [
+      { type: "feat", title: "Forex backtest tool — independent swing-zone strategy backtester (Phase F+, isolated from Claude trader)" },
+      { type: "feat", title: "Forex backend module: zones (5-bar pivots + 0.5% clustering), patterns (pin bar + body engulfing), engine (bracket SL/TP + zone-break + early-exit), yfinance data + DB cache" },
+      { type: "feat", title: "Forex frontend page: configuration form persisted to localStorage, runs list, equity-curve chart, trades log" },
+      { type: "feat", title: "Forex CLI: python -m app.forex.cli for headless backtests" },
+      { type: "feat", title: "Multi-email allow-list — ALLOWED_EMAIL accepts CSV (case-insensitive, whitespace-tolerant) for shared dashboard access" },
+      { type: "fix", title: "CI lint: added npx next lint to .github/workflows/test.yml — prevents the 2-week silent-rot recurrence documented in deployment-issues" },
+      { type: "fix", title: "Pre-existing flaky day-trade test anchored to noon UTC (was failing in early-morning UTC due to midnight-straddle timestamps)" },
+      { type: "fix", title: "Cleared 3 stale ESLint errors that had silently blocked Railway frontend deploys for 2 weeks" },
+      { type: "docs", title: "Compound doc: Railway frontend silent deploy failure (ESLint rot, CI drift)" },
+    ],
+  },
+  {
+    version: "0.15.0",
+    date: "2026-04-22",
+    changes: [
+      { type: "fix", title: "Compliance timezone fixes for SQLite tests" },
+      { type: "fix", title: "CI: Node 18 → 22" },
+      { type: "docs", title: "Compound doc: Supabase batch SQL silent migration failure — backend crash before CORS headers" },
+      { type: "docs", title: "/now TLDR rewritten for non-technical readers; CLAUDE.md status blurb synced" },
+    ],
+  },
+  {
     version: "0.14.0",
     date: "2026-04-19",
     roadmapLink: "/roadmap#testing-infra",

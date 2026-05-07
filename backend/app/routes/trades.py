@@ -2,9 +2,11 @@
 
 import csv
 import io
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.auth import require_auth
@@ -73,6 +75,71 @@ def get_trades_summary(
         }
         for t in trades
     ]
+
+
+@router.get("/trades/block-stats")
+def get_block_stats(
+    days: int = Query(14, ge=1, le=90),
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
+    """Aggregate guardrail-block reasons over the last N days.
+
+    Used to verify that recent fixes (zero-qty coercion, headroom prompt)
+    actually reduced the dominant block reasons in production. Replaces
+    the manual Supabase SQL query in the verify-block-rate-drop todo.
+
+    Returns a list of {reason, count, last_seen} sorted by count desc, plus
+    a totals summary.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    rows = (
+        db.query(
+            Trade.guardrail_block_reason,
+            func.count().label("count"),
+            func.max(Trade.timestamp).label("last_seen"),
+        )
+        .filter(
+            Trade.guardrail_passed.is_(False),
+            Trade.timestamp >= cutoff,
+            Trade.guardrail_block_reason.isnot(None),
+        )
+        .group_by(Trade.guardrail_block_reason)
+        .order_by(func.count().desc())
+        .all()
+    )
+
+    total_blocks = sum(r.count for r in rows)
+    total_executed = (
+        db.query(func.count())
+        .select_from(Trade)
+        .filter(Trade.executed.is_(True), Trade.timestamp >= cutoff)
+        .scalar()
+    )
+    total_decisions = (
+        db.query(func.count())
+        .select_from(Trade)
+        .filter(Trade.timestamp >= cutoff)
+        .scalar()
+    )
+
+    return {
+        "window_days": days,
+        "since": cutoff.isoformat(),
+        "total_decisions": total_decisions,
+        "total_executed": total_executed,
+        "total_blocked": total_blocks,
+        "block_rate_pct": round(100 * total_blocks / total_decisions, 2) if total_decisions else 0,
+        "by_reason": [
+            {
+                "reason": r.guardrail_block_reason,
+                "count": r.count,
+                "last_seen": r.last_seen.isoformat() if r.last_seen else None,
+            }
+            for r in rows
+        ],
+    }
 
 
 @router.get("/trades/export")
