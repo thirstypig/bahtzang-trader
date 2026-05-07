@@ -1,3 +1,5 @@
+import unicodedata
+
 from pydantic_settings import BaseSettings
 
 
@@ -14,8 +16,14 @@ class Settings(BaseSettings):
 
     @property
     def allowed_emails(self) -> list[str]:
-        """Parsed allow-list. Lowercased for case-insensitive comparison."""
-        return [e.strip().lower() for e in self.ALLOWED_EMAIL.split(",") if e.strip()]
+        """Parsed allow-list. NFKC-normalized + casefolded for safe comparison
+        across Unicode lookalikes / homoglyphs (defense in depth — Google OAuth
+        normalizes already, but the gate doesn't trust upstream)."""
+        return [
+            unicodedata.normalize("NFKC", e).strip().casefold()
+            for e in self.ALLOWED_EMAIL.split(",")
+            if e.strip()
+        ]
     CORS_ORIGINS: str = "http://localhost:3060"  # comma-separated
     ALPACA_API_KEY: str = ""
     ALPACA_SECRET_KEY: str = ""

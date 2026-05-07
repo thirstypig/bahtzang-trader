@@ -111,18 +111,20 @@ def get_block_stats(
     )
 
     total_blocks = sum(r.count for r in rows)
+    # `.scalar()` can return None on some DB backends with no rows — coalesce
+    # to 0 so the ratio calc below doesn't TypeError on None comparison.
     total_executed = (
         db.query(func.count())
         .select_from(Trade)
         .filter(Trade.executed.is_(True), Trade.timestamp >= cutoff)
         .scalar()
-    )
+    ) or 0
     total_decisions = (
         db.query(func.count())
         .select_from(Trade)
         .filter(Trade.timestamp >= cutoff)
         .scalar()
-    )
+    ) or 0
 
     return {
         "window_days": days,

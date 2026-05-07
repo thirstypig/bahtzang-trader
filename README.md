@@ -43,9 +43,9 @@ AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. 
 bahtzang-trader/
 ├── frontend/                # Next.js 14 (App Router)
 │   └── src/
-│       ├── app/             # 18 pages (dashboard, trades, plans, analytics, backtest, etc.)
-│       ├── components/      # Reusable UI (Sidebar, ThemeToggle, charts, etc.)
-│       ├── lib/             # API client, auth, theme, sidebar, Supabase, types
+│       ├── app/             # 18 pages (dashboard, trades, plans, analytics, backtest, forex, etc.)
+│       ├── components/      # Reusable UI (TopNav, ThemeToggle, charts, KillSwitchButton, etc.)
+│       ├── lib/             # API client, auth, theme, Supabase, types
 │       └── data/            # Static data (roadmap, changelog, concepts)
 ├── backend/                 # Python FastAPI
 │   └── app/
@@ -90,7 +90,8 @@ bahtzang-trader/
 | `/docs` | Documentation links (GitHub, Swagger, Supabase, Railway) |
 | `/plans` | Investment plans — pie-style portfolio slices with independent budgets |
 | `/plans/[id]` | Plan detail — positions, equity curve, trade history, run/export |
-| `/testing` | Test inventory, execution cadence, 297 tests (229 backend + 68 frontend) |
+| `/forex` | Independent swing-zone strategy backtester (separate from Claude trader) |
+| `/testing` | Test inventory, execution cadence, 382 tests (309 backend + 73 frontend) |
 | `/concepts` | Feature concepts — tabbed: Strategic/SEO/Integrations/UX |
 | `/login` | Google Sign-In via Supabase |
 
@@ -139,12 +140,12 @@ npm run dev:backend      # http://localhost:4060
 
 ## Testing
 
-297 tests (229 backend + 68 frontend), all passing in ~5s. Pre-commit hook + GitHub Actions CI.
+382 tests (309 backend + 73 frontend), all passing in ~5s. Pre-commit hook + GitHub Actions CI runs `next lint` too.
 
 ```bash
 npm test                   # Run all tests (backend + frontend)
-npm run test:backend       # pytest (42 unit + 6 integration)
-npm run test:frontend      # Vitest + Testing Library (31 tests)
+npm run test:backend       # pytest (309 tests, ~3s)
+npm run test:frontend      # Vitest + Testing Library (73 tests, ~3s)
 npm run test:backend:cov   # Backend with coverage report
 ```
 

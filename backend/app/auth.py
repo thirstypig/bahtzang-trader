@@ -1,4 +1,5 @@
 import logging
+import unicodedata
 
 import jwt
 from jwt import PyJWKClient
@@ -59,7 +60,9 @@ def require_auth(
     email = payload.get("email", "")
     logger.info("Authenticated: %s", email)
 
-    if email.lower() not in settings.allowed_emails:
+    # NFKC-normalize before compare — `allowed_emails` does the same on the
+    # env value side, so homoglyph emails can't slip past via lookalike chars.
+    if unicodedata.normalize("NFKC", email).casefold() not in settings.allowed_emails:
         logger.warning("Unauthorized email: %s", email)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

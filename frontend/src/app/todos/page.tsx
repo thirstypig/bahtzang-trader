@@ -349,7 +349,7 @@ function AddTaskForm({
   }
 
   return (
-    <div className="mb-4 rounded-xl border border-pos/30 bg-card p-5">
+    <div className="bz-glass mb-4 p-5">
       <div className="mb-3 flex items-center gap-2">
         <div className="h-2.5 w-2.5 rounded-full bg-pos" />
         <span className="text-sm font-medium text-pos">New Task</span>

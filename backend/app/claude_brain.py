@@ -154,7 +154,9 @@ async def get_trade_decision(
     max_positions = int(safe_config.get("max_positions", 0) or 0)
     min_confidence = float(safe_config.get("min_confidence", 0.6) or 0.6)
 
-    invest_headroom = max(0.0, max_total_invested - total_invested) if max_total_invested else 0.0
+    # Round to cents so float subtraction doesn't produce a phantom ~1e-10
+    # of "headroom" when total_invested ≈ max_total_invested.
+    invest_headroom = round(max(0.0, max_total_invested - total_invested), 2) if max_total_invested else 0.0
     orders_remaining = max(0, daily_order_limit - orders_used_today) if daily_order_limit else 0
     position_slots_open = max(0, max_positions - len(positions)) if max_positions else 0
     # Effective single-trade ceiling is whichever of (cash, max_single, invest_headroom) is smallest
@@ -203,10 +205,22 @@ async def get_trade_decision(
         prompt_parts.append(f"NEWS ({len(news)} items):")
         prompt_parts.append(json.dumps(news[:5]))  # Top 5 news items
 
-    # Timeline goal context
-    target_amount = guardrails_config.get("target_amount")
-    target_date = guardrails_config.get("target_date")
-    if target_amount and target_date:
+    # Timeline goal context — both fields are coerced/validated before
+    # interpolation as defense-in-depth against prompt injection. Pydantic
+    # validators on GuardrailsUpdate already enforce shape at the route
+    # boundary; this is the second line.
+    target_amount_raw = guardrails_config.get("target_amount")
+    target_date_raw = guardrails_config.get("target_date")
+    target_amount: float | None = None
+    target_date: str | None = None
+    if target_amount_raw is not None:
+        try:
+            target_amount = float(target_amount_raw)
+        except (TypeError, ValueError):
+            target_amount = None
+    if target_date_raw is not None and re.match(r"^\d{4}-\d{2}-\d{2}$", str(target_date_raw)):
+        target_date = str(target_date_raw)
+    if target_amount and target_amount > 0 and target_date:
         prompt_parts.append("")
         prompt_parts.append(
             f"TIMELINE GOAL: Grow portfolio to ${target_amount:,.0f} by {target_date}. "

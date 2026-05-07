@@ -120,11 +120,14 @@ def _evaluate_exit(pos: Position, bar: pd.Series) -> tuple[float | None, str | N
     low = float(bar["low"])
     close = float(bar["close"])
 
+    # Pessimistic SL-first ordering: when both SL and TP are hit in the same
+    # bar (without intraday data we can't tell which fired first), prefer SL
+    # — that's the conservative assumption. The `if sl_hit and tp_hit` branch
+    # was removed because it returned the same value as the bare `if sl_hit`
+    # below; the ordering already encodes the preference.
     if pos.direction == "long":
         sl_hit = low <= pos.stop_loss
         tp_hit = high >= pos.take_profit
-        if sl_hit and tp_hit:
-            return pos.stop_loss, "stop_loss"
         if sl_hit:
             return pos.stop_loss, "stop_loss"
         if tp_hit:
@@ -134,8 +137,6 @@ def _evaluate_exit(pos: Position, bar: pd.Series) -> tuple[float | None, str | N
     else:
         sl_hit = high >= pos.stop_loss
         tp_hit = low <= pos.take_profit
-        if sl_hit and tp_hit:
-            return pos.stop_loss, "stop_loss"
         if sl_hit:
             return pos.stop_loss, "stop_loss"
         if tp_hit:

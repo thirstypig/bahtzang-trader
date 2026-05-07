@@ -16,33 +16,20 @@ from unittest.mock import patch
 import app.models  # noqa: F401
 
 
-# We test the coercion logic by replicating it on a decision dict — same
-# code is inlined in both trade_executor.py and plans/executor.py. Tests
-# pin the behavior so future refactors can't quietly regress it.
+# Test the actual extracted helpers in app/decision_coercion.py — both
+# executors now call into these. Previously we tested mirrors of the inline
+# logic, which left the real call sites unverified.
+
+from app.decision_coercion import coerce_zero_qty_to_hold, coerce_bad_price_to_hold
 
 
 def _coerce_zero_qty(decision: dict) -> dict:
-    """Mirror of the per-decision coercion in both executors."""
-    if decision.get("action") in ("buy", "sell") and (decision.get("quantity") or 0) <= 0:
-        decision["action"] = "hold"
-        decision["quantity"] = 0
-        decision["reasoning"] = (
-            f"{decision.get('reasoning', '')} "
-            f"[Coerced to hold — Claude returned qty={decision.get('quantity', 0)}]"
-        ).strip()
+    coerce_zero_qty_to_hold(decision)
     return decision
 
 
 def _coerce_bad_price(decision: dict, price) -> dict:
-    """Mirror of the price-coercion branch."""
-    if decision["ticker"] and decision["action"] != "hold":
-        if not price or price <= 0:
-            decision["action"] = "hold"
-            decision["quantity"] = 0
-            decision["reasoning"] = (
-                f"{decision.get('reasoning', '')} "
-                f"[Coerced to hold — price lookup failed for {decision['ticker']}]"
-            ).strip()
+    coerce_bad_price_to_hold(decision, price)
     return decision
 
 

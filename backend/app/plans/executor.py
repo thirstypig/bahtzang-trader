@@ -8,6 +8,7 @@ from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app import claude_brain, guardrails, market_data, notifier
+from app.decision_coercion import coerce_bad_price_to_hold, coerce_zero_qty_to_hold
 from app.pipeline_types import CycleResult
 from app.earnings.client import days_until_earnings, format_earnings_csv
 from app.circuit_breaker import check_circuit_breakers, RED
@@ -165,24 +166,12 @@ async def _execute_plan_cycle(
     # 071-fix: Convert Decimal to float — executor uses float arithmetic throughout
     remaining_cash = float(plan.virtual_cash)
 
+    plan_log_prefix = f"Plan {plan.id}: "
+
     for decision in decisions:
-        # Coerce zero-value buys/sells to holds BEFORE validation. Claude
-        # sometimes returns {"action": "buy", "quantity": 0} (semantically a
-        # hold) and our parser default also fills in quantity=0 if Claude
-        # omits it. Either way, sending these to guardrails just produces
-        # "$0.00 below $1 minimum" noise in the audit log without revealing
-        # any real intent. Surface as a hold with a clear reason instead.
-        if decision.get("action") in ("buy", "sell") and (decision.get("quantity") or 0) <= 0:
-            logger.info(
-                "Plan %d: coercing %s with qty=%s to hold",
-                plan.id, decision.get("action"), decision.get("quantity"),
-            )
-            decision["action"] = "hold"
-            decision["quantity"] = 0
-            decision["reasoning"] = (
-                f"{decision.get('reasoning', '')} "
-                f"[Coerced to hold — Claude returned qty={decision.get('quantity', 0)}]"
-            ).strip()
+        # Coerce degenerate decisions to holds BEFORE validation —
+        # see app/decision_coercion.py for rationale.
+        coerce_zero_qty_to_hold(decision, log_prefix=plan_log_prefix)
 
         price = None
         if decision["ticker"] and decision["action"] != "hold":
@@ -194,22 +183,8 @@ async def _execute_plan_cycle(
                 price = quote["price"]
             decision["price"] = price
 
-            # Coerce buy/sell with bad price to hold (price=0 means lookup failed
-            # or symbol is exotic — letting it through validates against $0 trade
-            # value, polluting the audit log).
-            if not price or price <= 0:
-                logger.warning(
-                    "Plan %d: coercing %s %s to hold — price=%s",
-                    plan.id, decision["action"], decision["ticker"], price,
-                )
-                decision["action"] = "hold"
-                decision["quantity"] = 0
-                decision["reasoning"] = (
-                    f"{decision.get('reasoning', '')} "
-                    f"[Coerced to hold — price lookup failed for {decision['ticker']}]"
-                ).strip()
+            if coerce_bad_price_to_hold(decision, price, log_prefix=plan_log_prefix):
                 price = None
-                decision.pop("price", None)
 
             # Position sizing
             if decision["action"] == "buy" and price:

@@ -34,8 +34,8 @@ npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
-npm run test:backend     # pytest (48 tests, ~2.5s)
-npm run test:frontend    # Vitest (31 tests, ~1.5s)
+npm run test:backend     # pytest (309 tests, ~3s)
+npm run test:frontend    # Vitest (73 tests, ~3s)
 npm run test:backend:cov # Backend with coverage report
 ```
 
@@ -189,7 +189,7 @@ frontend/
       earnings/       # /earnings (upcoming earnings calendar, color-coded proximity)
       plans/          # /plans (investment plan list + /plans/[id] detail + /plans/new)
       forex/          # /forex (independent swing-zone backtest UI — for non-engineer collaborator)
-      testing/        # /testing (test inventory, execution cadence, 379 tests)
+      testing/        # /testing (test inventory, execution cadence, 382 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       error.tsx       # Error boundary with retry
@@ -207,7 +207,6 @@ frontend/
       constants.ts    # Shared constants (GOAL_CONFIG — single source of truth for trading goals)
       auth.tsx        # AuthProvider, useAuth hook
       theme.tsx       # ThemeProvider, useTheme hook (light/dark, localStorage)
-      sidebar.tsx     # SidebarProvider, useSidebar hook (expanded/collapsed state)
       supabase.ts     # Lazy Supabase client singleton
       types.ts        # TypeScript interfaces
       utils.ts        # formatCurrency, formatDateTime
@@ -229,10 +228,12 @@ frontend/
 
 ### Design System
 - Light/dark theme toggle — persisted in localStorage, respects system preference
-- Semantic color tokens via CSS custom properties: `bg-surface`, `bg-card`, `bg-card-alt`, `text-primary`, `text-secondary`, `text-muted`, `border-border`, `text-accent`
-- Collapsible left sidebar navigation (Core / Trading / Admin sections)
-- Never use hardcoded zinc-*/slate-* for theme colors — use semantic tokens instead
-- Brand colors (`bg-emerald-600`, `bg-red-*`) are fine as-is (not theme-dependent)
+- Liquid Glass design system: vivid radial-gradient body backdrop + frosted-glass cards via `.bz-glass` / `.bz-glass-soft` / `.bz-glass-strong` utility classes; `prefers-reduced-transparency` swaps to solid surfaces
+- Light theme uses white tint over pastel backdrop; dark theme uses NAVY tint over saturated dark backdrop (white at low alpha disappears over dark — see `docs/solutions/ui-bugs/`)
+- Semantic color tokens via CSS custom properties: `bg-card`, `bg-card-alt`, `text-primary`, `text-secondary`, `text-muted`, `border-border`, `text-accent`, `text-pos`, `text-neg`, `bg-pos`, `bg-neg`, `bg-accent-2`
+- Top-bar mega-menu navigation (TopNav.tsx) — Core / Trading / Forex / Admin groups
+- Never use hardcoded zinc-*/slate-* for theme colors — use semantic tokens or `.bz-glass*` utilities
+- Body must remain the painted layer behind glass cards — don't paint a background-color on `<main>`, wrappers, or anything between body and `.bz-glass`
 
 ### Code Patterns
 - All API calls go through `fetchAPI()` in `lib/api.ts`
@@ -248,7 +249,7 @@ frontend/
 ### Testing
 - Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
 - Frontend: Vitest + @testing-library/react + jsdom
-- 297 total tests (229 backend + 68 frontend), ~5s full suite
+- 382 total tests (309 backend + 73 frontend), ~5s full suite
 - Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
 - Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
 - Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)

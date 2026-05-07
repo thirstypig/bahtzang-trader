@@ -83,8 +83,8 @@ export default function ErrorsPage() {
             <div key={err.ref}>
               <button
                 onClick={() => handleSelectError(err.ref)}
-                className={`w-full rounded-xl border bg-card px-5 py-3 text-left transition-colors hover:border-border-strong ${
-                  selectedRef === err.ref ? "border-neg/30" : "border-border"
+                className={`bz-glass-soft w-full px-5 py-3 text-left transition-colors hover:opacity-90 ${
+                  selectedRef === err.ref ? "ring-1 ring-neg/30" : ""
                 }`}
               >
                 <div className="flex items-center gap-3">

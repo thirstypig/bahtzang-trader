@@ -76,6 +76,12 @@ async def add_cache_headers(request: Request, call_next):
             response.headers["Cache-Control"] = "private, max-age=300"
         elif path.startswith("/plans") and "/run" not in path and "/export" not in path:
             response.headers["Cache-Control"] = "private, max-age=60"
+        elif path == "/forex/symbols":
+            response.headers["Cache-Control"] = "private, max-age=86400"
+        elif path == "/forex/backtests":
+            response.headers["Cache-Control"] = "private, max-age=60"
+        # Skip caching /forex/backtests/{id} — that endpoint is polled while
+        # a backtest is running; caching would freeze the status display.
         elif path == "/guardrails/presets":
             response.headers["Cache-Control"] = "private, max-age=86400"
     return response

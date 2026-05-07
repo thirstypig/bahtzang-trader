@@ -64,6 +64,37 @@ const NAV: NavGroup[] = [
   },
 ];
 
+/* ── Reusable item-card (used by both desktop mega-menu + mobile sheet) ── */
+
+interface NavItemCardProps {
+  item: NavItem;
+  active: boolean;
+  role?: "menuitem";
+}
+
+function NavItemCard({ item, active, role }: NavItemCardProps) {
+  return (
+    <Link
+      href={item.href}
+      role={role}
+      aria-current={active ? "page" : undefined}
+      className={`group flex items-start gap-3 rounded-xl p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+        active ? "bg-accent/15 ring-1 ring-accent/30" : "hover:bg-accent/8"
+      }`}
+    >
+      <span className={`mt-0.5 ${active ? "text-accent" : "text-muted group-hover:text-secondary"}`}>
+        {item.icon}
+      </span>
+      <span className="min-w-0">
+        <span className={`block text-sm font-medium ${active ? "text-accent" : "text-primary"}`}>
+          {item.label}
+        </span>
+        <span className="block text-xs text-muted">{item.description}</span>
+      </span>
+    </Link>
+  );
+}
+
 /* ── Component ─────────────────────────────────────────── */
 
 export default function TopNav() {
@@ -243,32 +274,14 @@ export default function TopNav() {
             className="bz-glass-strong absolute inset-x-0 top-full mx-auto mt-2 max-w-7xl !rounded-2xl"
           >
             <div className="grid grid-cols-1 gap-1 p-3 sm:grid-cols-2 lg:grid-cols-3">
-              {currentGroup.items.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    role="menuitem"
-                    aria-current={active ? "page" : undefined}
-                    className={`group flex items-start gap-3 rounded-xl p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                      active
-                        ? "bg-accent/15 ring-1 ring-accent/30"
-                        : "hover:bg-accent/8"
-                    }`}
-                  >
-                    <span className={`mt-0.5 ${active ? "text-accent" : "text-muted group-hover:text-secondary"}`}>
-                      {item.icon}
-                    </span>
-                    <span className="min-w-0">
-                      <span className={`block text-sm font-medium ${active ? "text-accent" : "text-primary"}`}>
-                        {item.label}
-                      </span>
-                      <span className="block text-xs text-muted">{item.description}</span>
-                    </span>
-                  </Link>
-                );
-              })}
+              {currentGroup.items.map((item) => (
+                <NavItemCard
+                  key={item.href}
+                  item={item}
+                  active={isActive(item.href)}
+                  role="menuitem"
+                />
+              ))}
             </div>
           </div>
         )}
@@ -295,32 +308,11 @@ export default function TopNav() {
                     {group.title}
                   </p>
                   <ul className="grid grid-cols-1 gap-1">
-                    {group.items.map((item) => {
-                      const active = isActive(item.href);
-                      return (
-                        <li key={item.href}>
-                          <Link
-                            href={item.href}
-                            aria-current={active ? "page" : undefined}
-                            className={`flex items-start gap-3 rounded-xl p-3 ${
-                              active
-                                ? "bg-accent/15 ring-1 ring-accent/30"
-                                : "hover:bg-accent/8"
-                            }`}
-                          >
-                            <span className={`mt-0.5 ${active ? "text-accent" : "text-muted"}`}>
-                              {item.icon}
-                            </span>
-                            <span className="min-w-0">
-                              <span className={`block text-sm font-medium ${active ? "text-accent" : "text-primary"}`}>
-                                {item.label}
-                              </span>
-                              <span className="block text-xs text-muted">{item.description}</span>
-                            </span>
-                          </Link>
-                        </li>
-                      );
-                    })}
+                    {group.items.map((item) => (
+                      <li key={item.href}>
+                        <NavItemCard item={item} active={isActive(item.href)} />
+                      </li>
+                    ))}
                   </ul>
                 </div>
               ))}

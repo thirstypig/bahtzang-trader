@@ -210,9 +210,9 @@ const TESTS = {
         covers: "Activate/deactivate states, API calls, loading states, cancel without API call",
       },
       {
-        file: "src/components/Sidebar.test.tsx",
-        tests: 6,
-        covers: "Nav groups (Core/Trading/Admin), all 16 links, active state, brand logo, theme toggle",
+        file: "src/components/TopNav.test.tsx",
+        tests: 11,
+        covers: "All four group triggers (Core/Trading/Forex/Admin), brand mark, mega-menu open/close, item descriptions, Esc, toggle, aria-expanded, search/notifications/theme/mobile chrome",
       },
     ],
   },
@@ -228,8 +228,8 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (229 tests)" },
-  { cmd: "npm run test:frontend", desc: "All frontend tests (68 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (309 tests)" },
+  { cmd: "npm run test:frontend", desc: "All frontend tests (73 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
   { cmd: "npm run test:backend:cov", desc: "Backend tests with coverage report" },
