@@ -63,8 +63,8 @@ const TESTS = {
       },
       {
         file: "tests/test_claude_brain_prompt.py",
-        tests: 6,
-        covers: "Headroom block in Claude prompt: invested/limit, orders used, position slots, effective buy ceiling, sizing requirement, backward-compat",
+        tests: 11,
+        covers: "Headroom block (invested, orders, position slots, effective buy ceiling, sizing, backward-compat) + timeline-goal sanitization (valid render, malformed date suppressed, uncoercible amount suppressed, zero/negative suppressed, string-numeric coerced)",
       },
       {
         file: "tests/test_zero_qty_coercion.py",
@@ -73,8 +73,8 @@ const TESTS = {
       },
       {
         file: "tests/test_allowed_emails.py",
-        tests: 5,
-        covers: "ALLOWED_EMAIL CSV parser: single/multi, whitespace, case-insensitive, empty segments",
+        tests: 7,
+        covers: "ALLOWED_EMAIL CSV parser: single/multi, whitespace, case-insensitive, empty segments, NFKC full-width normalization, Cyrillic homoglyph rejection",
       },
       {
         file: "tests/forex/test_zones.py",
