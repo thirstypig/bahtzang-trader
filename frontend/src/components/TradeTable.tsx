@@ -115,7 +115,7 @@ export default function TradeTable({ trades }: TradeTableProps) {
                     reason={trade.guardrail_block_reason}
                   />
                 </td>
-                <td className="max-w-xs truncate px-4 py-3 text-secondary" title={cleanReasoning(trade.claude_reasoning)}>
+                <td className="max-w-2xl whitespace-normal px-4 py-3 text-secondary">
                   {cleanReasoning(trade.claude_reasoning) || "—"}
                 </td>
               </tr>
