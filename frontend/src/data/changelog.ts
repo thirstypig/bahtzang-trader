@@ -10,6 +10,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.19.0",
+    date: "2026-05-06",
+    roadmapLink: "/roadmap#guardrails-asymmetry-fix",
+    changes: [
+      { type: "refactor", title: "Extracted shared decision_coercion module — both executors now call coerce_zero_qty_to_hold + coerce_bad_price_to_hold from one place; tests now exercise the real helpers instead of mirrors" },
+      { type: "security", title: "NFKC-normalize emails in ALLOWED_EMAIL allow-list (auth.py + config.py) — defense in depth against Unicode lookalike / homoglyph variants" },
+      { type: "security", title: "Sanitize target_amount + target_date before interpolating into Claude's TIMELINE GOAL prompt — prevents prompt injection if upstream guardrails config is ever compromised" },
+      { type: "feat", title: "Cache-Control headers on /forex/symbols (24h) and /forex/backtests (60s); /forex/backtests/{id} kept uncached so polling stays fresh" },
+      { type: "refactor", title: "TopNav: extracted shared <NavItemCard> for desktop mega-menu + mobile sheet (-30 LOC duplication)" },
+      { type: "fix", title: "Three legacy bg-card cards swept to .bz-glass / .bz-glass-soft — todos new-task form, errors list rows, Tip tooltips" },
+      { type: "fix", title: "Float epsilon in headroom math: round invest_headroom to cents so equality cases don't produce ~1e-10 phantom headroom" },
+      { type: "fix", title: "Removed dead 'if sl_hit and tp_hit' branch in forex/engine.py exit logic — returned same value as bare 'if sl_hit' below" },
+      { type: "fix", title: "Coalesce .scalar() results to 0 in /trades/block-stats — defends against None on edge-case backends" },
+    ],
+  },
+  {
     version: "0.18.0",
     date: "2026-05-06",
     roadmapLink: "/roadmap#guardrails-asymmetry-fix",

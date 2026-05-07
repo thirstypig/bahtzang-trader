@@ -228,7 +228,7 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (309 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (316 tests)" },
   { cmd: "npm run test:frontend", desc: "All frontend tests (73 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
@@ -325,7 +325,7 @@ export default function TestingPage() {
             <tbody className="divide-y divide-border/50">
               <tr>
                 <td className="px-3 py-2 font-mono text-accent">Pre-commit hook</td>
-                <td className="px-3 py-2 text-secondary">tsc + pytest (229) + vitest (68)</td>
+                <td className="px-3 py-2 text-secondary">tsc + pytest (291 selector) + vitest (73)</td>
                 <td className="px-3 py-2 text-muted">Every git commit (~5s)</td>
               </tr>
               <tr>

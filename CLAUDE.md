@@ -34,7 +34,7 @@ npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
-npm run test:backend     # pytest (309 tests, ~3s)
+npm run test:backend     # pytest (316 tests, ~4s)
 npm run test:frontend    # Vitest (73 tests, ~3s)
 npm run test:backend:cov # Backend with coverage report
 ```
@@ -153,7 +153,8 @@ backend/
     position_sizing.py # Quarter-Kelly with confidence^2 + earnings proximity reduction
     sector_rotation.py # 11 sector ETFs relative strength vs SPY
     technical_analysis.py # pandas-ta indicators (RSI/MACD/BB/SMA/ATR) + Alpaca Data API
-    trade_executor.py # Pipeline: gather → indicators → earnings → think → validate → act → log → notify; coerces qty<=0 / price<=0 to hold; threads usage stats to Claude prompt for headroom math
+    decision_coercion.py # Shared helpers — coerce_zero_qty_to_hold + coerce_bad_price_to_hold; called by both executors so the contract stays in one place
+    trade_executor.py # Pipeline: gather → indicators → earnings → think → coerce → validate → act → log → notify; threads usage stats to Claude prompt for headroom math
     market_data.py    # Alpha Vantage news (quotes moved to Alpaca Data API)
     scheduler.py      # Trading frequency + daily snapshot (4:05 PM) + summary (4:10 PM) + earnings refresh (7 AM) — DB calls via to_thread()
     logger.py         # Trade logging to PostgreSQL
@@ -189,7 +190,7 @@ frontend/
       earnings/       # /earnings (upcoming earnings calendar, color-coded proximity)
       plans/          # /plans (investment plan list + /plans/[id] detail + /plans/new)
       forex/          # /forex (independent swing-zone backtest UI — for non-engineer collaborator)
-      testing/        # /testing (test inventory, execution cadence, 382 tests)
+      testing/        # /testing (test inventory, execution cadence, 389 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       error.tsx       # Error boundary with retry
@@ -249,7 +250,7 @@ frontend/
 ### Testing
 - Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
 - Frontend: Vitest + @testing-library/react + jsdom
-- 382 total tests (309 backend + 73 frontend), ~5s full suite
+- 389 total tests (316 backend + 73 frontend), ~9s full suite
 - Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
 - Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
 - Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)

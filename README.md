@@ -91,7 +91,7 @@ bahtzang-trader/
 | `/plans` | Investment plans — pie-style portfolio slices with independent budgets |
 | `/plans/[id]` | Plan detail — positions, equity curve, trade history, run/export |
 | `/forex` | Independent swing-zone strategy backtester (separate from Claude trader) |
-| `/testing` | Test inventory, execution cadence, 382 tests (309 backend + 73 frontend) |
+| `/testing` | Test inventory, execution cadence, 389 tests (316 backend + 73 frontend) |
 | `/concepts` | Feature concepts — tabbed: Strategic/SEO/Integrations/UX |
 | `/login` | Google Sign-In via Supabase |
 
@@ -140,11 +140,11 @@ npm run dev:backend      # http://localhost:4060
 
 ## Testing
 
-382 tests (309 backend + 73 frontend), all passing in ~5s. Pre-commit hook + GitHub Actions CI runs `next lint` too.
+389 tests (316 backend + 73 frontend), all passing in ~5s. Pre-commit hook + GitHub Actions CI runs `next lint` too.
 
 ```bash
 npm test                   # Run all tests (backend + frontend)
-npm run test:backend       # pytest (309 tests, ~3s)
+npm run test:backend       # pytest (316 tests, ~4s)
 npm run test:frontend      # Vitest + Testing Library (73 tests, ~3s)
 npm run test:backend:cov   # Backend with coverage report
 ```
