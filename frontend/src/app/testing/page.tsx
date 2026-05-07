@@ -67,6 +67,11 @@ const TESTS = {
         covers: "Headroom block in Claude prompt: invested/limit, orders used, position slots, effective buy ceiling, sizing requirement, backward-compat",
       },
       {
+        file: "tests/test_zero_qty_coercion.py",
+        tests: 13,
+        covers: "Coerce buy/sell with qty<=0 or price<=0 to hold before validation; plan executor passes total_invested + orders_today to Claude prompt",
+      },
+      {
         file: "tests/test_allowed_emails.py",
         tests: 5,
         covers: "ALLOWED_EMAIL CSV parser: single/multi, whitespace, case-insensitive, empty segments",

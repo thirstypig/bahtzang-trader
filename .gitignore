@@ -28,3 +28,8 @@ Thumbs.db
 
 # Tooling artifacts
 .playwright-mcp/
+*.png
+*.jpg
+*.jpeg
+!frontend/public/**/*.png
+!frontend/public/**/*.jpg
