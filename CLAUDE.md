@@ -72,16 +72,18 @@ npm run test:backend:cov # Backend with coverage report
 ```
 Google → Supabase OAuth → Supabase JWT (ES256) → Bearer token in API requests
 Backend verifies via JWKS endpoint: {SUPABASE_URL}/auth/v1/.well-known/jwks.json
-Only ALLOWED_EMAIL can access (single-user app)
+ALLOWED_EMAIL accepts a single email or comma-separated list (case-insensitive, whitespace-tolerant) — shared access without full per-user data scoping
 ```
 
-### Trading Pipeline (trade_executor.py)
+### Trading Pipeline (trade_executor.py + plans/executor.py)
 ```
-Gather (Alpaca) → Earnings (Finnhub cache) → Think (Claude, 30s timeout) → Validate (guardrails) → Act (Alpaca) → Log (PostgreSQL)
+Gather (Alpaca) → Earnings (Finnhub cache) → Think (Claude, 30s timeout) → Coerce zero-value to hold → Validate (guardrails) → Act (Alpaca) → Log (PostgreSQL)
 Every decision logged — even holds and blocked trades
 Alpaca SDK calls wrapped in asyncio.to_thread() to avoid blocking the event loop
 Earnings data: position sizing reduced 50% at 0-1 days, 70% at 2 days before earnings
 Pipeline types: Position, Quote, NewsItem, TradeDecision, CycleResult (pipeline_types.py)
+Claude prompt includes a USAGE/HEADROOM block: total_invested vs max, orders_used_today vs limit, position slots, and effective_buy_ceiling = min(cash, max_single_trade, invest_headroom) — closes the information asymmetry that previously blocked trades at validation
+Coerce-before-validate: qty<=0 or price<=0 → hold (with reason preserved in audit trail)
 ```
 
 ### Investment Plans (plans/)
@@ -130,9 +132,17 @@ backend/
       routes.py       # GET /earnings, POST /earnings/refresh
     plans/            # Feature module: investment plans (pie-style portfolio slices)
       models.py       # Plan, PlanTrade, PlanSnapshot tables (FK RESTRICT/CASCADE)
-      executor.py     # Per-plan trading cycle with asyncio locks, virtual cash, fractional shares
+      executor.py     # Per-plan trading cycle with asyncio locks, virtual cash, fractional shares; coerces qty<=0 / price<=0 to hold pre-validation; threads plan-level usage to Claude prompt
       routes.py       # CRUD + run + export (advisory lock budget validation, rate-limited)
       snapshots.py    # Daily snapshot capture for equity curves
+    forex/            # Feature module: independent forex backtest tool (Phase F+)
+      models.py       # ForexBar (OHLCV cache), ForexBacktestRun (config + results)
+      zones.py        # 5-bar pivot detection + 0.5% single-linkage clustering → S/R zones
+      patterns.py     # Bullish/bearish pin bar (2× wick / 0.5× opposing) + body-engulfing
+      data.py         # yfinance fetch + DB cache (5-row tolerance) + W-FRI weekly resample
+      engine.py       # Bar-by-bar simulator: bracket SL/TP, zone-break exit, optional progress/time_band early exits
+      routes.py       # GET /forex/symbols, CRUD /forex/backtests with background runner
+      cli.py          # Standalone runner: python -m app.forex.cli
     analytics.py      # Portfolio metrics: Sharpe, Sortino, drawdown, win rate, profit factor
     pipeline_types.py # TypedDict definitions for pipeline data (Position, Quote, TradeDecision, etc.)
     claude_brain.py   # AsyncAnthropic → Claude Sonnet → CSV prompt (30s timeout) + earnings context
@@ -143,7 +153,7 @@ backend/
     position_sizing.py # Quarter-Kelly with confidence^2 + earnings proximity reduction
     sector_rotation.py # 11 sector ETFs relative strength vs SPY
     technical_analysis.py # pandas-ta indicators (RSI/MACD/BB/SMA/ATR) + Alpaca Data API
-    trade_executor.py # Pipeline: gather → indicators → earnings → think → validate → act → log → notify
+    trade_executor.py # Pipeline: gather → indicators → earnings → think → validate → act → log → notify; coerces qty<=0 / price<=0 to hold; threads usage stats to Claude prompt for headroom math
     market_data.py    # Alpha Vantage news (quotes moved to Alpaca Data API)
     scheduler.py      # Trading frequency + daily snapshot (4:05 PM) + summary (4:10 PM) + earnings refresh (7 AM) — DB calls via to_thread()
     logger.py         # Trade logging to PostgreSQL
@@ -152,10 +162,14 @@ backend/
   guardrails.json     # Default config (runtime config is in PostgreSQL)
   railway.toml        # Railway deploy config
   pytest.ini          # Test config (markers: unit, integration, e2e)
-  tests/              # Test suites (48 tests)
+  tests/              # Test suites (306 backend tests)
     conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
     plans/            # Plan model, executor, route, snapshot tests
     earnings/         # Earnings route integration tests
+    forex/            # Forex zones, patterns, engine, data, routes, early-exit tests (53 tests)
+    test_claude_brain_prompt.py  # USAGE/HEADROOM block in the Claude prompt
+    test_zero_qty_coercion.py    # Coerce qty<=0 / price<=0 to hold + plan headroom plumbing
+    test_allowed_emails.py       # CSV-parsed ALLOWED_EMAIL allow-list
 
 frontend/
   src/
@@ -174,16 +188,18 @@ frontend/
       backtest/       # /backtest (configure + run backtests, view results)
       earnings/       # /earnings (upcoming earnings calendar, color-coded proximity)
       plans/          # /plans (investment plan list + /plans/[id] detail + /plans/new)
-      testing/        # /testing (test inventory, execution cadence, 297 tests)
+      forex/          # /forex (independent swing-zone backtest UI — for non-engineer collaborator)
+      testing/        # /testing (test inventory, execution cadence, 379 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       error.tsx       # Error boundary with retry
       loading.tsx     # Root loading spinner (Suspense fallback)
       not-found.tsx   # Custom 404 page
-      providers.tsx   # ThemeProvider + AuthProvider + SidebarProvider + AppShell + skip link
-      layout.tsx      # Root layout (Server Component, anti-flash theme script)
+      providers.tsx   # ThemeProvider + AuthProvider + AppShell with TopNav + skip link
+      layout.tsx      # Root layout (Server Component, anti-flash theme script, no painted bg so liquid-glass backdrop shows)
+      globals.css     # Liquid-glass theme system: light/dark CSS-var palettes, vivid radial-gradient body backdrop, .bz-glass / .bz-glass-soft / .bz-glass-strong utilities, prefers-reduced-transparency fallback
     components/       # Reusable UI components
-      Sidebar.tsx     # Collapsible left sidebar (icon nav, grouped sections, theme toggle, profile)
+      TopNav.tsx      # Fixed top bar with mega-menu (Core/Trading/Forex/Admin); replaces Sidebar.tsx
       CrossLink.tsx   # Reusable cross-link badge (pill-shaped, color-coded by type)
       KillSwitchButton.tsx # Kill switch with activate + deactivate
     lib/
