@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
@@ -130,6 +131,22 @@ async def _execute_plan_cycle(
         for ticker, qty in virtual_positions.items()
     ]
 
+    # Compute plan-level usage so Claude can size proposals to fit. Without
+    # this Claude saw `cash_available=$0.21` only as a portfolio-line
+    # mention and kept proposing $99 buys — the explicit HEADROOM block in
+    # the prompt makes the binding constraint impossible to miss.
+    plan_total_invested = float(plan.budget) - float(plan.virtual_cash)
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    plan_orders_today = await asyncio.to_thread(
+        lambda: db.query(Trade)
+        .filter(
+            Trade.plan_id == plan.id,
+            Trade.timestamp >= today_start,
+            Trade.executed.is_(True),
+        )
+        .count()
+    )
+
     # Get Claude's decisions for this plan
     decisions = await claude_brain.get_trade_decision(
         positions=plan_positions,
@@ -140,6 +157,8 @@ async def _execute_plan_cycle(
         technicals_csv=technicals_csv,
         sector_csv=sector_csv,
         earnings_csv=earnings_csv,
+        total_invested=plan_total_invested,
+        orders_used_today=plan_orders_today,
     )
 
     results: list[CycleResult] = []
@@ -147,6 +166,24 @@ async def _execute_plan_cycle(
     remaining_cash = float(plan.virtual_cash)
 
     for decision in decisions:
+        # Coerce zero-value buys/sells to holds BEFORE validation. Claude
+        # sometimes returns {"action": "buy", "quantity": 0} (semantically a
+        # hold) and our parser default also fills in quantity=0 if Claude
+        # omits it. Either way, sending these to guardrails just produces
+        # "$0.00 below $1 minimum" noise in the audit log without revealing
+        # any real intent. Surface as a hold with a clear reason instead.
+        if decision.get("action") in ("buy", "sell") and (decision.get("quantity") or 0) <= 0:
+            logger.info(
+                "Plan %d: coercing %s with qty=%s to hold",
+                plan.id, decision.get("action"), decision.get("quantity"),
+            )
+            decision["action"] = "hold"
+            decision["quantity"] = 0
+            decision["reasoning"] = (
+                f"{decision.get('reasoning', '')} "
+                f"[Coerced to hold — Claude returned qty={decision.get('quantity', 0)}]"
+            ).strip()
+
         price = None
         if decision["ticker"] and decision["action"] != "hold":
             cached_price = price_map.get(decision["ticker"])
@@ -156,6 +193,23 @@ async def _execute_plan_cycle(
                 quote = await market_data.get_quote(decision["ticker"])
                 price = quote["price"]
             decision["price"] = price
+
+            # Coerce buy/sell with bad price to hold (price=0 means lookup failed
+            # or symbol is exotic — letting it through validates against $0 trade
+            # value, polluting the audit log).
+            if not price or price <= 0:
+                logger.warning(
+                    "Plan %d: coercing %s %s to hold — price=%s",
+                    plan.id, decision["action"], decision["ticker"], price,
+                )
+                decision["action"] = "hold"
+                decision["quantity"] = 0
+                decision["reasoning"] = (
+                    f"{decision.get('reasoning', '')} "
+                    f"[Coerced to hold — price lookup failed for {decision['ticker']}]"
+                ).strip()
+                price = None
+                decision.pop("price", None)
 
             # Position sizing
             if decision["action"] == "buy" and price:

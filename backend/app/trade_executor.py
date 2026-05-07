@@ -121,6 +121,22 @@ async def _execute_cycle(db: Session, account_id: str) -> CycleResult:
     results: list[CycleResult] = []
 
     for decision in decisions:
+        # Coerce zero-value buys/sells to holds BEFORE validation. Same
+        # rationale as plans/executor.py: Claude occasionally returns
+        # {"action": "buy", "quantity": 0} which is semantically a hold
+        # but pollutes the audit log with "$0.00 below $1 minimum" blocks.
+        if decision.get("action") in ("buy", "sell") and (decision.get("quantity") or 0) <= 0:
+            logger.info(
+                "Coercing %s with qty=%s to hold",
+                decision.get("action"), decision.get("quantity"),
+            )
+            decision["action"] = "hold"
+            decision["quantity"] = 0
+            decision["reasoning"] = (
+                f"{decision.get('reasoning', '')} "
+                f"[Coerced to hold — Claude returned qty={decision.get('quantity', 0)}]"
+            ).strip()
+
         # Look up current price — check cached quotes first
         price = None
         if decision["ticker"] and decision["action"] != "hold":
@@ -131,6 +147,21 @@ async def _execute_cycle(db: Session, account_id: str) -> CycleResult:
                 quote = await market_data.get_quote(decision["ticker"])
                 price = quote["price"]
             decision["price"] = price
+
+            # Coerce to hold if price lookup failed.
+            if not price or price <= 0:
+                logger.warning(
+                    "Coercing %s %s to hold — price=%s",
+                    decision["action"], decision["ticker"], price,
+                )
+                decision["action"] = "hold"
+                decision["quantity"] = 0
+                decision["reasoning"] = (
+                    f"{decision.get('reasoning', '')} "
+                    f"[Coerced to hold — price lookup failed for {decision['ticker']}]"
+                ).strip()
+                price = None
+                decision.pop("price", None)
 
             # Earnings-aware position sizing: cap quantity near earnings
             if decision["action"] == "buy" and price:
