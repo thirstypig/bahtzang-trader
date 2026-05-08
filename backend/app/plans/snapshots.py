@@ -7,20 +7,20 @@ from sqlalchemy.orm import Session
 
 from app import market_data
 from app.plans.executor import compute_virtual_positions
-from app.plans.models import Plan, PlanSnapshot
+from app.plans.models import Portfolio, PlanSnapshot
 
 logger = logging.getLogger(__name__)
 
 
 async def take_plan_snapshots(db: Session) -> int:
-    """Take a daily snapshot for each active plan.
+    """Take a daily snapshot for each active portfolio.
 
     Computes invested_value from virtual positions x current prices,
     then stores total_value, pnl, and pnl_pct.
 
     Returns the number of snapshots saved.
     """
-    active_plans = db.query(Plan).filter(Plan.is_active.is_(True)).all()
+    active_plans = db.query(Portfolio).filter(Portfolio.is_active.is_(True)).all()
     if not active_plans:
         logger.info("No active plans — skipping plan snapshots")
         return 0
@@ -60,7 +60,7 @@ async def take_plan_snapshots(db: Session) -> int:
         # Upsert: update existing snapshot for today or create new one
         existing = (
             db.query(PlanSnapshot)
-            .filter(PlanSnapshot.plan_id == plan.id, PlanSnapshot.date == today)
+            .filter(PlanSnapshot.portfolio_id == plan.id, PlanSnapshot.date == today)
             .first()
         )
         if existing:
@@ -72,7 +72,7 @@ async def take_plan_snapshots(db: Session) -> int:
             existing.pnl_pct = pnl_pct
         else:
             db.add(PlanSnapshot(
-                plan_id=plan.id,
+                portfolio_id=plan.id,
                 date=today,
                 budget=plan.budget,
                 virtual_cash=plan.virtual_cash,

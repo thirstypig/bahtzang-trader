@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getPlanPositions } from "@/lib/api";
+import { getPortfolioPositions } from "@/lib/api";
 import { PlanPosition } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 
-interface PlanPositionsProps {
-  planId: number;
+interface PortfolioPositionsProps {
+  portfolioId: number;
 }
 
-export default function PlanPositions({ planId }: PlanPositionsProps) {
+export default function PortfolioPositions({ portfolioId }: PortfolioPositionsProps) {
   const [positions, setPositions] = useState<PlanPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +18,7 @@ export default function PlanPositions({ planId }: PlanPositionsProps) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getPlanPositions(planId)
+    getPortfolioPositions(portfolioId)
       .then((d) => {
         if (!cancelled) setPositions(d);
       })
@@ -31,7 +31,7 @@ export default function PlanPositions({ planId }: PlanPositionsProps) {
     return () => {
       cancelled = true;
     };
-  }, [planId]);
+  }, [portfolioId]);
 
   if (loading) {
     return (

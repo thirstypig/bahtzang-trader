@@ -108,7 +108,7 @@ class TestFullPlanLifecycle:
         db.add(Trade(
             ticker="GOOGL", action="buy", quantity=2.5,
             price=Decimal("175.50"), guardrail_passed=True, executed=True,
-            plan_id=plan_id,
+            portfolio_id=plan_id,
             virtual_cash_before=Decimal("5000"),
             virtual_cash_after=Decimal("4561.25"),
         ))

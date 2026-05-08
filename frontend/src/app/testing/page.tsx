@@ -185,14 +185,14 @@ const TESTS = {
         covers: "Loading/data/error states, no-fetch when no user, refetch on dependency change",
       },
       {
-        file: "src/components/PlanAllocationChart.test.tsx",
-        tests: 5,
+        file: "src/components/PortfolioAllocationChart.test.tsx",
+        tests: 4,
         covers: "Empty state, chart rendering, total budget, percentages, legend click handler",
       },
       {
-        file: "src/components/PlanPositions.test.tsx",
-        tests: 7,
-        covers: "Loading state, empty state, positions table, error state, positive/negative P&L rendering",
+        file: "src/components/PortfolioPositions.test.tsx",
+        tests: 10,
+        covers: "Loading state, error state, empty state, positions table, total calculations, P&L rendering, refetch on prop change",
       },
       {
         file: "src/components/TradeTable.test.tsx",

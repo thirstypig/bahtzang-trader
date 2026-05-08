@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import PlanAllocationChart from "./PlanAllocationChart";
+import PortfolioAllocationChart from "./PortfolioAllocationChart";
 import { InvestmentPlan } from "@/lib/types";
 
 // Mock Recharts — it requires browser APIs that jsdom doesn't fully support
@@ -12,10 +12,10 @@ vi.mock("recharts", () => ({
   Tooltip: () => <div />,
 }));
 
-function makePlan(overrides: Partial<InvestmentPlan> = {}): InvestmentPlan {
+function makePortfolio(overrides: Partial<InvestmentPlan> = {}): InvestmentPlan {
   return {
     id: 1,
-    name: "Test Plan",
+    name: "Test Portfolio",
     budget: 5000,
     virtual_cash: 5000,
     trading_goal: "maximize_returns",
@@ -30,50 +30,50 @@ function makePlan(overrides: Partial<InvestmentPlan> = {}): InvestmentPlan {
   };
 }
 
-describe("PlanAllocationChart", () => {
-  it("renders nothing with empty plans", () => {
-    const { container } = render(<PlanAllocationChart plans={[]} />);
+describe("PortfolioAllocationChart", () => {
+  it("renders nothing with empty portfolios", () => {
+    const { container } = render(<PortfolioAllocationChart portfolios={[]} />);
     expect(container.innerHTML).toBe("");
   });
 
-  it("renders chart with plans", () => {
-    const plans = [
-      makePlan({ id: 1, name: "Growth", budget: 7000 }),
-      makePlan({ id: 2, name: "Income", budget: 3000 }),
+  it("renders chart with portfolios", () => {
+    const portfolios = [
+      makePortfolio({ id: 1, name: "Growth", budget: 7000 }),
+      makePortfolio({ id: 2, name: "Income", budget: 3000 }),
     ];
-    render(<PlanAllocationChart plans={plans} />);
+    render(<PortfolioAllocationChart portfolios={portfolios} />);
     expect(screen.getByText("Budget Allocation")).toBeInTheDocument();
     expect(screen.getByText("Growth")).toBeInTheDocument();
     expect(screen.getByText("Income")).toBeInTheDocument();
   });
 
   it("shows total budget in center", () => {
-    const plans = [
-      makePlan({ id: 1, budget: 7000 }),
-      makePlan({ id: 2, budget: 3000 }),
+    const portfolios = [
+      makePortfolio({ id: 1, budget: 7000 }),
+      makePortfolio({ id: 2, budget: 3000 }),
     ];
-    render(<PlanAllocationChart plans={plans} />);
+    render(<PortfolioAllocationChart portfolios={portfolios} />);
     expect(screen.getByText("$10,000.00")).toBeInTheDocument();
     expect(screen.getByText("Total")).toBeInTheDocument();
   });
 
-  it("shows percentage for each plan", () => {
-    const plans = [
-      makePlan({ id: 1, name: "A", budget: 7500 }),
-      makePlan({ id: 2, name: "B", budget: 2500 }),
+  it("shows percentage for each portfolio", () => {
+    const portfolios = [
+      makePortfolio({ id: 1, name: "A", budget: 7500 }),
+      makePortfolio({ id: 2, name: "B", budget: 2500 }),
     ];
-    render(<PlanAllocationChart plans={plans} />);
+    render(<PortfolioAllocationChart portfolios={portfolios} />);
     expect(screen.getByText(/75\.0%/)).toBeInTheDocument();
     expect(screen.getByText(/25\.0%/)).toBeInTheDocument();
   });
 
   it("calls onSliceClick when legend item is clicked", async () => {
     const onClick = vi.fn();
-    const plans = [
-      makePlan({ id: 42, name: "Clickable" }),
-      makePlan({ id: 43, name: "Other" }),
+    const portfolios = [
+      makePortfolio({ id: 42, name: "Clickable" }),
+      makePortfolio({ id: 43, name: "Other" }),
     ];
-    render(<PlanAllocationChart plans={plans} onSliceClick={onClick} />);
+    render(<PortfolioAllocationChart portfolios={portfolios} onSliceClick={onClick} />);
     const button = screen.getByText("Clickable").closest("button");
     button?.click();
     expect(onClick).toHaveBeenCalledWith(42);

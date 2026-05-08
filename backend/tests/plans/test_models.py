@@ -37,7 +37,7 @@ class TestPlanTradeModel:
         plan = make_plan(db_session)
         trade = make_trade(db_session, plan.id)
         assert trade.id is not None
-        assert trade.plan_id == plan.id
+        assert trade.portfolio_id == plan.id
         assert trade.ticker == "AAPL"
         assert trade.executed is True
 

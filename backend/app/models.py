@@ -1,8 +1,9 @@
 """SQLAlchemy models for the trades database.
 
 067-fix: Trade and PlanTrade unified into a single Trade table.
-         plan_id=NULL means legacy/global trade; plan_id=N means plan trade.
+         portfolio_id=NULL means legacy/global trade; portfolio_id=N means portfolio trade.
 071-fix: Money fields use Numeric(14,4) for exact decimal arithmetic.
+072-fix: Plans renamed to Portfolios. Strategy rules now per-portfolio.
 """
 
 import json
@@ -21,7 +22,9 @@ from app.database import Base
 from app.backtest.models import BacktestConfig, BacktestResult, OHLCVCache  # noqa: F401
 from app.earnings.models import EarningsEvent  # noqa: F401
 from app.forex.models import ForexBacktestRun, ForexBar  # noqa: F401
-from app.plans.models import Plan, PlanSnapshot  # noqa: F401
+from app.plans.models import (  # noqa: F401
+    Portfolio, PlanSnapshot, PortfolioTouchHistory, PortfolioStrategyAudit
+)
 
 
 class Trade(Base):
@@ -53,9 +56,9 @@ class Trade(Base):
     guardrail_block_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     executed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
-    # 067-fix: plan_id links trade to a plan. NULL = legacy/global trade.
-    plan_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("plans.id", ondelete="RESTRICT"), nullable=True,
+    # 067-fix: portfolio_id links trade to a portfolio. NULL = legacy/global trade.
+    portfolio_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("portfolios.id", ondelete="RESTRICT"), nullable=True,
     )
     # 080-fix: Alpaca order ID for reconciliation
     alpaca_order_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -66,10 +69,10 @@ class Trade(Base):
     __table_args__ = (
         Index("ix_trades_timestamp_executed", "timestamp", "executed"),
         Index("ix_trades_timestamp_desc", timestamp.desc()),
-        # Plan-scoped indexes (067-fix)
-        Index("ix_trades_plan_timestamp", "plan_id", timestamp.desc()),
-        Index("ix_trades_plan_ticker", "plan_id", "ticker", "timestamp"),
-        Index("ix_trades_plan_executed", "plan_id", "executed", "timestamp"),
+        # Portfolio-scoped indexes (072-fix: renamed from plan_id)
+        Index("ix_trades_portfolio_timestamp", "portfolio_id", timestamp.desc()),
+        Index("ix_trades_portfolio_ticker", "portfolio_id", "ticker", "timestamp"),
+        Index("ix_trades_portfolio_executed", "portfolio_id", "executed", "timestamp"),
     )
 
     def to_dict(self) -> dict:
@@ -86,9 +89,9 @@ class Trade(Base):
             "guardrail_block_reason": self.guardrail_block_reason,
             "executed": self.executed,
         }
-        # Include plan fields only for plan trades
-        if self.plan_id is not None:
-            d["plan_id"] = self.plan_id
+        # Include portfolio fields only for portfolio trades
+        if self.portfolio_id is not None:
+            d["portfolio_id"] = self.portfolio_id
             d["alpaca_order_id"] = self.alpaca_order_id
             d["virtual_cash_before"] = float(self.virtual_cash_before) if self.virtual_cash_before is not None else None
             d["virtual_cash_after"] = float(self.virtual_cash_after) if self.virtual_cash_after is not None else None

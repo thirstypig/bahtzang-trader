@@ -46,7 +46,7 @@ describe("TopNav", () => {
     expect(labels.some((t) => t?.includes("Settings"))).toBe(true);
     expect(labels.some((t) => t?.includes("Backtest"))).toBe(true);
     expect(labels.some((t) => t?.includes("Earnings"))).toBe(true);
-    expect(labels.some((t) => t?.includes("Plans"))).toBe(true);
+    expect(labels.some((t) => t?.includes("Portfolios"))).toBe(true);
     expect(labels.some((t) => t?.includes("Audit Log"))).toBe(true);
   });
 

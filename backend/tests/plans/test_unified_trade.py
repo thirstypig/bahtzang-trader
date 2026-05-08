@@ -27,7 +27,7 @@ class TestUnifiedTradeModel:
         db_session.commit()
         db_session.refresh(trade)
         assert trade.id is not None
-        assert trade.plan_id is None
+        assert trade.portfolio_id is None
         assert trade.alpaca_order_id is None
         assert trade.virtual_cash_before is None
 
@@ -35,7 +35,7 @@ class TestUnifiedTradeModel:
         """Plan trade with plan_id and virtual cash tracking."""
         plan = make_plan(db_session)
         trade = make_trade(db_session, plan.id)
-        assert trade.plan_id == plan.id
+        assert trade.portfolio_id == plan.id
         assert trade.virtual_cash_before is not None
         assert trade.virtual_cash_after is not None
 
@@ -49,7 +49,7 @@ class TestUnifiedTradeModel:
         db_session.commit()
         db_session.refresh(trade)
         d = trade.to_dict()
-        assert "plan_id" not in d
+        assert "portfolio_id" not in d
         assert "virtual_cash_before" not in d
         assert "virtual_cash_after" not in d
         assert "alpaca_order_id" not in d
@@ -59,7 +59,7 @@ class TestUnifiedTradeModel:
         plan = make_plan(db_session)
         trade = make_trade(db_session, plan.id, alpaca_order_id="ord-abc")
         d = trade.to_dict()
-        assert d["plan_id"] == plan.id
+        assert d["portfolio_id"] == plan.id
         assert d["alpaca_order_id"] == "ord-abc"
         assert d["virtual_cash_before"] is not None
         assert d["virtual_cash_after"] is not None
@@ -83,11 +83,11 @@ class TestUnifiedTradeModel:
         all_trades = db_session.query(Trade).all()
         assert len(all_trades) == 2
 
-        global_only = db_session.query(Trade).filter(Trade.plan_id.is_(None)).all()
+        global_only = db_session.query(Trade).filter(Trade.portfolio_id.is_(None)).all()
         assert len(global_only) == 1
         assert global_only[0].ticker == "SPY"
 
-        plan_only = db_session.query(Trade).filter(Trade.plan_id == plan.id).all()
+        plan_only = db_session.query(Trade).filter(Trade.portfolio_id == plan.id).all()
         assert len(plan_only) == 1
         assert plan_only[0].ticker == "AAPL"
 
