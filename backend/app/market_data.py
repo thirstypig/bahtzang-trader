@@ -34,7 +34,7 @@ async def get_quote(ticker: str) -> dict:
     return {
         "ticker": raw.get("01. symbol", ticker),
         "price": float(raw.get("05. price", 0)),
-        "change_pct": raw.get("10. change percent", "0%"),
+        "change_pct": float(str(raw.get("10. change percent", "0")).rstrip("%") or 0),
         "volume": int(raw.get("06. volume", 0)),
     }
 
