@@ -12,9 +12,14 @@ const TESTS = {
         covers: "Plan model creation, serialization, defaults",
       },
       {
+        file: "tests/plans/test_constraints.py",
+        tests: 11,
+        covers: "Cooldown enforcement, frequency cap (buy/sell), repeat-action guard, cross-portfolio isolation, touch history upsert",
+      },
+      {
         file: "tests/plans/test_executor.py",
         tests: 12,
-        covers: "compute_virtual_positions (buy/sell/fractional/cross-plan isolation), guardrails config generation",
+        covers: "compute_virtual_positions (buy/sell/fractional/cross-portfolio isolation), usage stats passed to Claude prompt",
       },
       {
         file: "tests/plans/test_snapshots.py",
@@ -28,13 +33,13 @@ const TESTS = {
       },
       {
         file: "tests/test_analytics.py",
-        tests: 20,
+        tests: 22,
         covers: "Sharpe, Sortino, max drawdown, win rate, profit factor, edge cases, flat/zigzag equities",
       },
       {
-        file: "tests/test_guardrails.py",
-        tests: 28,
-        covers: "Risk presets (conservative/moderate/aggressive), GuardrailsUpdate validation, load/save, kill switch",
+        file: "tests/test_default_portfolio.py",
+        tests: 2,
+        covers: "Default portfolio creation on empty table, idempotent when portfolio already exists",
       },
       {
         file: "tests/test_compliance.py",
@@ -43,7 +48,7 @@ const TESTS = {
       },
       {
         file: "tests/test_circuit_breaker.py",
-        tests: 12,
+        tests: 14,
         covers: "3-tier staged halts (YELLOW/ORANGE/RED), daily/weekly loss thresholds, consecutive losses",
       },
       {
@@ -53,7 +58,7 @@ const TESTS = {
       },
       {
         file: "tests/test_error_tracker.py",
-        tests: 11,
+        tests: 10,
         covers: "Ring buffer storage, ref lookup, eviction at capacity, error count",
       },
       {
@@ -113,7 +118,7 @@ const TESTS = {
       {
         file: "tests/plans/test_routes.py",
         tests: 18,
-        covers: "Plan CRUD lifecycle, input validation (422), 404 handling, CSV export, target field nulling, snapshots",
+        covers: "Portfolio CRUD lifecycle at /portfolios/*, input validation (422), 404 handling, CSV export, target field nulling",
       },
       {
         file: "tests/earnings/test_routes.py",
@@ -122,13 +127,8 @@ const TESTS = {
       },
       {
         file: "tests/test_trades_routes.py",
-        tests: 3,
-        covers: "/trades includes plan trades (067-fix), /trades/export includes plan trades for tax",
-      },
-      {
-        file: "tests/test_guardrails_routes.py",
-        tests: 10,
-        covers: "Config CRUD, risk presets, kill switch activate/deactivate with audit trail",
+        tests: 6,
+        covers: "/trades includes portfolio trades, /trades/export, pagination behavior, block-stats endpoint",
       },
       {
         file: "tests/test_portfolio_routes.py",
@@ -137,8 +137,8 @@ const TESTS = {
       },
       {
         file: "tests/test_bot_routes.py",
-        tests: 7,
-        covers: "Bot status, executed trade count, last run, /trades/summary, full plan lifecycle E2E",
+        tests: 6,
+        covers: "Bot status (active/total portfolios shape), executed trade count, last run, full portfolio lifecycle E2E",
       },
       {
         file: "tests/test_backtest_routes.py",
@@ -147,7 +147,7 @@ const TESTS = {
       },
       {
         file: "tests/test_todos_routes.py",
-        tests: 16,
+        tests: 18,
         covers: "Todo CRUD with JSON persistence isolation, status filter, validation, 422/404 handling",
       },
       {
@@ -166,7 +166,7 @@ const TESTS = {
     suites: [
       {
         file: "src/lib/utils.test.ts",
-        tests: 6,
+        tests: 8,
         covers: "formatCurrency (positive/negative/zero/large/rounding), formatDateTime, formatDate",
       },
       {
@@ -185,8 +185,13 @@ const TESTS = {
         covers: "Loading/data/error states, no-fetch when no user, refetch on dependency change",
       },
       {
+        file: "src/app/trades/page.test.tsx",
+        tests: 7,
+        covers: "Trade list rendering, pagination (load more), auth guard, CSV export, empty state, error state",
+      },
+      {
         file: "src/components/PortfolioAllocationChart.test.tsx",
-        tests: 4,
+        tests: 5,
         covers: "Empty state, chart rendering, total budget, percentages, legend click handler",
       },
       {
@@ -196,8 +201,8 @@ const TESTS = {
       },
       {
         file: "src/components/TradeTable.test.tsx",
-        tests: 11,
-        covers: "Table rendering, Passed/Blocked badges, BUY/SELL/HOLD colors, confidence %, sorting",
+        tests: 12,
+        covers: "Table rendering, Passed/Blocked badges, BUY/SELL/HOLD colors, confidence %, sorting, reasoning column",
       },
       {
         file: "src/components/ConfirmModal.test.tsx",
@@ -206,8 +211,8 @@ const TESTS = {
       },
       {
         file: "src/components/KillSwitchButton.test.tsx",
-        tests: 7,
-        covers: "Activate/deactivate states, API calls, loading states, cancel without API call",
+        tests: 6,
+        covers: "Pause/resume portfolio states, updatePortfolio API calls, loading states, cancel without API call",
       },
       {
         file: "src/components/TopNav.test.tsx",
@@ -228,8 +233,8 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (316 tests)" },
-  { cmd: "npm run test:frontend", desc: "All frontend tests (73 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (285 tests)" },
+  { cmd: "npm run test:frontend", desc: "All frontend tests (84 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
   { cmd: "npm run test:backend:cov", desc: "Backend tests with coverage report" },
@@ -325,7 +330,7 @@ export default function TestingPage() {
             <tbody className="divide-y divide-border/50">
               <tr>
                 <td className="px-3 py-2 font-mono text-accent">Pre-commit hook</td>
-                <td className="px-3 py-2 text-secondary">tsc + pytest (291 selector) + vitest (73)</td>
+                <td className="px-3 py-2 text-secondary">tsc + eslint + pytest (285) + vitest (84)</td>
                 <td className="px-3 py-2 text-muted">Every git commit (~5s)</td>
               </tr>
               <tr>

@@ -169,6 +169,14 @@ export const roadmapItems: RoadmapItem[] = [
     priority: "high",
     phase: "Phase 1+",
   },
+  {
+    id: "portfolio-only-consolidation",
+    title: "Portfolio-only model: drop global trader + guardrails",
+    description: "Consolidated to a single execution path: every trade runs through a Portfolio (virtual sub-account). Removed trade_executor.py (global trader), guardrails routes/tables/models, and /settings page. Per-portfolio kill switch via is_active. Plans renamed to Portfolios throughout (API routes, DB columns, frontend). Scheduler derives frequency from max(active portfolios). Default portfolio lifespan hook. 2026-05-08.",
+    status: "done",
+    priority: "high",
+    phase: "Phase 1+",
+  },
   // Planned
   {
     id: "paper-to-live",

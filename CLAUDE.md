@@ -3,7 +3,7 @@
 ## Current status
 
 <!-- now-tldr -->
-An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). Just wrapped a thorough AI-assisted code review, unified how trade data is stored across the app, and stood up an automated test suite that runs on every change. Next up: 30+ paper trades to prove the pipeline works end-to-end before flipping the live switch.
+An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). Just completed a portfolio-only consolidation: every trade runs through a Portfolio (virtual sub-account), global guardrails and the standalone trader are gone, and the /portfolios page is live in production. Next up: 30+ paper trades to prove the pipeline works end-to-end before flipping the live switch.
 <!-- /now-tldr -->
 
 ## Project Overview
@@ -34,8 +34,8 @@ npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
-npm run test:backend     # pytest (316 tests, ~4s)
-npm run test:frontend    # Vitest (73 tests, ~3s)
+npm run test:backend     # pytest (285 tests, ~4s)
+npm run test:frontend    # Vitest (84 tests, ~3s)
 npm run test:backend:cov # Backend with coverage report
 ```
 
@@ -75,9 +75,9 @@ Backend verifies via JWKS endpoint: {SUPABASE_URL}/auth/v1/.well-known/jwks.json
 ALLOWED_EMAIL accepts a single email or comma-separated list (case-insensitive, whitespace-tolerant) — shared access without full per-user data scoping
 ```
 
-### Trading Pipeline (trade_executor.py + plans/executor.py)
+### Trading Pipeline (plans/executor.py)
 ```
-Gather (Alpaca) → Earnings (Finnhub cache) → Think (Claude, 30s timeout) → Coerce zero-value to hold → Validate (guardrails) → Act (Alpaca) → Log (PostgreSQL)
+Gather (Alpaca) → Earnings (Finnhub cache) → Think (Claude, 30s timeout) → Coerce zero-value to hold → Validate (per-portfolio constraints) → Act (Alpaca) → Log (PostgreSQL)
 Every decision logged — even holds and blocked trades
 Alpaca SDK calls wrapped in asyncio.to_thread() to avoid blocking the event loop
 Earnings data: position sizing reduced 50% at 0-1 days, 70% at 2 days before earnings
@@ -86,15 +86,18 @@ Claude prompt includes a USAGE/HEADROOM block: total_invested vs max, orders_use
 Coerce-before-validate: qty<=0 or price<=0 → hold (with reason preserved in audit trail)
 ```
 
-### Investment Plans (plans/)
+### Portfolios (plans/)
 ```
-Virtual sub-accounts: each Plan gets its own budget, virtual_cash, trading goal, and risk profile.
-All plans share one Alpaca account — budget validation ensures SUM(budgets) <= real equity.
-Per-plan asyncio locks prevent concurrent runs from double-spending virtual cash.
+Every trade runs through a Portfolio (virtual sub-account). No global trader — the scheduler calls run_all_plans().
+Each Portfolio has its own budget, virtual_cash, trading goal, risk profile, and is_active kill switch.
+All portfolios share one Alpaca account — budget validation ensures SUM(budgets) <= real equity.
+Per-portfolio asyncio locks prevent concurrent runs from double-spending virtual cash.
 Budget validation uses pg_advisory_xact_lock for cross-process serialization.
-Sell validation prevents cross-plan position theft (checks virtual positions, not Alpaca).
-Per-trade atomic commits (063-fix) — each trade committed immediately after Alpaca order.
-fetch_market_data() shared between scheduled runs and manual "Run Now" (089-fix).
+Sell validation prevents cross-portfolio position theft (checks virtual positions, not Alpaca).
+Per-trade atomic commits — each trade committed immediately after Alpaca order.
+fetch_market_data() shared between scheduled runs and manual "Run Now".
+Default portfolio created on first startup if table is empty (lifespan hook in main.py).
+Circuit breaker RED level sets is_active=False on all portfolios (replaces global kill switch).
 ```
 
 ### Frontend Auth Guard
@@ -109,12 +112,11 @@ backend/
     auth.py           # JWKS-based JWT verification, require_auth dependency
     config.py         # Pydantic Settings (all env vars)
     database.py       # SQLAlchemy engine + SessionLocal (pool_pre_ping=True)
-    models.py         # Trade, PortfolioSnapshot, GuardrailsConfig, GuardrailsAudit + feature model imports
+    models.py         # Trade, PortfolioSnapshot + feature model imports
     routes/           # API route modules (feature-isolated)
       portfolio.py    # GET /portfolio, /portfolio/snapshots, /portfolio/metrics, POST /portfolio/snapshot
       trades.py       # GET /trades, GET /trades/summary (lightweight, no reasoning), GET /trades/export
-      guardrails.py   # GET/POST /guardrails, POST /killswitch, POST /killswitch/deactivate
-      bot.py          # POST /run (rate-limited 2/min via slowapi)
+      bot.py          # POST /run (rate-limited 2/min via slowapi), GET /bot/status (active/total portfolios)
       todos.py        # CRUD /admin/todos (JSON file persistence, asyncio.Lock)
     brokers/          # Broker abstraction layer
       base.py         # BrokerInterface ABC (typed: Position, AccountBalance)
@@ -130,10 +132,11 @@ backend/
       models.py       # EarningsEvent table (Finnhub cache)
       client.py       # Finnhub API + DB cache + format_csv() + days_until_earnings()
       routes.py       # GET /earnings, POST /earnings/refresh
-    plans/            # Feature module: investment plans (pie-style portfolio slices)
-      models.py       # Plan, PlanTrade, PlanSnapshot tables (FK RESTRICT/CASCADE)
-      executor.py     # Per-plan trading cycle with asyncio locks, virtual cash, fractional shares; coerces qty<=0 / price<=0 to hold pre-validation; threads plan-level usage to Claude prompt
-      routes.py       # CRUD + run + export (advisory lock budget validation, rate-limited)
+    plans/            # Feature module: portfolios (virtual sub-accounts)
+      models.py       # Portfolio, Trade (plan_snapshots FK portfolio_id) tables
+      constraints.py  # Per-portfolio trading constraints (cooldown, frequency cap, repeat-action guard)
+      executor.py     # Per-portfolio trading cycle; asyncio locks; coerces qty<=0/price<=0 to hold; threads usage to Claude prompt; circuit breaker RED deactivates all portfolios
+      routes.py       # CRUD + run + export at /portfolios/* (advisory lock budget validation, rate-limited)
       snapshots.py    # Daily snapshot capture for equity curves
     forex/            # Feature module: independent forex backtest tool (Phase F+)
       models.py       # ForexBar (OHLCV cache), ForexBacktestRun (config + results)
@@ -148,24 +151,22 @@ backend/
     claude_brain.py   # AsyncAnthropic → Claude Sonnet → CSV prompt (30s timeout) + earnings context
     circuit_breaker.py # 3-tier staged halts (YELLOW/ORANGE/RED) on portfolio P&L
     compliance.py     # PDT day trade tracking + wash sale 30-day cooling detection
-    guardrails.py     # GuardrailsUpdate Pydantic model + policy gate (DB-backed) + stop-loss enforcement
+    guardrails.py     # RISK_PRESETS, TRADING_GOALS, apply_risk_preset() — no DB state, no policy gate
     notifier.py       # Slack webhook notifications (fire-and-forget)
     position_sizing.py # Quarter-Kelly with confidence^2 + earnings proximity reduction
     sector_rotation.py # 11 sector ETFs relative strength vs SPY
     technical_analysis.py # pandas-ta indicators (RSI/MACD/BB/SMA/ATR) + Alpaca Data API
-    decision_coercion.py # Shared helpers — coerce_zero_qty_to_hold + coerce_bad_price_to_hold; called by both executors so the contract stays in one place
-    trade_executor.py # Pipeline: gather → indicators → earnings → think → coerce → validate → act → log → notify; threads usage stats to Claude prompt for headroom math
+    decision_coercion.py # Shared helpers — coerce_zero_qty_to_hold + coerce_bad_price_to_hold; called by plan executor
     market_data.py    # Alpha Vantage news (quotes moved to Alpaca Data API)
     scheduler.py      # Trading frequency + daily snapshot (4:05 PM) + summary (4:10 PM) + earnings refresh (7 AM) — DB calls via to_thread()
     logger.py         # Trade logging to PostgreSQL
   data/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
-  guardrails.json     # Default config (runtime config is in PostgreSQL)
   railway.toml        # Railway deploy config
   pytest.ini          # Test config (markers: unit, integration, e2e)
-  tests/              # Test suites (306 backend tests)
+  tests/              # Test suites (285 backend tests)
     conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
-    plans/            # Plan model, executor, route, snapshot tests
+    plans/            # Portfolio model, executor, constraints, route, snapshot tests
     earnings/         # Earnings route integration tests
     forex/            # Forex zones, patterns, engine, data, routes, early-exit tests (53 tests)
     test_claude_brain_prompt.py  # USAGE/HEADROOM block in the Claude prompt
@@ -177,7 +178,6 @@ frontend/
     app/              # Next.js App Router pages
       page.tsx        # / (dashboard)
       trades/         # /trades
-      settings/       # /settings
       login/          # /login
       roadmap/        # /roadmap (anchor IDs for cross-linking)
       changelog/      # /changelog (stats header, cross-link badges)
@@ -188,9 +188,9 @@ frontend/
       analytics/      # /analytics
       backtest/       # /backtest (configure + run backtests, view results)
       earnings/       # /earnings (upcoming earnings calendar, color-coded proximity)
-      plans/          # /plans (investment plan list + /plans/[id] detail + /plans/new)
+      portfolios/     # /portfolios (list + /portfolios/[id] detail + /portfolios/new)
       forex/          # /forex (independent swing-zone backtest UI — for non-engineer collaborator)
-      testing/        # /testing (test inventory, execution cadence, 389 tests)
+      testing/        # /testing (test inventory, execution cadence, 369 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       error.tsx       # Error boundary with retry
@@ -239,23 +239,21 @@ frontend/
 ### Code Patterns
 - All API calls go through `fetchAPI()` in `lib/api.ts`
 - Auth gating: `if (!user) return;` at top of `useEffect` in every page
-- Guardrails stored in PostgreSQL (persists across Railway deploys), API endpoints to read/write
-- Guardrails audit log: every config change logged with user, timestamp, and changes
-- Stop-loss enforcement: blocks buys on positions below threshold, warns on holds
-- Risk presets scale to actual portfolio value (from latest PortfolioSnapshot, fallback 100k)
-- Kill switch: activate via POST /killswitch, deactivate via POST /killswitch/deactivate
-- Rate limiting: slowapi (2/min on /run, 60/min global default)
+- Per-portfolio kill switch: `PATCH /portfolios/{id}` with `{ is_active: false }` pauses that portfolio
+- Risk presets (conservative/moderate/aggressive) in guardrails.py — applied at portfolio creation/update
+- Rate limiting: slowapi (2/min on /run and /portfolios/{id}/run, 60/min global default)
 - Trade logging: every cycle logs to `trades` table regardless of outcome
+- Scheduler derives trading frequency from `max(active portfolios' trading_frequency)`
 
 ### Testing
 - Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
 - Frontend: Vitest + @testing-library/react + jsdom
-- 389 total tests (316 backend + 73 frontend), ~9s full suite
+- 369 total tests (285 backend + 84 frontend), ~9s full suite
 - Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
 - Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
 - Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)
 - Recharts mocked in component tests (jsdom lacks SVG rendering)
-- Pre-commit hook runs tsc + pytest + vitest on every commit (~5s)
+- Pre-commit hook runs tsc + eslint + pytest + vitest on every commit (~5s)
 - GitHub Actions CI on push/PR to main
 - Slash commands: `/test-run`, `/test-new <feature>`, `/test-audit`, `/doc`
 

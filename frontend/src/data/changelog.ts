@@ -10,6 +10,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.20.0",
+    date: "2026-05-08",
+    changes: [
+      { type: "refactor", title: "Portfolio-only consolidation: every trade now runs through a Portfolio (virtual sub-account) — global trader (trade_executor.py) removed" },
+      { type: "refactor", title: "Plans renamed to Portfolios throughout: /portfolios API, frontend pages, DB columns (trades.plan_id → portfolio_id, plan_snapshots.plan_id → portfolio_id)" },
+      { type: "feat", title: "Per-portfolio kill switch: pause/resume individual portfolios via is_active; circuit breaker RED deactivates all portfolios instead of a global flag" },
+      { type: "refactor", title: "Dropped global guardrails: GuardrailsConfig + GuardrailsAudit tables removed; /guardrails routes removed; guardrails.py is now just RISK_PRESETS + apply_risk_preset()" },
+      { type: "feat", title: "Default portfolio lifespan hook: creates a 'Main' portfolio on cold-start if table is empty" },
+      { type: "feat", title: "Scheduler derives trading frequency from max(active portfolios) instead of a global config field" },
+      { type: "feat", title: "Portfolio constraints module: cooldown, frequency cap, repeat-action guard per portfolio (11 tests)" },
+      { type: "fix", title: "Router prefix /plans → /portfolios fixes the empty portfolios page (frontend was calling /portfolios, backend was still serving /plans)" },
+      { type: "fix", title: "ESLint added to pre-commit hook — closes the gap where CI caught lint errors the hook missed, blocking Railway deploys" },
+      { type: "docs", title: "CLAUDE.md, changelog, roadmap, todos, testing page all synced with portfolio-only consolidation" },
+    ],
+  },
+  {
     version: "0.19.0",
     date: "2026-05-06",
     roadmapLink: "/roadmap#guardrails-asymmetry-fix",
