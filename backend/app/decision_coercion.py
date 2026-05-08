@@ -1,10 +1,8 @@
-"""Shared decision-normalization helpers for the trading executors.
+"""Shared decision-normalization helpers for the per-portfolio executor.
 
-Both the global trader (`app/trade_executor.py`) and the per-plan executor
-(`app/plans/executor.py`) need to coerce degenerate trade decisions to holds
-before validation — same contract, separate code paths. Centralizing here
-prevents drift between the two: a future change to the rules updates one
-place, both call sites get it.
+The per-portfolio executor (`app/plans/executor.py`) coerces degenerate
+trade decisions to holds before validation. Centralized here so future
+rule changes only update one place.
 
 Why coerce instead of validate-and-reject?
   - Claude occasionally returns {action: "buy", quantity: 0} (semantically a
