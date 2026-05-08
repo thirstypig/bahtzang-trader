@@ -13,9 +13,10 @@ class TestBotStatus:
         data = resp.json()
         assert "running" in data
         assert "frequency" in data
-        assert "kill_switch" in data
+        assert "active_portfolios" in data
         assert "total_trades" in data
         assert "schedule_times" in data
+        assert "portfolios" in data
         assert data["total_trades"] == 0
         assert data["last_run"] is None
 

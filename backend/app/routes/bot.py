@@ -12,10 +12,10 @@ from slowapi.util import get_remote_address
 from app.auth import require_auth
 from app.database import get_db
 from app.error_tracker import record_error, get_recent_errors, get_error_by_ref, get_error_count
-from app.guardrails import load_guardrails
-from app.models import GuardrailsAudit, Trade
-from app.scheduler import scheduler, FREQUENCY_SCHEDULES
-from app.trade_executor import run_cycle
+from app.models import Trade
+from app.plans.executor import run_all_plans
+from app.plans.models import Portfolio
+from app.scheduler import scheduler, FREQUENCY_SCHEDULES, _max_frequency_among_active
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -79,20 +79,22 @@ def get_bot_status(
     db: Session = Depends(get_db),
     user: dict = Depends(require_auth),
 ):
-    """Return bot operational status: last run, next run, frequency, recent changes."""
-    config = load_guardrails(db)
-    frequency = config.get("trading_frequency", "1x")
+    """Return bot operational status: scheduler state, active portfolios, last run.
+
+    Portfolio-only model: frequency is the max across active portfolios.
+    Strategy details (risk profile, trading goal, kill switch) are per-portfolio
+    and surfaced through /portfolios.
+    """
+    frequency = _max_frequency_among_active(db)
     times = FREQUENCY_SCHEDULES.get(frequency, FREQUENCY_SCHEDULES["1x"])
     time_strs = [f"{h}:{m:02d} ET" for h, m in times]
 
-    # Last trade (most recent cycle)
     last_trade = (
         db.query(Trade)
         .order_by(Trade.timestamp.desc())
         .first()
     )
 
-    # Next scheduled run
     next_run = None
     jobs = scheduler.get_jobs()
     trading_jobs = [j for j in jobs if j.id.startswith("trading_cycle_")]
@@ -101,33 +103,30 @@ def get_bot_status(
         if next_runs:
             next_run = min(next_runs).isoformat()
 
-    # Recent settings changes (last 5)
-    recent_changes = (
-        db.query(GuardrailsAudit)
-        .order_by(GuardrailsAudit.timestamp.desc())
-        .limit(5)
-        .all()
-    )
+    portfolios = db.query(Portfolio).all()
+    active_count = sum(1 for p in portfolios if p.is_active)
 
     return {
         "running": scheduler.running,
         "frequency": frequency,
         "schedule_times": time_strs,
-        "kill_switch": config.get("kill_switch", False),
-        "risk_profile": config.get("risk_profile", "moderate"),
-        "trading_goal": config.get("trading_goal", "maximize_returns"),
+        "active_portfolios": active_count,
+        "total_portfolios": len(portfolios),
         "last_run": last_trade.timestamp.isoformat() if last_trade else None,
         "last_action": last_trade.action if last_trade else None,
         "last_ticker": last_trade.ticker if last_trade else None,
         "next_run": next_run,
         "total_trades": db.query(Trade).filter(Trade.executed.is_(True)).count(),
-        "recent_changes": [
+        "portfolios": [
             {
-                "action": c.action,
-                "timestamp": c.timestamp.isoformat(),
-                "changes": c.changes,
+                "id": p.id,
+                "name": p.name,
+                "is_active": p.is_active,
+                "trading_frequency": p.trading_frequency,
+                "trading_goal": p.trading_goal,
+                "risk_profile": p.risk_profile,
             }
-            for c in recent_changes
+            for p in portfolios
         ],
     }
 
@@ -163,10 +162,19 @@ async def manual_run(
     db: Session = Depends(get_db),
     user: dict = Depends(require_auth),
 ):
-    """Manually trigger one trading cycle."""
+    """Manually trigger one trading cycle across all active portfolios.
+
+    Portfolio-only model: iterates each active portfolio's executor with
+    its own strategy. Per-portfolio runs can also be triggered individually
+    via POST /portfolios/{id}/run.
+    """
     try:
-        result = await run_cycle(db)
-        return result
+        results = await run_all_plans(db)
+        return {
+            "portfolios_processed": len(results),
+            "results": {pid: [r if isinstance(r, dict) else r.__dict__ for r in rs]
+                        for pid, rs in results.items()},
+        }
     except Exception as e:
         logger.error("Trading cycle failed: %s\n%s", e, traceback.format_exc())
         error_info = _classify_error(e)

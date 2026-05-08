@@ -60,14 +60,6 @@ class TestUpdateGuardrails:
         assert resp.status_code == 200
         assert resp.json()["trading_goal"] == "steady_income"
 
-    def test_update_creates_audit_entry(self, client):
-        with patch("app.routes.guardrails.apply_schedule"):
-            client.post("/guardrails", json={"risk_profile": "conservative"})
-        # Verify by checking bot status which includes recent_changes
-        resp = client.get("/bot/status")
-        data = resp.json()
-        assert len(data["recent_changes"]) > 0
-
     def test_rejects_invalid_goal(self, client):
         resp = client.post("/guardrails", json={
             "trading_goal": "yolo_moon",
@@ -103,15 +95,3 @@ class TestKillSwitch:
         config = client.get("/guardrails").json()
         assert config["kill_switch"] is False
 
-    def test_kill_switch_cycle_creates_audit_entries(self, client):
-        """Both activate and deactivate should be audited."""
-        with patch("app.routes.guardrails.notifier") as mock_notifier:
-            mock_notifier.notify_kill_switch = AsyncMock()
-            client.post("/killswitch")
-            client.post("/killswitch/deactivate")
-
-        resp = client.get("/bot/status")
-        changes = resp.json()["recent_changes"]
-        actions = [c["action"] for c in changes]
-        assert "kill_switch_activated" in actions
-        assert "kill_switch_deactivated" in actions
