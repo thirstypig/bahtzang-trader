@@ -10,17 +10,17 @@ import pytest
 @pytest.mark.integration
 class TestListPlans:
     def test_list_empty(self, client):
-        resp = client.get("/plans")
+        resp = client.get("/portfolios")
         assert resp.status_code == 200
         assert resp.json() == []
 
     def test_list_returns_plans(self, client):
-        client.post("/plans", json={
+        client.post("/portfolios", json={
             "name": "Growth",
             "budget": 1000,
             "trading_goal": "maximize_returns",
         })
-        resp = client.get("/plans")
+        resp = client.get("/portfolios")
         data = resp.json()
         assert len(data) == 1
         assert data[0]["name"] == "Growth"
@@ -30,7 +30,7 @@ class TestListPlans:
 @pytest.mark.integration
 class TestCreatePlan:
     def test_create_basic(self, client):
-        resp = client.post("/plans", json={
+        resp = client.post("/portfolios", json={
             "name": "Income",
             "budget": 5000,
             "trading_goal": "steady_income",
@@ -45,7 +45,7 @@ class TestCreatePlan:
         assert data["is_active"] is True
 
     def test_create_with_target(self, client):
-        resp = client.post("/plans", json={
+        resp = client.post("/portfolios", json={
             "name": "Growth",
             "budget": 5000,
             "trading_goal": "maximize_returns",
@@ -58,7 +58,7 @@ class TestCreatePlan:
         assert data["target_date"] == "2027-06-01"
 
     def test_create_validates_goal(self, client):
-        resp = client.post("/plans", json={
+        resp = client.post("/portfolios", json={
             "name": "Bad",
             "budget": 1000,
             "trading_goal": "yolo",
@@ -66,7 +66,7 @@ class TestCreatePlan:
         assert resp.status_code == 422
 
     def test_create_validates_budget_positive(self, client):
-        resp = client.post("/plans", json={
+        resp = client.post("/portfolios", json={
             "name": "Bad",
             "budget": -100,
             "trading_goal": "maximize_returns",
@@ -74,7 +74,7 @@ class TestCreatePlan:
         assert resp.status_code == 422
 
     def test_create_validates_name_length(self, client):
-        resp = client.post("/plans", json={
+        resp = client.post("/portfolios", json={
             "name": "x" * 101,
             "budget": 1000,
             "trading_goal": "maximize_returns",
@@ -85,26 +85,26 @@ class TestCreatePlan:
 @pytest.mark.integration
 class TestGetPlan:
     def test_get_existing(self, client):
-        create_resp = client.post("/plans", json={
+        create_resp = client.post("/portfolios", json={
             "name": "Test",
             "budget": 1000,
             "trading_goal": "maximize_returns",
         })
         plan_id = create_resp.json()["id"]
-        resp = client.get(f"/plans/{plan_id}")
+        resp = client.get(f"/portfolios/{plan_id}")
         assert resp.status_code == 200
         assert resp.json()["name"] == "Test"
         assert "trades" in resp.json()
 
     def test_get_nonexistent(self, client):
-        resp = client.get("/plans/99999")
+        resp = client.get("/portfolios/99999")
         assert resp.status_code == 404
 
 
 @pytest.mark.integration
 class TestUpdatePlan:
     def _create_plan(self, client):
-        resp = client.post("/plans", json={
+        resp = client.post("/portfolios", json={
             "name": "Test",
             "budget": 5000,
             "trading_goal": "maximize_returns",
@@ -113,13 +113,13 @@ class TestUpdatePlan:
 
     def test_update_name(self, client):
         plan_id = self._create_plan(client)
-        resp = client.patch(f"/plans/{plan_id}", json={"name": "Renamed"})
+        resp = client.patch(f"/portfolios/{plan_id}", json={"name": "Renamed"})
         assert resp.status_code == 200
         assert resp.json()["name"] == "Renamed"
 
     def test_pause_plan(self, client):
         plan_id = self._create_plan(client)
-        resp = client.patch(f"/plans/{plan_id}", json={"is_active": False})
+        resp = client.patch(f"/portfolios/{plan_id}", json={"is_active": False})
         assert resp.status_code == 200
         assert resp.json()["is_active"] is False
 
@@ -127,11 +127,11 @@ class TestUpdatePlan:
         """097-fix: exclude_unset allows sending null to clear fields."""
         plan_id = self._create_plan(client)
         # Set a target
-        client.patch(f"/plans/{plan_id}", json={
+        client.patch(f"/portfolios/{plan_id}", json={
             "target_amount": 10000, "target_date": "2027-01-01",
         })
         # Clear it
-        resp = client.patch(f"/plans/{plan_id}", json={
+        resp = client.patch(f"/portfolios/{plan_id}", json={
             "target_amount": None, "target_date": None,
         })
         assert resp.status_code == 200
@@ -139,14 +139,14 @@ class TestUpdatePlan:
         assert resp.json()["target_date"] is None
 
     def test_update_nonexistent(self, client):
-        resp = client.patch("/plans/99999", json={"name": "Nope"})
+        resp = client.patch("/portfolios/99999", json={"name": "Nope"})
         assert resp.status_code == 404
 
 
 @pytest.mark.integration
 class TestDeletePlan:
     def _create_plan(self, client):
-        resp = client.post("/plans", json={
+        resp = client.post("/portfolios", json={
             "name": "Deletable",
             "budget": 1000,
             "trading_goal": "maximize_returns",
@@ -155,43 +155,43 @@ class TestDeletePlan:
 
     def test_delete_empty_plan(self, client):
         plan_id = self._create_plan(client)
-        resp = client.delete(f"/plans/{plan_id}")
+        resp = client.delete(f"/portfolios/{plan_id}")
         assert resp.status_code == 200
-        assert client.get(f"/plans/{plan_id}").status_code == 404
+        assert client.get(f"/portfolios/{plan_id}").status_code == 404
 
     def test_delete_nonexistent(self, client):
-        resp = client.delete("/plans/99999")
+        resp = client.delete("/portfolios/99999")
         assert resp.status_code == 404
 
 
 @pytest.mark.integration
 class TestExportCsv:
     def test_export_empty(self, client):
-        create_resp = client.post("/plans", json={
+        create_resp = client.post("/portfolios", json={
             "name": "Export Test",
             "budget": 1000,
             "trading_goal": "maximize_returns",
         })
         plan_id = create_resp.json()["id"]
-        resp = client.get(f"/plans/{plan_id}/export")
+        resp = client.get(f"/portfolios/{plan_id}/export")
         assert resp.status_code == 200
         assert "text/csv" in resp.headers["content-type"]
         assert "Date,Action,Ticker" in resp.text
 
     def test_export_nonexistent(self, client):
-        resp = client.get("/plans/99999/export")
+        resp = client.get("/portfolios/99999/export")
         assert resp.status_code == 404
 
 
 @pytest.mark.integration
 class TestSnapshots:
     def test_snapshots_empty(self, client):
-        create_resp = client.post("/plans", json={
+        create_resp = client.post("/portfolios", json={
             "name": "Snap Test",
             "budget": 1000,
             "trading_goal": "maximize_returns",
         })
         plan_id = create_resp.json()["id"]
-        resp = client.get(f"/plans/{plan_id}/snapshots")
+        resp = client.get(f"/portfolios/{plan_id}/snapshots")
         assert resp.status_code == 200
         assert resp.json() == []

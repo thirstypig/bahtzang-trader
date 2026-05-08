@@ -95,7 +95,7 @@ class TestFullPlanLifecycle:
     def test_plan_trades_appear_in_global_trades(self, client, db_engine):
         """067-fix: Plan trades should appear in /trades and /trades/export."""
         # Create a plan
-        create_resp = client.post("/plans", json={
+        create_resp = client.post("/portfolios", json={
             "name": "Lifecycle Test",
             "budget": 5000,
             "trading_goal": "maximize_returns",
@@ -127,7 +127,7 @@ class TestFullPlanLifecycle:
         assert "175.50" in export_resp.text
 
         # Should also appear in plan detail
-        plan_resp = client.get(f"/plans/{plan_id}")
+        plan_resp = client.get(f"/portfolios/{plan_id}")
         plan_trades = plan_resp.json()["trades"]
         assert len(plan_trades) == 1
         assert plan_trades[0]["ticker"] == "GOOGL"

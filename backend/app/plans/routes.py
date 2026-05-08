@@ -31,7 +31,7 @@ _BUDGET_LOCK_KEY = 9001
 # 096-fix: Rate limiter for trade-triggering endpoints (real money)
 _limiter = Limiter(key_func=get_remote_address)
 
-router = APIRouter(prefix="/plans", tags=["plans"])
+router = APIRouter(prefix="/portfolios", tags=["portfolios"])
 
 VALID_PROFILES = "conservative|moderate|aggressive"
 VALID_FREQUENCIES = "1x|3x|5x"
