@@ -458,7 +458,7 @@ async def run_portfolio(
     from app.plans.executor import fetch_market_data, run_plan_cycle
 
     positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv = (
-        await fetch_market_data(db, [portfolio_id])
+        await fetch_market_data(db, [portfolio_id], plans=[portfolio])
     )
 
     results = await run_plan_cycle(

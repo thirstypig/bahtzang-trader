@@ -362,23 +362,31 @@ async def _execute_plan_cycle(
 async def fetch_market_data(
     db: Session,
     plan_ids: list[int],
+    plans: list[Portfolio] | None = None,
 ) -> tuple[list, dict, list, list, str, str, str]:
     """Fetch shared market data for one or more plans.
 
     089-fix: Extracted from run_all_plans so run_plan route can reuse it.
     068-fix: Unions Alpaca account tickers with per-plan virtual position tickers.
+    093-fix: Also seeds watchlist tickers from each plan's trading goal so
+             empty portfolios get price quotes to evaluate before placing first buy.
 
     Returns (positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv).
     """
+    from app.claude_brain import GOAL_WATCHLIST
+
     positions, balance = await asyncio.gather(
         broker.get_positions("default"),
         broker.get_account_balance("default"),
     )
 
-    # Union account tickers with per-plan virtual position tickers.
+    # Union account tickers + per-plan virtual positions + goal watchlists.
     all_tickers = {p.get("instrument", {}).get("symbol", "") for p in positions}
     for pid in plan_ids:
         all_tickers.update(compute_virtual_positions(db, pid).keys())
+    if plans:
+        for plan in plans:
+            all_tickers.update(GOAL_WATCHLIST.get(plan.trading_goal, []))
     all_tickers.discard("")
     held_tickers = sorted(all_tickers)
 
@@ -432,8 +440,9 @@ async def run_all_plans(db: Session) -> dict[int, list[CycleResult]]:
         return {}
 
     # 089-fix: Use shared fetch_market_data for consistent ticker union
+    # 093-fix: Pass plans so watchlist tickers are seeded for empty portfolios
     positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv = (
-        await fetch_market_data(db, [p.id for p in active_plans])
+        await fetch_market_data(db, [p.id for p in active_plans], plans=active_plans)
     )
 
     # 4. Run each plan's cycle (Claude call happens inside run_plan_cycle).

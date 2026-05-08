@@ -49,6 +49,15 @@ RISK_PROMPTS = {
     ),
 }
 
+GOAL_WATCHLIST: dict[str, list[str]] = {
+    "maximize_returns":      ["AAPL", "NVDA", "MSFT", "TSLA", "GOOGL", "AMZN", "META", "QQQ", "XLK"],
+    "steady_income":         ["SCHD", "VYM", "JEPI", "O", "JNJ", "PG"],
+    "capital_preservation":  ["SHV", "BIL", "XLU", "USMV", "PG", "JNJ"],
+    "beat_sp500":            ["XLK", "XLV", "XLF", "XLE", "XLI", "XLY", "XLP", "XLB", "XLRE", "XLU"],
+    "swing_trading":         ["AAPL", "MSFT", "NVDA", "TSLA", "GOOGL", "AMD", "QQQ"],
+    "passive_index":         ["VOO", "VTI", "VXUS"],
+}
+
 GOAL_PROMPTS = {
     "maximize_returns": (
         "TRADING GOAL: MAXIMIZE RETURNS (target 15-30% annual). "
@@ -173,6 +182,19 @@ async def get_trade_decision(
         "",
         f"PORTFOLIO ({len(positions)} positions, ${cash_available:.0f} cash):",
         json.dumps(positions),
+    ]
+
+    if market_data:
+        prompt_parts += [
+            "",
+            f"MARKET QUOTES ({len(market_data)} stocks) — ticker,price,change_pct,volume:",
+            "\n".join(
+                f"{q['ticker']},{q['price']:.2f},{q.get('change_pct', 0):+.2f}%,{q.get('volume', 0)}"
+                for q in market_data
+            ),
+        ]
+
+    prompt_parts += [
         "",
         f"GUARDRAILS: {json.dumps(safe_config)}",
         "",
