@@ -18,7 +18,7 @@ from app.backtest.routes import router as backtest_router
 from app.earnings.routes import router as earnings_router
 from app.forex.routes import router as forex_router
 from app.plans.routes import router as plans_router
-from app.routes import bot, guardrails, portfolio, todos, trades
+from app.routes import bot, portfolio, todos, trades
 from app.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(
@@ -30,9 +30,41 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    _ensure_default_portfolio()
     start_scheduler()
     yield
     stop_scheduler()
+
+
+def _ensure_default_portfolio() -> None:
+    """Create a 'Main' portfolio if none exist.
+
+    Mirrors migration 075 for fresh dev environments where create_all() built
+    the schema but the SQL migration didn't run. Idempotent — only inserts
+    when the portfolios table is empty.
+    """
+    from decimal import Decimal
+    from app.database import SessionLocal
+    from app.plans.models import Portfolio
+
+    db = SessionLocal()
+    try:
+        if db.query(Portfolio).count() > 0:
+            return
+        main = Portfolio(
+            name="Main",
+            budget=Decimal("100000"),
+            virtual_cash=Decimal("100000"),
+            trading_goal="maximize_returns",
+            risk_profile="moderate",
+            trading_frequency="1x",
+            is_active=True,
+        )
+        db.add(main)
+        db.commit()
+        logging.getLogger(__name__).info("Created default 'Main' portfolio (id=%d)", main.id)
+    finally:
+        db.close()
 
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
@@ -82,8 +114,6 @@ async def add_cache_headers(request: Request, call_next):
             response.headers["Cache-Control"] = "private, max-age=60"
         # Skip caching /forex/backtests/{id} — that endpoint is polled while
         # a backtest is running; caching would freeze the status display.
-        elif path == "/guardrails/presets":
-            response.headers["Cache-Control"] = "private, max-age=86400"
     return response
 
 
@@ -111,7 +141,6 @@ def get_current_user(user: dict = Depends(require_auth)):
 # Feature module routers
 app.include_router(portfolio.router)
 app.include_router(trades.router)
-app.include_router(guardrails.router)
 app.include_router(bot.router)
 app.include_router(todos.router)
 app.include_router(backtest_router)

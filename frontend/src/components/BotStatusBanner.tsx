@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { getBotStatus, BotStatus } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { GOAL_CONFIG } from "@/lib/constants";
 import { getTimezone } from "@/lib/utils";
 
 function timeAgo(iso: string): string {
@@ -43,7 +42,6 @@ export default function BotStatusBanner() {
     if (!user) return;
     getBotStatus().then(setStatus).catch(() => {});
 
-    // Refresh every 60 seconds
     const interval = setInterval(() => {
       getBotStatus().then(setStatus).catch(() => {});
     }, 60000);
@@ -52,12 +50,12 @@ export default function BotStatusBanner() {
 
   if (!status) return null;
 
-  const isHalted = status.kill_switch;
+  // Portfolio-only model: "halted" means no portfolio is currently active.
+  const isHalted = status.active_portfolios === 0;
 
   return (
     <div className="bz-glass mb-6 p-4">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        {/* Status indicator */}
         <div className="flex items-center gap-2">
           <div
             className={`h-2.5 w-2.5 rounded-full ${
@@ -69,26 +67,20 @@ export default function BotStatusBanner() {
               isHalted ? "text-neg" : "text-pos"
             }`}
           >
-            {isHalted ? "Bot Halted" : "Bot Active"}
+            {isHalted ? "All Portfolios Halted" : "Bot Active"}
           </span>
         </div>
 
-        {/* Frequency */}
         <div className="text-xs text-secondary">
           <span className="text-muted">Schedule:</span>{" "}
           {status.frequency}/day ({status.schedule_times.join(", ")})
         </div>
 
-        {/* Strategy */}
         <div className="text-xs text-secondary">
-          <span className="text-muted">Goal:</span>{" "}
-          {GOAL_CONFIG[status.trading_goal as keyof typeof GOAL_CONFIG]?.label || status.trading_goal}
-          <span className="mx-1 text-muted">·</span>
-          <span className="text-muted">Risk:</span>{" "}
-          <span className="capitalize">{status.risk_profile}</span>
+          <span className="text-muted">Portfolios:</span>{" "}
+          {status.active_portfolios} active / {status.total_portfolios} total
         </div>
 
-        {/* Last run */}
         {status.last_run && (
           <div className="text-xs text-secondary">
             <span className="text-muted">Last:</span>{" "}
@@ -97,7 +89,6 @@ export default function BotStatusBanner() {
           </div>
         )}
 
-        {/* Next run */}
         {status.next_run && !isHalted && (
           <div className="text-xs text-secondary">
             <span className="text-muted">Next:</span>{" "}
@@ -105,28 +96,10 @@ export default function BotStatusBanner() {
           </div>
         )}
 
-        {/* Total trades */}
         <div className="text-xs text-secondary">
           <span className="text-muted">Trades:</span> {status.total_trades} executed
         </div>
       </div>
-
-      {/* Recent settings changes */}
-      {status.recent_changes.length > 0 && (
-        <div className="mt-3 border-t border-border/50 pt-2">
-          <p className="text-[10px] text-muted mb-1">Recent changes:</p>
-          <div className="flex flex-wrap gap-2">
-            {status.recent_changes.slice(0, 3).map((c, i) => (
-              <span
-                key={i}
-                className="rounded bg-card-alt px-2 py-0.5 text-[10px] text-secondary"
-              >
-                {c.action.replace(/_/g, " ")} · {timeAgo(c.timestamp)}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

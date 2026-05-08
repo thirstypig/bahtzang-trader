@@ -36,11 +36,10 @@ const NAV: NavGroup[] = [
   {
     title: "Trading",
     items: [
-      { href: "/settings", label: "Settings", icon: Icons.Settings, description: "Risk profile, goal, guardrails, kill switch" },
+      { href: "/portfolios", label: "Portfolios", icon: Icons.Plans, description: "Strategy + budget + kill switch per portfolio" },
       { href: "/backtest", label: "Backtest", icon: Icons.Backtest, description: "Stocks strategy backtests on historical data" },
       { href: "/earnings", label: "Earnings", icon: Icons.Earnings, description: "Upcoming earnings with proximity warnings" },
-      { href: "/portfolios", label: "Portfolios", icon: Icons.Plans, description: "Pie-style sub-portfolios with virtual cash" },
-      { href: "/audit-log", label: "Audit Log", icon: Icons.AuditLog, description: "Every guardrails change, with reason" },
+      { href: "/audit-log", label: "Audit Log", icon: Icons.AuditLog, description: "Per-portfolio strategy change history" },
     ],
   },
   {

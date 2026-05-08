@@ -1,4 +1,9 @@
-"""APScheduler cron job: runs the trading pipeline on market days."""
+"""APScheduler cron job: runs the trading pipeline on market days.
+
+Portfolio-only model: every cycle iterates active portfolios and runs each
+one's executor with its own strategy. There is no global trader; if no
+portfolios are active, the scheduler logs and skips.
+"""
 
 import asyncio
 import logging
@@ -8,12 +13,8 @@ from apscheduler.triggers.cron import CronTrigger
 from pytz import timezone
 
 from app.database import SessionLocal
-from app.guardrails import load_guardrails
 from app.models import Trade
 from app import notifier
-from app.trade_executor import run_cycle
-
-# Note: apply_schedule is imported by routes/guardrails.py for dynamic updates
 
 logger = logging.getLogger(__name__)
 
@@ -33,21 +34,18 @@ JOB_PREFIX = "trading_cycle_"
 
 
 async def _scheduled_cycle():
-    """Run one trading cycle — plans first, then global fallback."""
+    """Run one trading cycle — iterate every active portfolio."""
     logger.info("Scheduled trading cycle starting")
     db = SessionLocal()
     try:
-        # If plans exist, run per-plan cycles
-        from app.plans.models import Plan
-        active_plans = db.query(Plan).filter(Plan.is_active.is_(True)).count()
-        if active_plans > 0:
-            from app.plans.executor import run_all_plans
-            results = await run_all_plans(db)
-            logger.info("Plan cycles complete: %d plans processed", len(results))
-        else:
-            # No plans — use legacy global cycle
-            result = await run_cycle(db)
-            logger.info("Cycle complete: %s", result)
+        from app.plans.models import Portfolio
+        active = db.query(Portfolio).filter(Portfolio.is_active.is_(True)).count()
+        if active == 0:
+            logger.info("No active portfolios — skipping cycle")
+            return
+        from app.plans.executor import run_all_plans
+        results = await run_all_plans(db)
+        logger.info("Cycle complete: %d portfolios processed", len(results))
     except Exception as e:
         logger.exception("Scheduled cycle failed: %s", e)
     finally:
@@ -236,19 +234,30 @@ async def _refresh_earnings():
 SUMMARY_JOB_ID = "daily_summary"
 
 
-def start_scheduler():
-    """Start the APScheduler with the configured trading frequency."""
-    scheduler.start()
+def _max_frequency_among_active(db) -> str:
+    """Pick the highest frequency among active portfolios.
 
-    # Read frequency from DB using a temporary session
+    Portfolio-only model: there is no global frequency. The scheduler runs
+    at the most aggressive cadence any active portfolio asks for, and each
+    portfolio's own cooldown/frequency caps prevent over-trading. Falls
+    back to "1x" when no portfolios are active.
+    """
+    from app.plans.models import Portfolio
+    rank = {"1x": 1, "3x": 3, "5x": 5}
+    portfolios = db.query(Portfolio).filter(Portfolio.is_active.is_(True)).all()
+    if not portfolios:
+        return "1x"
+    return max(portfolios, key=lambda p: rank.get(p.trading_frequency, 1)).trading_frequency
+
+
+def start_scheduler():
+    """Start the APScheduler at the most-aggressive frequency among portfolios."""
+    scheduler.start()
     db = SessionLocal()
     try:
-        config = load_guardrails(db)
-        frequency = config.get("trading_frequency", "1x")
+        apply_schedule(_max_frequency_among_active(db))
     finally:
         db.close()
-
-    apply_schedule(frequency)
 
     # Daily snapshot at 4:05 PM ET (after market close settles)
     snapshot_trigger = CronTrigger(

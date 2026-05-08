@@ -42,21 +42,6 @@ export type TradingGoal =
   | "swing_trading"
   | "passive_index";
 
-export interface Guardrails {
-  risk_profile: "conservative" | "moderate" | "aggressive";
-  trading_goal: TradingGoal;
-  trading_frequency: "1x" | "3x" | "5x";
-  max_total_invested: number;
-  max_single_trade_size: number;
-  stop_loss_threshold: number;
-  daily_order_limit: number;
-  min_confidence: number;
-  max_positions: number;
-  kill_switch: boolean;
-  target_amount: number | null;
-  target_date: string | null;
-}
-
 export interface CycleResult {
   trade_id: number;
   action: string;

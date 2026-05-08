@@ -3,124 +3,94 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import KillSwitchButton from "./KillSwitchButton";
 
-// Mock the API module
 vi.mock("@/lib/api", () => ({
-  activateKillSwitch: vi.fn(),
-  deactivateKillSwitch: vi.fn(),
+  updatePortfolio: vi.fn(),
 }));
 
-import { activateKillSwitch, deactivateKillSwitch } from "@/lib/api";
-const mockActivate = vi.mocked(activateKillSwitch);
-const mockDeactivate = vi.mocked(deactivateKillSwitch);
+import { updatePortfolio } from "@/lib/api";
+const mockUpdate = vi.mocked(updatePortfolio);
 
 beforeEach(() => {
-  mockActivate.mockReset();
-  mockDeactivate.mockReset();
+  mockUpdate.mockReset();
 });
 
 describe("KillSwitchButton", () => {
-  it('renders "KILL SWITCH" button when not active', () => {
-    render(<KillSwitchButton isActive={false} onToggled={vi.fn()} />);
-    expect(screen.getByText("KILL SWITCH")).toBeInTheDocument();
+  it('renders "HALT PORTFOLIO" when active', () => {
+    render(
+      <KillSwitchButton portfolioId={7} isActive={true} onToggled={vi.fn()} />,
+    );
+    expect(screen.getByText("HALT PORTFOLIO")).toBeInTheDocument();
   });
 
-  it('renders "Resume Trading" when active', () => {
-    render(<KillSwitchButton isActive={true} onToggled={vi.fn()} />);
+  it('renders "Resume Trading" when not active', () => {
+    render(
+      <KillSwitchButton portfolioId={7} isActive={false} onToggled={vi.fn()} />,
+    );
     expect(screen.getByText("Resume Trading")).toBeInTheDocument();
     expect(
-      screen.getByText("Kill Switch Active — All Trading Halted"),
+      screen.getByText("Portfolio Halted — Trading Paused"),
     ).toBeInTheDocument();
   });
 
-  it("calls activateKillSwitch API when not active and confirmed", async () => {
+  it("PATCHes is_active=false when active and confirmed", async () => {
     const onToggled = vi.fn();
-    mockActivate.mockResolvedValue({ status: "ok" });
+    mockUpdate.mockResolvedValue({} as Awaited<ReturnType<typeof updatePortfolio>>);
     const user = userEvent.setup();
 
-    render(<KillSwitchButton isActive={false} onToggled={onToggled} />);
+    render(
+      <KillSwitchButton portfolioId={7} isActive={true} onToggled={onToggled} />,
+    );
 
-    // Click the kill switch button to open modal
-    await user.click(screen.getByText("KILL SWITCH"));
-
-    // Confirm in the modal
-    expect(
-      screen.getByText("Yes, halt all trading"),
-    ).toBeInTheDocument();
-    await user.click(screen.getByText("Yes, halt all trading"));
+    await user.click(screen.getByText("HALT PORTFOLIO"));
+    expect(screen.getByText("Yes, halt this portfolio")).toBeInTheDocument();
+    await user.click(screen.getByText("Yes, halt this portfolio"));
 
     await waitFor(() => {
-      expect(mockActivate).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledWith(7, { is_active: false });
       expect(onToggled).toHaveBeenCalledTimes(1);
     });
   });
 
-  it("calls deactivateKillSwitch API when active and confirmed", async () => {
+  it("PATCHes is_active=true when halted and confirmed", async () => {
     const onToggled = vi.fn();
-    mockDeactivate.mockResolvedValue({ status: "ok" });
+    mockUpdate.mockResolvedValue({} as Awaited<ReturnType<typeof updatePortfolio>>);
     const user = userEvent.setup();
 
-    render(<KillSwitchButton isActive={true} onToggled={onToggled} />);
+    render(
+      <KillSwitchButton portfolioId={7} isActive={false} onToggled={onToggled} />,
+    );
 
-    // Click Resume Trading to open modal
     await user.click(screen.getByText("Resume Trading"));
-
-    // Confirm in the modal
-    expect(
-      screen.getByText("Yes, resume trading"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Yes, resume trading")).toBeInTheDocument();
     await user.click(screen.getByText("Yes, resume trading"));
 
     await waitFor(() => {
-      expect(mockDeactivate).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledWith(7, { is_active: true });
       expect(onToggled).toHaveBeenCalledTimes(1);
     });
   });
 
-  it("shows loading state during API call", async () => {
-    // Make the API call hang so we can see the loading state
-    let resolveActivate!: (v: { status: string }) => void;
-    mockActivate.mockReturnValue(
-      new Promise((resolve) => {
-        resolveActivate = resolve;
+  it("shows loading state during halt API call", async () => {
+    let resolve!: (v: Awaited<ReturnType<typeof updatePortfolio>>) => void;
+    mockUpdate.mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
       }),
     );
     const user = userEvent.setup();
 
-    render(<KillSwitchButton isActive={false} onToggled={vi.fn()} />);
-
-    // Open the modal and confirm
-    await user.click(screen.getByText("KILL SWITCH"));
-    await user.click(screen.getByText("Yes, halt all trading"));
-
-    // Button should show loading text
-    expect(screen.getByText("Activating...")).toBeInTheDocument();
-
-    // Resolve the promise to clean up
-    resolveActivate({ status: "ok" });
-    await waitFor(() => {
-      expect(screen.queryByText("Activating...")).not.toBeInTheDocument();
-    });
-  });
-
-  it("shows resume loading state during deactivate API call", async () => {
-    let resolveDeactivate!: (v: { status: string }) => void;
-    mockDeactivate.mockReturnValue(
-      new Promise((resolve) => {
-        resolveDeactivate = resolve;
-      }),
+    render(
+      <KillSwitchButton portfolioId={7} isActive={true} onToggled={vi.fn()} />,
     );
-    const user = userEvent.setup();
 
-    render(<KillSwitchButton isActive={true} onToggled={vi.fn()} />);
+    await user.click(screen.getByText("HALT PORTFOLIO"));
+    await user.click(screen.getByText("Yes, halt this portfolio"));
 
-    await user.click(screen.getByText("Resume Trading"));
-    await user.click(screen.getByText("Yes, resume trading"));
+    expect(screen.getByText("Halting...")).toBeInTheDocument();
 
-    expect(screen.getByText("Resuming...")).toBeInTheDocument();
-
-    resolveDeactivate({ status: "ok" });
+    resolve({} as Awaited<ReturnType<typeof updatePortfolio>>);
     await waitFor(() => {
-      expect(screen.queryByText("Resuming...")).not.toBeInTheDocument();
+      expect(screen.queryByText("Halting...")).not.toBeInTheDocument();
     });
   });
 
@@ -128,20 +98,16 @@ describe("KillSwitchButton", () => {
     const onToggled = vi.fn();
     const user = userEvent.setup();
 
-    render(<KillSwitchButton isActive={false} onToggled={onToggled} />);
+    render(
+      <KillSwitchButton portfolioId={7} isActive={true} onToggled={onToggled} />,
+    );
 
-    // Open modal
-    await user.click(screen.getByText("KILL SWITCH"));
-    expect(screen.getByText("Activate Kill Switch")).toBeInTheDocument();
-
-    // Cancel
+    await user.click(screen.getByText("HALT PORTFOLIO"));
+    expect(screen.getByText("Halt Portfolio")).toBeInTheDocument();
     await user.click(screen.getByText("Cancel"));
 
-    // Modal should close, API should not be called
-    expect(
-      screen.queryByText("Activate Kill Switch"),
-    ).not.toBeInTheDocument();
-    expect(mockActivate).not.toHaveBeenCalled();
+    expect(screen.queryByText("Halt Portfolio")).not.toBeInTheDocument();
+    expect(mockUpdate).not.toHaveBeenCalled();
     expect(onToggled).not.toHaveBeenCalled();
   });
 });

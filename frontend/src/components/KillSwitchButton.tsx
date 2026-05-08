@@ -1,15 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { activateKillSwitch, deactivateKillSwitch } from "@/lib/api";
+import { updatePortfolio } from "@/lib/api";
 import ConfirmModal from "./ConfirmModal";
 
 interface KillSwitchButtonProps {
+  portfolioId: number;
   isActive: boolean;
   onToggled: () => void;
 }
 
+/**
+ * Per-portfolio kill switch — toggles Portfolio.is_active.
+ *
+ * Portfolio-only model: there is no global kill switch. Each portfolio
+ * has its own. To halt EVERYTHING, the user toggles each active portfolio.
+ */
 export default function KillSwitchButton({
+  portfolioId,
   isActive,
   onToggled,
 }: KillSwitchButtonProps) {
@@ -19,28 +27,24 @@ export default function KillSwitchButton({
   async function handleConfirm() {
     setLoading(true);
     try {
-      if (isActive) {
-        await deactivateKillSwitch();
-      } else {
-        await activateKillSwitch();
-      }
+      await updatePortfolio(portfolioId, { is_active: !isActive });
       onToggled();
     } catch (err) {
-      console.error("Kill switch toggle failed:", err);
+      console.error("Portfolio active toggle failed:", err);
     } finally {
       setLoading(false);
       setShowModal(false);
     }
   }
 
-  if (isActive) {
+  if (!isActive) {
     return (
       <>
         <div className="flex items-center justify-between rounded-xl border border-neg/30 bg-neg/10 px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="h-3 w-3 animate-pulse rounded-full bg-neg" />
             <span className="font-semibold text-neg">
-              Kill Switch Active — All Trading Halted
+              Portfolio Halted — Trading Paused
             </span>
           </div>
           <button
@@ -55,7 +59,7 @@ export default function KillSwitchButton({
         <ConfirmModal
           open={showModal}
           title="Resume Trading"
-          message="This will deactivate the kill switch and allow the bot to place orders again. Are you sure?"
+          message="This will reactivate the portfolio and allow it to place orders again. Are you sure?"
           confirmLabel="Yes, resume trading"
           onConfirm={handleConfirm}
           onCancel={() => setShowModal(false)}
@@ -71,14 +75,14 @@ export default function KillSwitchButton({
         disabled={loading}
         className="rounded-xl bg-neg px-8 py-4 text-lg font-bold text-white shadow-lg shadow-neg/30 transition-all hover:opacity-90 hover:shadow-neg/50 active:scale-95 disabled:opacity-50"
       >
-        {loading ? "Activating..." : "KILL SWITCH"}
+        {loading ? "Halting..." : "HALT PORTFOLIO"}
       </button>
 
       <ConfirmModal
         open={showModal}
-        title="Activate Kill Switch"
-        message="This will immediately halt ALL trading activity. The bot will not place any orders until you resume trading. Are you sure?"
-        confirmLabel="Yes, halt all trading"
+        title="Halt Portfolio"
+        message="This will immediately halt this portfolio's trading. It will not place any orders until you resume. Are you sure?"
+        confirmLabel="Yes, halt this portfolio"
         onConfirm={handleConfirm}
         onCancel={() => setShowModal(false)}
       />
