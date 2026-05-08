@@ -6,29 +6,29 @@ import { InvestmentPlan } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 
 interface Props {
-  plans: InvestmentPlan[];
-  onSliceClick?: (planId: number) => void;
+  portfolios: InvestmentPlan[];
+  onSliceClick?: (portfolioId: number) => void;
 }
 
 const COLORS = ["rgb(var(--pos))", "#3b82f6", "#f59e0b", "rgb(var(--neg))", "#8b5cf6", "#ec4899"];
 
-function PlanAllocationChart({ plans, onSliceClick }: Props) {
+function PortfolioAllocationChart({ portfolios, onSliceClick }: Props) {
   const { data, totalBudget } = useMemo(() => {
-    if (plans.length === 0) return { data: [], totalBudget: 0 };
-    const total = plans.reduce((s, p) => s + p.budget, 0);
+    if (portfolios.length === 0) return { data: [], totalBudget: 0 };
+    const total = portfolios.reduce((s, p) => s + p.budget, 0);
     return {
-      data: plans.map((p, i) => ({
+      data: portfolios.map((p, i) => ({
         name: p.name,
         value: p.budget,
         pct: total > 0 ? ((p.budget / total) * 100).toFixed(1) : "0",
-        planId: p.id,
+        portfolioId: p.id,
         color: COLORS[i % COLORS.length],
       })),
       totalBudget: total,
     };
-  }, [plans]);
+  }, [portfolios]);
 
-  if (plans.length === 0) return null;
+  if (portfolios.length === 0) return null;
 
   return (
     <div className="bz-glass p-5">
@@ -45,7 +45,7 @@ function PlanAllocationChart({ plans, onSliceClick }: Props) {
                 outerRadius={80}
                 paddingAngle={2}
                 dataKey="value"
-                onClick={(_, index) => onSliceClick?.(data[index].planId)}
+                onClick={(_, index) => onSliceClick?.(data[index].portfolioId)}
                 style={{ cursor: onSliceClick ? "pointer" : "default" }}
               >
                 {data.map((entry, i) => (
@@ -74,8 +74,8 @@ function PlanAllocationChart({ plans, onSliceClick }: Props) {
         <div className="space-y-2">
           {data.map((entry) => (
             <button
-              key={entry.planId}
-              onClick={() => onSliceClick?.(entry.planId)}
+              key={entry.portfolioId}
+              onClick={() => onSliceClick?.(entry.portfolioId)}
               className="flex items-center gap-2 text-left transition-colors hover:text-primary"
             >
               <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
@@ -93,4 +93,4 @@ function PlanAllocationChart({ plans, onSliceClick }: Props) {
   );
 }
 
-export default React.memo(PlanAllocationChart);
+export default React.memo(PortfolioAllocationChart);

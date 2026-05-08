@@ -39,7 +39,7 @@ const NAV: NavGroup[] = [
       { href: "/settings", label: "Settings", icon: Icons.Settings, description: "Risk profile, goal, guardrails, kill switch" },
       { href: "/backtest", label: "Backtest", icon: Icons.Backtest, description: "Stocks strategy backtests on historical data" },
       { href: "/earnings", label: "Earnings", icon: Icons.Earnings, description: "Upcoming earnings with proximity warnings" },
-      { href: "/plans", label: "Plans", icon: Icons.Plans, description: "Pie-style sub-portfolios with virtual cash" },
+      { href: "/portfolios", label: "Portfolios", icon: Icons.Plans, description: "Pie-style sub-portfolios with virtual cash" },
       { href: "/audit-log", label: "Audit Log", icon: Icons.AuditLog, description: "Every guardrails change, with reason" },
     ],
   },

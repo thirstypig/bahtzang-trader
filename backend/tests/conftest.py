@@ -167,8 +167,8 @@ def client(db_engine):
 # ---------------------------------------------------------------------------
 
 def make_plan(db_session, **overrides):
-    """Insert a Plan row with sensible defaults. Returns the Plan object."""
-    from app.plans.models import Plan
+    """Insert a Portfolio row with sensible defaults. Returns the Portfolio object."""
+    from app.plans.models import Portfolio
 
     defaults = {
         "name": "Test Plan",
@@ -180,7 +180,7 @@ def make_plan(db_session, **overrides):
         "is_active": True,
     }
     defaults.update(overrides)
-    plan = Plan(**defaults)
+    plan = Portfolio(**defaults)
     db_session.add(plan)
     db_session.commit()
     db_session.refresh(plan)
@@ -195,7 +195,7 @@ def make_trade(db_session, plan_id, **overrides):
     from app.models import Trade
 
     defaults = {
-        "plan_id": plan_id,
+        "portfolio_id": plan_id,
         "ticker": "AAPL",
         "action": "buy",
         "quantity": 1.0,

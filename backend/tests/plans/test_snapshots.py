@@ -24,7 +24,7 @@ class TestTakePlanSnapshots:
             count = await take_plan_snapshots(db_session)
 
         assert count == 1
-        snap = db_session.query(PlanSnapshot).filter_by(plan_id=plan.id).first()
+        snap = db_session.query(PlanSnapshot).filter_by(portfolio_id=plan.id).first()
         assert snap is not None
         assert snap.budget == 5000
         assert snap.virtual_cash == 5000
@@ -45,7 +45,7 @@ class TestTakePlanSnapshots:
             count = await take_plan_snapshots(db_session)
 
         assert count == 1
-        snap = db_session.query(PlanSnapshot).filter_by(plan_id=plan.id).first()
+        snap = db_session.query(PlanSnapshot).filter_by(portfolio_id=plan.id).first()
         assert snap.invested_value == 1600.0  # 10 shares * $160
         assert snap.total_value == 6600.0     # $1600 + $5000 cash
         assert snap.pnl == pytest.approx(-3400.0)  # $6600 - $10000 budget
@@ -60,7 +60,7 @@ class TestTakePlanSnapshots:
             await take_plan_snapshots(db_session)
             await take_plan_snapshots(db_session)
 
-        snaps = db_session.query(PlanSnapshot).filter_by(plan_id=plan.id).all()
+        snaps = db_session.query(PlanSnapshot).filter_by(portfolio_id=plan.id).all()
         assert len(snaps) == 1  # upsert, not duplicate
 
     @pytest.mark.asyncio

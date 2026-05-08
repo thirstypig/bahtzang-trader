@@ -16,7 +16,8 @@ from app.technical_analysis import get_indicators, format_indicators_csv
 from app.sector_rotation import get_sector_signals, format_sector_csv
 from app.brokers.alpaca import AlpacaBroker
 from app.models import Trade
-from app.plans.models import Plan
+from app.plans.models import Portfolio
+from app.plans.constraints import check_trading_constraints, update_touch_history
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ def _get_plan_lock(plan_id: int) -> asyncio.Lock:
 
 
 def compute_virtual_positions(db: Session, plan_id: int) -> dict[str, float]:
-    """Compute net shares per ticker from executed trades for a plan."""
+    """Compute net shares per ticker from executed trades for a portfolio."""
     rows = (
         db.query(
             Trade.ticker,
@@ -46,15 +47,15 @@ def compute_virtual_positions(db: Session, plan_id: int) -> dict[str, float]:
                 )
             ).label("net_qty"),
         )
-        .filter(Trade.plan_id == plan_id, Trade.executed.is_(True))
+        .filter(Trade.portfolio_id == plan_id, Trade.executed.is_(True))
         .group_by(Trade.ticker)
         .all()
     )
     return {row.ticker: row.net_qty for row in rows if row.net_qty > 0}
 
 
-def _plan_to_guardrails_config(plan: Plan) -> dict:
-    """Convert a Plan to a guardrails config dict for Claude.
+def _plan_to_guardrails_config(plan: Portfolio) -> dict:
+    """Convert a Portfolio to a guardrails config dict for Claude.
 
     071-fix: Convert Decimal fields to float at the boundary — guardrails
     and Claude prompt use float arithmetic throughout.
@@ -76,7 +77,7 @@ def _plan_to_guardrails_config(plan: Plan) -> dict:
 
 async def run_plan_cycle(
     db: Session,
-    plan: Plan,
+    plan: Portfolio,
     positions: list,
     balance: dict,
     quotes: list,
@@ -85,7 +86,7 @@ async def run_plan_cycle(
     sector_csv: str,
     earnings_csv: str,
 ) -> list[CycleResult]:
-    """Execute a trading cycle for a single plan using shared market data.
+    """Execute a trading cycle for a single portfolio using shared market data.
 
     087-fix: Inlined the per-plan lock (was a separate wrapper/_locked split).
     061-fix: Per-plan lock prevents concurrent runs from double-spending.
@@ -102,7 +103,7 @@ async def run_plan_cycle(
 
 async def _execute_plan_cycle(
     db: Session,
-    plan: Plan,
+    plan: Portfolio,
     positions: list,
     balance: dict,
     quotes: list,
@@ -141,7 +142,7 @@ async def _execute_plan_cycle(
     plan_orders_today = await asyncio.to_thread(
         lambda: db.query(Trade)
         .filter(
-            Trade.plan_id == plan.id,
+            Trade.portfolio_id == plan.id,
             Trade.timestamp >= today_start,
             Trade.executed.is_(True),
         )
@@ -212,6 +213,21 @@ async def _execute_plan_cycle(
                     decision["quantity"] = 0
                     decision["action"] = "hold"
                     decision["reasoning"] = f"Sell blocked: plan only owns {plan_qty:.2f} shares"
+
+        # 072-fix: Trading constraints — cooldown, frequency caps, no-repeat action
+        decision_ts = datetime.now(timezone.utc)
+        if decision["action"] != "hold":
+            allowed, constraint_reason = await check_trading_constraints(
+                db, plan, decision, decision_ts
+            )
+            if not allowed:
+                logger.info(
+                    "Plan %d: constraint blocked %s: %s",
+                    plan.id, decision["ticker"], constraint_reason,
+                )
+                decision["action"] = "hold"
+                decision["reasoning"] = constraint_reason
+                decision["quantity"] = 0
 
         # 072-fix: Auto-size buy orders to fractional shares if cash is
         # insufficient. Update the reasoning field so the audit trail reflects
@@ -290,7 +306,7 @@ async def _execute_plan_cycle(
         # immediately after the Alpaca order. This closes the cash-duplication
         # window where a later commit failure would leave a real order unlogged.
         plan_trade = Trade(
-            plan_id=plan.id,
+            portfolio_id=plan.id,
             ticker=decision.get("ticker", ""),
             action=decision["action"],
             quantity=decision.get("quantity", 0),
@@ -310,6 +326,9 @@ async def _execute_plan_cycle(
         try:
             db.commit()
             db.refresh(plan_trade)
+            # 072-fix: Update touch history for constraint checking on next cycle
+            if executed and plan_trade.action.lower() in ("buy", "sell"):
+                await update_touch_history(db, plan, plan_trade, decision_ts)
         except Exception as e:
             db.rollback()
             # 080-fix: Include Alpaca order ID in the reconciliation log

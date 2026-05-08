@@ -136,6 +136,26 @@ export interface BacktestDetail extends BacktestItem {
 // Plans
 // ---------------------------------------------------------------------------
 
+export interface StrategyAuditEntry {
+  id: number;
+  timestamp: string;
+  user_email: string;
+  action: string;
+  old_value: string | null;
+  new_value: string | null;
+  reason: string | null;
+}
+
+export interface PortfolioStrategy {
+  cooldown_hours: number;
+  min_confidence: number;
+  respect_wash_sale: boolean;
+  kelly_fraction: number;
+  circuit_breaker_daily_pct: number;
+  circuit_breaker_weekly_pct: number;
+  audit_log: StrategyAuditEntry[];
+}
+
 export interface InvestmentPlan {
   id: number;
   name: string;
@@ -154,6 +174,8 @@ export interface InvestmentPlan {
 }
 
 export interface PlanPosition {
+  id: number;
+  plan_id: number;
   ticker: string;
   quantity: number;
   avg_cost: number;

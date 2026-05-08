@@ -28,7 +28,7 @@ class TestTradesEndpoint:
         plan_trade = Trade(
             ticker="AAPL", action="buy", quantity=1.0,
             price=Decimal("150.00"), guardrail_passed=True, executed=True,
-            plan_id=plan.id, virtual_cash_before=Decimal("5000"),
+            portfolio_id=plan.id, virtual_cash_before=Decimal("5000"),
             virtual_cash_after=Decimal("4850"),
         )
         db.add(plan_trade)
@@ -63,7 +63,7 @@ class TestTradesExport:
         trade = Trade(
             ticker="NVDA", action="buy", quantity=2.5,
             price=Decimal("800.00"), guardrail_passed=True, executed=True,
-            plan_id=plan.id, virtual_cash_before=Decimal("5000"),
+            portfolio_id=plan.id, virtual_cash_before=Decimal("5000"),
             virtual_cash_after=Decimal("3000"),
         )
         db.add(trade)

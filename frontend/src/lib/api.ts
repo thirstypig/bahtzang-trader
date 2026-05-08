@@ -288,18 +288,18 @@ export async function deleteBacktest(configId: number): Promise<void> {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Plans
+// Portfolios
 // ---------------------------------------------------------------------------
 
-export async function getPlans(): Promise<InvestmentPlan[]> {
-  return fetchAPI<InvestmentPlan[]>("/plans");
+export async function getPortfolios(): Promise<InvestmentPlan[]> {
+  return fetchAPI<InvestmentPlan[]>("/portfolios");
 }
 
-export async function getPlan(id: number): Promise<InvestmentPlan & { trades: Trade[] }> {
-  return fetchAPI<InvestmentPlan & { trades: Trade[] }>(`/plans/${id}`);
+export async function getPortfolioDetail(id: number): Promise<InvestmentPlan & { trades: Trade[] }> {
+  return fetchAPI<InvestmentPlan & { trades: Trade[] }>(`/portfolios/${id}`);
 }
 
-export async function createPlan(plan: {
+export async function createPortfolio(plan: {
   name: string;
   budget: number;
   trading_goal: InvestmentPlan["trading_goal"];
@@ -308,56 +308,88 @@ export async function createPlan(plan: {
   target_amount?: number | null;
   target_date?: string | null;
 }): Promise<InvestmentPlan> {
-  return fetchAPI<InvestmentPlan>("/plans", {
+  return fetchAPI<InvestmentPlan>("/portfolios", {
     method: "POST",
     body: JSON.stringify(plan),
   });
 }
 
-export async function updatePlan(
+export async function updatePortfolio(
   id: number,
   updates: Partial<InvestmentPlan>,
 ): Promise<InvestmentPlan> {
-  return fetchAPI<InvestmentPlan>(`/plans/${id}`, {
+  return fetchAPI<InvestmentPlan>(`/portfolios/${id}`, {
     method: "PATCH",
     body: JSON.stringify(updates),
   });
 }
 
-export async function deletePlan(id: number): Promise<void> {
-  await fetchAPI(`/plans/${id}`, { method: "DELETE" });
+export async function deletePortfolio(id: number): Promise<void> {
+  await fetchAPI(`/portfolios/${id}`, { method: "DELETE" });
 }
 
-export async function runPlan(id: number): Promise<CycleResult> {
-  return fetchAPI<CycleResult>(`/plans/${id}/run`, {
+export async function runPortfolio(id: number): Promise<CycleResult> {
+  return fetchAPI<CycleResult>(`/portfolios/${id}/run`, {
     method: "POST",
     signal: AbortSignal.timeout(45000),
   });
 }
 
-export async function exportPlanTradesCsv(id: number): Promise<void> {
+export async function exportPortfolioTradesCsv(id: number): Promise<void> {
   const headers: Record<string, string> = {};
   if (_accessToken) headers["Authorization"] = `Bearer ${_accessToken}`;
-  const res = await fetch(`${API}/plans/${id}/export`, { headers });
+  const res = await fetch(`${API}/portfolios/${id}/export`, { headers });
   if (!res.ok) throw new Error("Export failed");
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `bahtzang-plan-${id}-trades.csv`;
+  a.download = `bahtzang-portfolio-${id}-trades.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
-export async function getPlanPositions(id: number): Promise<PlanPosition[]> {
-  return fetchAPI<PlanPosition[]>(`/plans/${id}/positions`);
+export async function getPortfolioPositions(id: number): Promise<PlanPosition[]> {
+  return fetchAPI<PlanPosition[]>(`/portfolios/${id}/positions`);
 }
 
-export async function getPlanSnapshots(
+export async function getPortfolioSnapshots(
   id: number,
   days = 90,
 ): Promise<PlanSnapshotData[]> {
-  return fetchAPI<PlanSnapshotData[]>(`/plans/${id}/snapshots?days=${days}`);
+  return fetchAPI<PlanSnapshotData[]>(`/portfolios/${id}/snapshots?days=${days}`);
+}
+
+export interface PortfolioStrategy {
+  cooldown_hours: number;
+  min_confidence: number;
+  respect_wash_sale: boolean;
+  kelly_fraction: number;
+  circuit_breaker_daily_pct: number;
+  circuit_breaker_weekly_pct: number;
+  audit_log: {
+    id: number;
+    timestamp: string;
+    user_email: string;
+    action: string;
+    old_value: string | null;
+    new_value: string | null;
+    reason: string | null;
+  }[];
+}
+
+export async function getPortfolioStrategy(id: number): Promise<PortfolioStrategy> {
+  return fetchAPI<PortfolioStrategy>(`/portfolios/${id}/strategy`);
+}
+
+export async function updatePortfolioStrategy(
+  id: number,
+  strategy: Partial<PortfolioStrategy> & { reason: string },
+): Promise<PortfolioStrategy> {
+  return fetchAPI<PortfolioStrategy>(`/portfolios/${id}/strategy`, {
+    method: "POST",
+    body: JSON.stringify(strategy),
+  });
 }
 
 export async function getEarningsCalendar(

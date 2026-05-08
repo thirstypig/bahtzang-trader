@@ -8,12 +8,21 @@ import Spinner from "@/components/Spinner";
 import Tip from "@/components/Tip";
 import TradeTable from "@/components/TradeTable";
 
+const TRADES_PER_PAGE = 50;
+const TOTAL_TRADES_TO_LOAD = 500;
+
 export default function TradesPage() {
+  const [page, setPage] = useState(0);
+  const offset = page * TRADES_PER_PAGE;
+
   const { data: trades, loading } = useApiQuery<Trade[]>(
-    () => getTrades(200),
+    () => getTrades(TOTAL_TRADES_TO_LOAD),
     [],
   );
   const [exporting, setExporting] = useState(false);
+
+  const currentPageTrades = trades.slice(offset, offset + TRADES_PER_PAGE);
+  const hasNextPage = trades.length > offset + TRADES_PER_PAGE;
 
   async function handleExport() {
     setExporting(true);
@@ -60,7 +69,30 @@ export default function TradesPage() {
           <Spinner />
         </div>
       ) : (
-        <TradeTable trades={trades} />
+        <>
+          <TradeTable trades={currentPageTrades} />
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm text-muted">
+              Showing {offset + 1}–{Math.min(offset + TRADES_PER_PAGE, trades?.length || 0)} of {trades?.length || 0}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage(Math.max(0, page - 1))}
+                disabled={page === 0}
+                className="rounded-lg border border-border-strong bg-card-alt px-3 py-1.5 text-sm font-medium transition-colors hover:bg-border-strong/30 disabled:opacity-50"
+              >
+                ← Previous
+              </button>
+              <button
+                onClick={() => setPage(page + 1)}
+                disabled={!hasNextPage}
+                className="rounded-lg border border-border-strong bg-card-alt px-3 py-1.5 text-sm font-medium transition-colors hover:bg-border-strong/30 disabled:opacity-50"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

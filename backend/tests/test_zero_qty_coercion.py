@@ -127,7 +127,7 @@ async def test_plan_executor_passes_headroom_to_claude(db_session):
     """plan_total_invested + plan_orders_today are computed and passed."""
     from tests.conftest import make_plan
     from app.plans import executor as plan_executor
-    from app.plans.models import Plan
+    from app.plans.models import Portfolio
 
     plan = make_plan(db_session, budget=1000.0, virtual_cash=200.0)
 

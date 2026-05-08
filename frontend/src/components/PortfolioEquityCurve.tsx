@@ -9,14 +9,14 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { getPlanSnapshots } from "@/lib/api";
+import { getPortfolioSnapshots } from "@/lib/api";
 import { PlanSnapshotData } from "@/lib/types";
 
 interface Props {
-  planId: number;
+  portfolioId: number;
 }
 
-export default function PlanEquityCurve({ planId }: Props) {
+export default function PortfolioEquityCurve({ portfolioId }: Props) {
   const [snapshots, setSnapshots] = useState<PlanSnapshotData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export default function PlanEquityCurve({ planId }: Props) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getPlanSnapshots(planId, 90)
+    getPortfolioSnapshots(portfolioId, 90)
       .then((d) => {
         if (!cancelled) setSnapshots(d);
       })
@@ -38,7 +38,7 @@ export default function PlanEquityCurve({ planId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [planId]);
+  }, [portfolioId]);
 
   if (loading) {
     return (
@@ -74,12 +74,12 @@ export default function PlanEquityCurve({ planId }: Props) {
   return (
     <div className="bz-glass p-5">
       <h3 className="mb-4 text-sm font-semibold text-primary">
-        Plan Equity Curve
+        Portfolio Equity Curve
       </h3>
       <ResponsiveContainer width="100%" height={280}>
         <AreaChart data={data}>
           <defs>
-            <linearGradient id={`planEquityGrad-${planId}`} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`portfolioEquityGrad-${portfolioId}`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="rgb(var(--pos))" stopOpacity={0.3} />
               <stop offset="100%" stopColor="rgb(var(--pos))" stopOpacity={0} />
             </linearGradient>
@@ -113,7 +113,7 @@ export default function PlanEquityCurve({ planId }: Props) {
             name="Total Value"
             stroke="rgb(var(--pos))"
             strokeWidth={2}
-            fill={`url(#planEquityGrad-${planId})`}
+            fill={`url(#portfolioEquityGrad-${portfolioId})`}
             dot={false}
           />
         </AreaChart>
