@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   getPortfolioDetail,
@@ -9,7 +9,6 @@ import {
   runPortfolio,
   exportPortfolioTradesCsv,
   getPortfolioStrategy,
-  updatePortfolioStrategy,
 } from "@/lib/api";
 import type { InvestmentPlan, Trade, PortfolioStrategy } from "@/lib/types";
 
@@ -30,7 +29,6 @@ type PortfolioDetailData = InvestmentPlan & { trades: Trade[] };
 
 export default function PortfolioDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const portfolioId = Number(params.id);
 
   const [data, setData] = useState<PortfolioDetailData | null>(null);
