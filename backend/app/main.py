@@ -30,9 +30,41 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    _ensure_default_portfolio()
     start_scheduler()
     yield
     stop_scheduler()
+
+
+def _ensure_default_portfolio() -> None:
+    """Create a 'Main' portfolio if none exist.
+
+    Mirrors migration 075 for fresh dev environments where create_all() built
+    the schema but the SQL migration didn't run. Idempotent — only inserts
+    when the portfolios table is empty.
+    """
+    from decimal import Decimal
+    from app.database import SessionLocal
+    from app.plans.models import Portfolio
+
+    db = SessionLocal()
+    try:
+        if db.query(Portfolio).count() > 0:
+            return
+        main = Portfolio(
+            name="Main",
+            budget=Decimal("100000"),
+            virtual_cash=Decimal("100000"),
+            trading_goal="maximize_returns",
+            risk_profile="moderate",
+            trading_frequency="1x",
+            is_active=True,
+        )
+        db.add(main)
+        db.commit()
+        logging.getLogger(__name__).info("Created default 'Main' portfolio (id=%d)", main.id)
+    finally:
+        db.close()
 
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
