@@ -115,9 +115,12 @@ export default function PortfolioDetailPage() {
       setRunning(true);
       setRunResult(null);
       const result = await runPortfolio(portfolioId);
-      setRunResult(
-        `Trade decision: ${result.action} ${result.ticker}${result.executed ? " (executed)" : " (blocked)"}`
-      );
+      const label = result.executed
+        ? " (executed)"
+        : result.action === "hold"
+        ? " (no action)"
+        : " (blocked)";
+      setRunResult(`Trade decision: ${result.action} ${result.ticker}${label}`);
       setRefreshKey((k) => k + 1);
       setTimeout(() => setRunResult(null), 5000);
     } catch (err) {
