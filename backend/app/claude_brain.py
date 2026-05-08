@@ -121,6 +121,15 @@ assert set(GOAL_PROMPTS.keys()) == set(TRADING_GOALS.keys()), (
 )
 
 
+def _pct(val) -> float:
+    """Convert a broker percent value (float, int, or '1.23%') to a plain float."""
+    if val is None:
+        return 0.0
+    if isinstance(val, (int, float)):
+        return float(val)
+    return float(str(val).rstrip("%") or 0)
+
+
 async def get_trade_decision(
     positions: list[Position],
     cash_available: float,
@@ -189,7 +198,7 @@ async def get_trade_decision(
             "",
             f"MARKET QUOTES ({len(market_data)} stocks) — ticker,price,change_pct,volume:",
             "\n".join(
-                f"{q['ticker']},{float(q['price']):.2f},{float(q.get('change_pct', 0) or 0):+.2f}%,{q.get('volume', 0)}"
+                f"{q['ticker']},{float(q['price']):.2f},{_pct(q.get('change_pct', 0)):+.2f}%,{q.get('volume', 0)}"
                 for q in market_data
             ),
         ]
