@@ -18,7 +18,7 @@ from app.backtest.routes import router as backtest_router
 from app.earnings.routes import router as earnings_router
 from app.forex.routes import router as forex_router
 from app.plans.routes import router as plans_router
-from app.routes import bot, guardrails, portfolio, todos, trades
+from app.routes import bot, portfolio, todos, trades
 from app.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(
@@ -114,8 +114,6 @@ async def add_cache_headers(request: Request, call_next):
             response.headers["Cache-Control"] = "private, max-age=60"
         # Skip caching /forex/backtests/{id} — that endpoint is polled while
         # a backtest is running; caching would freeze the status display.
-        elif path == "/guardrails/presets":
-            response.headers["Cache-Control"] = "private, max-age=86400"
     return response
 
 
@@ -143,7 +141,6 @@ def get_current_user(user: dict = Depends(require_auth)):
 # Feature module routers
 app.include_router(portfolio.router)
 app.include_router(trades.router)
-app.include_router(guardrails.router)
 app.include_router(bot.router)
 app.include_router(todos.router)
 app.include_router(backtest_router)

@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
-from app import claude_brain, guardrails, market_data, notifier
+from app import claude_brain, market_data, notifier
+from app.guardrails import apply_risk_preset
 from app.decision_coercion import coerce_bad_price_to_hold, coerce_zero_qty_to_hold
 from app.pipeline_types import CycleResult
 from app.earnings.client import days_until_earnings, format_earnings_csv
@@ -60,7 +61,6 @@ def _plan_to_guardrails_config(plan: Portfolio) -> dict:
     071-fix: Convert Decimal fields to float at the boundary — guardrails
     and Claude prompt use float arithmetic throughout.
     """
-    from app.guardrails import apply_risk_preset
     budget = float(plan.budget)
     config = apply_risk_preset(plan.risk_profile, budget)
     config["trading_goal"] = plan.trading_goal
@@ -397,30 +397,36 @@ async def fetch_market_data(
 
 
 async def run_all_plans(db: Session) -> dict[int, list[CycleResult]]:
-    """Run trading cycles for all active plans with shared market data."""
+    """Run trading cycles for all active portfolios with shared market data.
 
-    # 1. Check circuit breakers globally first
-    global_config = guardrails.load_guardrails(db)
-    if global_config.get("kill_switch"):
-        logger.info("Kill switch active — skipping all plans")
-        return {}
+    Portfolio-only model: there is no global kill switch. Each portfolio's
+    is_active flag serves as its own kill switch — set is_active=False to
+    halt that portfolio. The broker-wide circuit breaker still triggers on
+    account-level drawdown and, when RED, deactivates every active portfolio
+    in one shot (faster than per-portfolio toggles in a panic).
+    """
 
-    # 2. Shared data fetch (once for all plans)
+    # 1. Shared data fetch (once for all portfolios)
     positions_raw, balance = await asyncio.gather(
         broker.get_positions("default"),
         broker.get_account_balance("default"),
     )
 
+    # 2. Account-wide circuit breaker — uses default thresholds (5% / 10%).
+    # Per-portfolio thresholds (Portfolio.circuit_breaker_*) are honored
+    # inside each portfolio's own validation.
     cb_level, cb_reason = check_circuit_breakers(
-        db=db, portfolio_value=balance["total_value"], config=global_config,
+        db=db, portfolio_value=balance["total_value"], config={},
     )
     if cb_level == RED:
-        logger.warning("Circuit breaker RED: %s", cb_reason)
-        guardrails.save_guardrails(db, {"kill_switch": True})
+        logger.warning("Circuit breaker RED: %s — deactivating all portfolios", cb_reason)
+        for p in db.query(Portfolio).filter(Portfolio.is_active.is_(True)).all():
+            p.is_active = False
+        db.commit()
         return {}
 
-    # 3. Get active plans FIRST so we can include their tickers in market data
-    active_plans = db.query(Plan).filter(Plan.is_active.is_(True)).all()
+    # 3. Get active portfolios so we can include their tickers in market data
+    active_plans = db.query(Portfolio).filter(Portfolio.is_active.is_(True)).all()
     if not active_plans:
         logger.info("No active plans")
         return {}
