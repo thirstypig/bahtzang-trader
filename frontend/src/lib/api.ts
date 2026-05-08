@@ -6,7 +6,6 @@ import {
   ForexBacktestCreate,
   ForexBacktestDetail,
   ForexBacktestSummary,
-  Guardrails,
   InvestmentPlan,
   PlanPosition,
   PlanSnapshotData,
@@ -84,35 +83,24 @@ export async function exportTradesCsv(year?: number): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
-export async function getGuardrails(): Promise<Guardrails> {
-  return fetchAPI<Guardrails>("/guardrails");
-}
-
-export async function updateGuardrails(
-  config: Partial<Guardrails>
-): Promise<Guardrails> {
-  return fetchAPI<Guardrails>("/guardrails", {
-    method: "POST",
-    body: JSON.stringify(config),
-  });
-}
-
 export interface BotStatus {
   running: boolean;
   frequency: string;
   schedule_times: string[];
-  kill_switch: boolean;
-  risk_profile: string;
-  trading_goal: string;
+  active_portfolios: number;
+  total_portfolios: number;
   last_run: string | null;
   last_action: string | null;
   last_ticker: string | null;
   next_run: string | null;
   total_trades: number;
-  recent_changes: {
-    action: string;
-    timestamp: string;
-    changes: string;
+  portfolios: {
+    id: number;
+    name: string;
+    is_active: boolean;
+    trading_frequency: string;
+    trading_goal: string;
+    risk_profile: string;
   }[];
 }
 
@@ -141,14 +129,6 @@ export async function getRecentErrors(limit = 20): Promise<{ total: number; erro
 
 export async function getErrorByRef(ref: string): Promise<ErrorDetail> {
   return fetchAPI<ErrorDetail>(`/admin/errors/${ref}`);
-}
-
-export async function activateKillSwitch(): Promise<{ status: string }> {
-  return fetchAPI<{ status: string }>("/killswitch", { method: "POST" });
-}
-
-export async function deactivateKillSwitch(): Promise<{ status: string }> {
-  return fetchAPI<{ status: string }>("/killswitch/deactivate", { method: "POST" });
 }
 
 export async function triggerRun(): Promise<CycleResult> {

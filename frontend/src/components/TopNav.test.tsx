@@ -37,16 +37,15 @@ describe("TopNav", () => {
     expect(screen.queryAllByRole("menuitem").length).toBe(0);
   });
 
-  it("opens the Trading mega-menu on click and shows all 5 items", () => {
+  it("opens the Trading mega-menu on click and shows all 4 items", () => {
     render(<TopNav />);
     fireEvent.click(screen.getByRole("button", { name: /Trading/ }));
     const items = screen.getAllByRole("menuitem");
-    expect(items.length).toBe(5);
+    expect(items.length).toBe(4);
     const labels = items.map((i) => i.textContent);
-    expect(labels.some((t) => t?.includes("Settings"))).toBe(true);
+    expect(labels.some((t) => t?.includes("Portfolios"))).toBe(true);
     expect(labels.some((t) => t?.includes("Backtest"))).toBe(true);
     expect(labels.some((t) => t?.includes("Earnings"))).toBe(true);
-    expect(labels.some((t) => t?.includes("Portfolios"))).toBe(true);
     expect(labels.some((t) => t?.includes("Audit Log"))).toBe(true);
   });
 
@@ -77,7 +76,7 @@ describe("TopNav", () => {
   it("closes the mega-menu when Escape is pressed", () => {
     render(<TopNav />);
     fireEvent.click(screen.getByRole("button", { name: /Trading/ }));
-    expect(screen.getAllByRole("menuitem").length).toBe(5);
+    expect(screen.getAllByRole("menuitem").length).toBe(4);
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryAllByRole("menuitem").length).toBe(0);
   });
@@ -86,7 +85,7 @@ describe("TopNav", () => {
     render(<TopNav />);
     const trigger = screen.getByRole("button", { name: /Trading/ });
     fireEvent.click(trigger);
-    expect(screen.getAllByRole("menuitem").length).toBe(5);
+    expect(screen.getAllByRole("menuitem").length).toBe(4);
     fireEvent.click(trigger);
     expect(screen.queryAllByRole("menuitem").length).toBe(0);
   });
