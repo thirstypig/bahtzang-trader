@@ -189,7 +189,7 @@ async def get_trade_decision(
             "",
             f"MARKET QUOTES ({len(market_data)} stocks) — ticker,price,change_pct,volume:",
             "\n".join(
-                f"{q['ticker']},{q['price']:.2f},{q.get('change_pct', 0):+.2f}%,{q.get('volume', 0)}"
+                f"{q['ticker']},{float(q['price']):.2f},{float(q.get('change_pct', 0) or 0):+.2f}%,{q.get('volume', 0)}"
                 for q in market_data
             ),
         ]
