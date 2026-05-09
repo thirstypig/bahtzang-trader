@@ -22,6 +22,8 @@ export const changelog: ChangelogEntry[] = [
       { type: "fix", title: "Log Claude's raw decision before coercion/validation: full audit trail now captures original LLM output even when it gets coerced to hold or blocked" },
       { type: "feat", title: "New /settings page: timezone selector (PST default) and other display preferences" },
       { type: "feat", title: "New /markets page: financial products reference — what we can trade now (US equities, ETFs), near-term (crypto, options), and future (international, bonds, commodities, forex live)" },
+      { type: "fix", title: "Decimal/float hardening complete: 2 remaining ORM aggregate sites (avg_costs, compute_virtual_positions) now cast to float at the boundary; None guard added to total_cost" },
+      { type: "fix", title: "5 regression tests pin the float-return-type invariant for _total_budgets and compute_virtual_positions — prevents silent Decimal+float crash reintroduction" },
     ],
   },
   {

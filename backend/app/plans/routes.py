@@ -286,7 +286,7 @@ async def get_portfolio_positions(
         .all()
     )
     avg_costs: dict[str, float] = {
-        r.ticker: (r.total_cost / r.total_qty) if r.total_qty and r.total_qty > 0 else 0.0
+        r.ticker: (float(r.total_cost or 0) / float(r.total_qty)) if r.total_qty and r.total_qty > 0 else 0.0
         for r in rows
     }
 

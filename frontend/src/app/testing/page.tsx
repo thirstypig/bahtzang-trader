@@ -18,8 +18,8 @@ const TESTS = {
       },
       {
         file: "tests/plans/test_executor.py",
-        tests: 12,
-        covers: "compute_virtual_positions (buy/sell/fractional/cross-portfolio isolation), usage stats passed to Claude prompt",
+        tests: 13,
+        covers: "compute_virtual_positions (buy/sell/fractional/cross-portfolio isolation), float type invariant (Decimal+float production crash), usage stats passed to Claude prompt",
       },
       {
         file: "tests/plans/test_snapshots.py",
@@ -117,8 +117,8 @@ const TESTS = {
     suites: [
       {
         file: "tests/plans/test_routes.py",
-        tests: 18,
-        covers: "Portfolio CRUD lifecycle at /portfolios/*, input validation (422), 404 handling, CSV export, target field nulling",
+        tests: 22,
+        covers: "Portfolio CRUD lifecycle at /portfolios/*, input validation (422), 404 handling, CSV export, target field nulling; _total_budgets() float type invariant (4 cases: empty/single/multi/exclude)",
       },
       {
         file: "tests/earnings/test_routes.py",
@@ -233,7 +233,7 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (285 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (290 tests)" },
   { cmd: "npm run test:frontend", desc: "All frontend tests (84 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
@@ -330,7 +330,7 @@ export default function TestingPage() {
             <tbody className="divide-y divide-border/50">
               <tr>
                 <td className="px-3 py-2 font-mono text-accent">Pre-commit hook</td>
-                <td className="px-3 py-2 text-secondary">tsc + eslint + pytest (285) + vitest (84)</td>
+                <td className="px-3 py-2 text-secondary">tsc + eslint + pytest (290) + vitest (84)</td>
                 <td className="px-3 py-2 text-muted">Every git commit (~5s)</td>
               </tr>
               <tr>

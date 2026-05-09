@@ -5,6 +5,49 @@ SQLite doesn't support PostgreSQL advisory locks.
 """
 
 import pytest
+from tests.conftest import make_plan
+
+
+@pytest.mark.unit
+class TestTotalBudgetsReturnType:
+    """_total_budgets() must return float, not Decimal.
+
+    SQLAlchemy func.sum() on a Numeric column returns Decimal in PostgreSQL
+    and float in SQLite. The explicit float() cast prevents TypeError when
+    the result is added to a Python float (new_budget) during budget validation.
+    These tests run on SQLite and pass regardless of whether the float() cast is
+    present — SQLite already returns float. Their purpose is to document the
+    required invariant, not to fail in CI when the cast is absent.
+    """
+
+    def test_returns_float_when_no_plans(self, db_session):
+        from app.plans.routes import _total_budgets
+        result = _total_budgets(db_session)
+        assert isinstance(result, float), f"Expected float, got {type(result).__name__}"
+        assert result == 0.0
+
+    def test_returns_float_with_single_plan(self, db_session):
+        from app.plans.routes import _total_budgets
+        make_plan(db_session, budget=1000.0)
+        result = _total_budgets(db_session)
+        assert isinstance(result, float), f"Expected float, got {type(result).__name__}"
+        assert result == 1000.0
+
+    def test_returns_float_with_multiple_plans(self, db_session):
+        from app.plans.routes import _total_budgets
+        make_plan(db_session, name="Plan A", budget=1000.0)
+        make_plan(db_session, name="Plan B", budget=2500.0)
+        result = _total_budgets(db_session)
+        assert isinstance(result, float), f"Expected float, got {type(result).__name__}"
+        assert result == 3500.0
+
+    def test_excludes_specified_plan(self, db_session):
+        from app.plans.routes import _total_budgets
+        plan_a = make_plan(db_session, name="Plan A", budget=1000.0)
+        make_plan(db_session, name="Plan B", budget=2000.0)
+        result = _total_budgets(db_session, exclude_plan_id=plan_a.id)
+        assert isinstance(result, float), f"Expected float, got {type(result).__name__}"
+        assert result == 2000.0
 
 
 @pytest.mark.integration
