@@ -98,7 +98,7 @@ def _total_budgets(db: Session, exclude_plan_id: int | None = None) -> float:
     q = db.query(func.coalesce(func.sum(Portfolio.budget), 0.0))
     if exclude_plan_id is not None:
         q = q.filter(Portfolio.id != exclude_plan_id)
-    return q.scalar()
+    return float(q.scalar() or 0)
 
 
 async def _validate_budget(db: Session, new_budget: float, exclude_plan_id: int | None = None) -> None:

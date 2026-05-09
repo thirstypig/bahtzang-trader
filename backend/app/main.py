@@ -106,7 +106,7 @@ async def add_cache_headers(request: Request, call_next):
             response.headers["Cache-Control"] = "private, max-age=3600"
         elif path.startswith("/backtest"):
             response.headers["Cache-Control"] = "private, max-age=300"
-        elif path.startswith("/plans") and "/run" not in path and "/export" not in path:
+        elif path.startswith("/portfolios") and "/run" not in path and "/export" not in path:
             response.headers["Cache-Control"] = "private, max-age=60"
         elif path == "/forex/symbols":
             response.headers["Cache-Control"] = "private, max-age=86400"
