@@ -170,6 +170,15 @@ async def _execute_plan_cycle(
     plan_log_prefix = f"Plan {plan.id}: "
 
     for decision in decisions:
+        logger.info(
+            "Plan %d: Claude → action=%s ticker=%s qty=%s conf=%.0f%% | %s",
+            plan.id,
+            decision.get("action"),
+            decision.get("ticker"),
+            decision.get("quantity"),
+            (decision.get("confidence") or 0) * 100,
+            (decision.get("reasoning") or "")[:120],
+        )
         # Coerce degenerate decisions to holds BEFORE validation —
         # see app/decision_coercion.py for rationale.
         coerce_zero_qty_to_hold(decision, log_prefix=plan_log_prefix)
