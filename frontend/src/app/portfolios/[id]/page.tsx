@@ -115,12 +115,20 @@ export default function PortfolioDetailPage() {
       setRunning(true);
       setRunResult(null);
       const result = await runPortfolio(portfolioId);
+      let detail = "";
+      if (result.action !== "hold" && result.quantity) {
+        const qty = result.quantity % 1 === 0
+          ? result.quantity.toString()
+          : result.quantity.toFixed(4).replace(/\.?0+$/, "");
+        const priceStr = result.price ? ` @ $${result.price.toFixed(2)}` : "";
+        detail = ` × ${qty} shares${priceStr}`;
+      }
       const label = result.executed
         ? " (executed)"
         : result.action === "hold"
         ? " (no action)"
         : " (blocked)";
-      setRunResult(`Trade decision: ${result.action} ${result.ticker}${label}`);
+      setRunResult(`Trade decision: ${result.action} ${result.ticker}${detail}${label}`);
       setRefreshKey((k) => k + 1);
       setTimeout(() => setRunResult(null), 5000);
     } catch (err) {
