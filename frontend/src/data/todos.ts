@@ -89,7 +89,7 @@ export const todos: Todo[] = [
   {
     id: "verify-block-rate-drop",
     title: "Verify guardrail block rate dropped after the headroom + zero-qty fixes",
-    description: "Two recent fixes (headroom prompt + zero-qty coercion) targeted the audit-log block volume specifically. Run the SQL query against Supabase to confirm the noise is gone.",
+    description: "Two recent fixes (headroom prompt + zero-qty coercion) targeted the audit-log block volume specifically. Confirmed during v0.21.0 smoke testing — pipeline flows end-to-end with correct hold/block labels and full audit trail.",
     steps: [
       "Wait for the next plan trading cycle to run (or hit 'Run Now' on a plan)",
       "Open Supabase SQL Editor",
@@ -98,10 +98,11 @@ export const todos: Todo[] = [
       "Expected: 'Insufficient plan cash: $X < $Y' counts dropped sharply (Claude now sees real headroom)",
       "If new block reasons appear: paste them and we tighten further",
     ],
-    status: "todo",
+    status: "done",
     priority: "high",
     category: "trading",
     addedDate: "2026-05-06",
+    completedDate: "2026-05-08",
   },
   {
     id: "add-buddy-email",
@@ -135,6 +136,53 @@ export const todos: Todo[] = [
     priority: "high",
     category: "risk",
     addedDate: "2026-04-10",
+  },
+
+  {
+    id: "accumulate-30-paper-trades",
+    title: "Accumulate 30 paper trades to gate Phase G live switch",
+    description: "Pipeline is confirmed working end-to-end. Now let it run. 30 paper trades (or 2 weeks, whichever is longer) is the minimum gate before flipping ALPACA_PAPER=false for live money.",
+    steps: [
+      "Confirm ALPACA_PAPER=true in Railway backend variables",
+      "Let the scheduler run automatically at 9:35 AM ET Mon-Fri (or use 'Run Now' on each portfolio to accelerate)",
+      "Monitor the Trades page — check Claude's reasoning column for quality decisions",
+      "Track win rate on the Analytics page — target >50% before going live",
+      "After 30+ trades with no zero-losing-weeks: review performance, tune per-portfolio Strategy if needed",
+      "Phase G gate: flip ALPACA_PAPER=false only after criteria are met",
+    ],
+    status: "todo",
+    priority: "urgent",
+    category: "trading",
+    addedDate: "2026-05-08",
+  },
+  {
+    id: "settings-notification-prefs",
+    title: "Add notification preferences to /settings",
+    description: "The /settings page is live with timezone + display prefs. Next logical addition: Slack webhook toggle, notification level (all trades vs. buys/sells only vs. errors only), and daily summary on/off.",
+    steps: [
+      "Add notification_level field (all / buys_sells / errors_only / off) to Settings state",
+      "Wire to notifier.py — check preference before firing Slack webhook",
+      "Add daily_summary toggle (already runs at 4:10 PM ET via scheduler)",
+      "Save preferences: store in PostgreSQL (new user_settings table) or localStorage for now",
+    ],
+    status: "todo",
+    priority: "medium",
+    category: "feature",
+    addedDate: "2026-05-08",
+  },
+  {
+    id: "settings-default-budget",
+    title: "Add default portfolio budget to /settings",
+    description: "When creating a new portfolio the budget field is blank. A user-configurable default (e.g. $500) pre-fills the field and reduces friction for multi-portfolio setups.",
+    steps: [
+      "Add default_portfolio_budget field to /settings page",
+      "Pre-fill budget input on /portfolios/new with the saved default",
+      "Store in localStorage (no backend change needed for v1)",
+    ],
+    status: "todo",
+    priority: "low",
+    category: "feature",
+    addedDate: "2026-05-08",
   },
 
   // =====================================================

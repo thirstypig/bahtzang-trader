@@ -10,6 +10,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.21.0",
+    date: "2026-05-08",
+    changes: [
+      { type: "fix", title: "Decimal+float TypeError on portfolio create: cast _total_budgets SQL result to float before arithmetic — was crashing as 'Failed to fetch' with no visible error" },
+      { type: "fix", title: "Stale cache on portfolio detail: trades list now invalidates after Run Now so new trades appear immediately without a manual refresh" },
+      { type: "fix", title: "change_pct string parse error: Alpaca quote field now cast to float at the source in market_data.py — was causing a downstream TypeError in Claude prompt assembly" },
+      { type: "fix", title: "Watchlist quotes missing from Claude prompt: seed watchlist symbols into quote fetch for empty portfolios so Claude always has market context even on a cold start" },
+      { type: "fix", title: "Hold vs. blocked label distinction in Run Now result: UI now correctly shows 'Hold (no action)' vs 'Blocked by guardrail' instead of treating both as the same outcome" },
+      { type: "fix", title: "Run Now result now shows qty + price in addition to action and reasoning — was showing an empty card for buy/sell decisions" },
+      { type: "fix", title: "Log Claude's raw decision before coercion/validation: full audit trail now captures original LLM output even when it gets coerced to hold or blocked" },
+      { type: "feat", title: "New /settings page: timezone selector (PST default) and other display preferences" },
+      { type: "feat", title: "New /markets page: financial products reference — what we can trade now (US equities, ETFs), near-term (crypto, options), and future (international, bonds, commodities, forex live)" },
+    ],
+  },
+  {
     version: "0.20.0",
     date: "2026-05-08",
     changes: [

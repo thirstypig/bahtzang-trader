@@ -9,7 +9,7 @@ const TZ_KEY = "bahtzang_timezone";
 
 export function getTimezone(): string {
   if (typeof window === "undefined") return "America/New_York";
-  return localStorage.getItem(TZ_KEY) || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return localStorage.getItem(TZ_KEY) || "America/Los_Angeles";
 }
 
 export function setTimezone(tz: string): void {

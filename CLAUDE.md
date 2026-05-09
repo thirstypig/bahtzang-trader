@@ -3,7 +3,7 @@
 ## Current status
 
 <!-- now-tldr -->
-An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). Just completed a portfolio-only consolidation: every trade runs through a Portfolio (virtual sub-account), global guardrails and the standalone trader are gone, and the /portfolios page is live in production. Next up: 30+ paper trades to prove the pipeline works end-to-end before flipping the live switch.
+An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). Pipeline is smoke-tested and working end-to-end: 5 production bugs fixed during first smoke-test session (Decimal TypeError on portfolio create, stale cache, change_pct parse, empty-portfolio prompt, hold/blocked label). /settings and /markets pages added. Now accumulating 30+ paper trades to gate the Phase G live switch.
 <!-- /now-tldr -->
 
 ## Project Overview
@@ -193,6 +193,8 @@ frontend/
       testing/        # /testing (test inventory, execution cadence, 369 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
+      settings/       # /settings (timezone selector, display prefs; home for future notification prefs)
+      markets/        # /markets (financial products reference: tradeable now, near-term, future)
       error.tsx       # Error boundary with retry
       loading.tsx     # Root loading spinner (Suspense fallback)
       not-found.tsx   # Custom 404 page

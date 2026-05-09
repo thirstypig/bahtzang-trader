@@ -37,6 +37,7 @@ const NAV: NavGroup[] = [
     title: "Trading",
     items: [
       { href: "/portfolios", label: "Portfolios", icon: Icons.Plans, description: "Strategy + budget + kill switch per portfolio" },
+      { href: "/markets", label: "Markets", icon: Icons.Markets, description: "Financial products: current, near-term, and future" },
       { href: "/backtest", label: "Backtest", icon: Icons.Backtest, description: "Stocks strategy backtests on historical data" },
       { href: "/earnings", label: "Earnings", icon: Icons.Earnings, description: "Upcoming earnings with proximity warnings" },
       { href: "/audit-log", label: "Audit Log", icon: Icons.AuditLog, description: "Per-portfolio strategy change history" },
@@ -59,6 +60,7 @@ const NAV: NavGroup[] = [
       { href: "/about", label: "About", icon: Icons.About, description: "What this is and who it's for" },
       { href: "/testing", label: "Testing", icon: Icons.Testing, description: "Test inventory and execution cadence" },
       { href: "/docs", label: "Docs", icon: Icons.Docs, description: "Architecture and how-to references" },
+      { href: "/settings", label: "Settings", icon: Icons.Settings, description: "Timezone, display preferences, defaults" },
     ],
   },
 ];

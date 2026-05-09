@@ -177,6 +177,30 @@ export const roadmapItems: RoadmapItem[] = [
     priority: "high",
     phase: "Phase 1+",
   },
+  {
+    id: "smoke-test-pipeline",
+    title: "Smoke-test the end-to-end pipeline",
+    description: "Run Now on a live portfolio, confirm Claude receives market data + watchlist quotes, decision flows through coercion/validation/logging, and the UI reflects the result correctly. 5 production bugs found and fixed during this session (Decimal TypeError, stale cache, change_pct parse, empty-portfolio prompt, hold/blocked label).",
+    status: "done",
+    priority: "high",
+    phase: "Phase 1+",
+  },
+  {
+    id: "settings-page",
+    title: "Settings page (/settings)",
+    description: "User-facing display preferences: timezone selector (PST default) and other display preferences. Provides a home for future notification preferences and per-user defaults.",
+    status: "done",
+    priority: "medium",
+    phase: "Phase UI",
+  },
+  {
+    id: "markets-page",
+    title: "Markets reference page (/markets)",
+    description: "Financial products reference: what we can trade now (US equities, ETFs), near-term roadmap (crypto, options), and future plans (international, bonds, commodities, forex live). Helps orient new collaborators on the platform's scope.",
+    status: "done",
+    priority: "low",
+    phase: "Phase UI",
+  },
   // Planned
   {
     id: "paper-to-live",

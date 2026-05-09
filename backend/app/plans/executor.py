@@ -406,6 +406,22 @@ async def fetch_market_data(
     quotes, news, indicators, sector_signals = await asyncio.gather(
         quotes_task, news_task, indicators_task, sector_task
     )
+
+    # Patch any price=0 quotes with Alpaca close prices from indicators.
+    # Alpha Vantage free tier (5 req/min) gets rate-limited when fetching
+    # many tickers simultaneously, returning price=0 and triggering coerce.
+    if indicators:
+        covered = {q["ticker"] for q in quotes}
+        quotes = [
+            {**q, "price": indicators[q["ticker"]]["price"]}
+            if q.get("price", 0) <= 0 and q["ticker"] in indicators
+            else q
+            for q in quotes
+        ]
+        for ticker, data in indicators.items():
+            if ticker not in covered and data.get("price", 0) > 0:
+                quotes.append({"ticker": ticker, "price": data["price"], "change_pct": 0.0, "volume": 0})
+
     technicals_csv = format_indicators_csv(indicators)
     sector_csv = format_sector_csv(sector_signals)
     earnings_csv = format_earnings_csv(db, held_tickers) if held_tickers else ""
