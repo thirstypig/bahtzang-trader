@@ -52,7 +52,7 @@ def compute_virtual_positions(db: Session, plan_id: int) -> dict[str, float]:
         .group_by(Trade.ticker)
         .all()
     )
-    return {row.ticker: row.net_qty for row in rows if row.net_qty > 0}
+    return {row.ticker: float(row.net_qty) for row in rows if row.net_qty > 0}
 
 
 def _plan_to_guardrails_config(plan: Portfolio) -> dict:

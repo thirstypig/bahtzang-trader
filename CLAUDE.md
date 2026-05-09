@@ -34,7 +34,7 @@ npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
-npm run test:backend     # pytest (285 tests, ~4s)
+npm run test:backend     # pytest (290 tests, ~4s)
 npm run test:frontend    # Vitest (84 tests, ~3s)
 npm run test:backend:cov # Backend with coverage report
 ```
@@ -164,7 +164,7 @@ backend/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
   railway.toml        # Railway deploy config
   pytest.ini          # Test config (markers: unit, integration, e2e)
-  tests/              # Test suites (285 backend tests)
+  tests/              # Test suites (290 backend tests)
     conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
     plans/            # Portfolio model, executor, constraints, route, snapshot tests
     earnings/         # Earnings route integration tests
@@ -190,7 +190,7 @@ frontend/
       earnings/       # /earnings (upcoming earnings calendar, color-coded proximity)
       portfolios/     # /portfolios (list + /portfolios/[id] detail + /portfolios/new)
       forex/          # /forex (independent swing-zone backtest UI — for non-engineer collaborator)
-      testing/        # /testing (test inventory, execution cadence, 369 tests)
+      testing/        # /testing (test inventory, execution cadence, 374 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       settings/       # /settings (timezone selector, display prefs; home for future notification prefs)
@@ -250,7 +250,7 @@ frontend/
 ### Testing
 - Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
 - Frontend: Vitest + @testing-library/react + jsdom
-- 369 total tests (285 backend + 84 frontend), ~9s full suite
+- 374 total tests (290 backend + 84 frontend), ~9s full suite
 - Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
 - Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
 - Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)

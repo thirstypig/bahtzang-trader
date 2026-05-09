@@ -73,6 +73,26 @@ class TestComputeVirtualPositions:
         positions = compute_virtual_positions(db_session, plan.id)
         assert positions["AAPL"] == pytest.approx(0.75)
 
+    def test_values_are_python_float(self, db_session):
+        """Position quantities must be float, not Decimal.
+
+        SQLAlchemy func.sum() returns Decimal in PostgreSQL and float in SQLite.
+        The explicit float() cast in compute_virtual_positions() prevents
+        Decimal + float TypeError in downstream position-sizing arithmetic.
+        Note: Decimal("5.0") == 5.0 is True, so value equality alone cannot
+        catch this bug — isinstance is required.
+        """
+        plan = make_plan(db_session)
+        make_trade(db_session, plan.id, ticker="AAPL", action="buy", quantity=5)
+        make_trade(db_session, plan.id, ticker="AAPL", action="sell", quantity=2)
+        make_trade(db_session, plan.id, ticker="TSLA", action="buy", quantity=3)
+        positions = compute_virtual_positions(db_session, plan.id)
+        for ticker, qty in positions.items():
+            assert isinstance(qty, float), (
+                f"{ticker} qty is {type(qty).__name__}, expected float — "
+                "Decimal + float arithmetic crashes in production with PostgreSQL"
+            )
+
 
 @pytest.mark.unit
 class TestPlanToGuardrailsConfig:
