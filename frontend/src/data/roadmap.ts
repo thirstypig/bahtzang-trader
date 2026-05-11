@@ -201,6 +201,14 @@ export const roadmapItems: RoadmapItem[] = [
     priority: "low",
     phase: "Phase UI",
   },
+  {
+    id: "daily-pnl-summary",
+    title: "Daily P&L in Slack summary",
+    description: "End-of-day Slack summary now reports real daily P&L (diff of the two most recent PortfolioSnapshots) instead of a hardcoded $0. The snapshot job at 4:05 PM guarantees today's row exists before the summary fires at 4:10 PM.",
+    status: "done",
+    priority: "medium",
+    phase: "Phase B",
+  },
   // Planned
   {
     id: "paper-to-live",

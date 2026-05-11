@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.22.0",
+    date: "2026-05-10",
+    changes: [
+      { type: "fix", title: "Daily Slack summary now reports real P&L: diff of the two most recent PortfolioSnapshots instead of hardcoded $0 — the stale Phase B TODO is resolved" },
+    ],
+  },
+  {
     version: "0.21.0",
     date: "2026-05-08",
     changes: [
