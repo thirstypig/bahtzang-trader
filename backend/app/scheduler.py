@@ -99,15 +99,31 @@ async def _daily_summary():
 
         # Get portfolio value from broker
         from app.brokers.alpaca import AlpacaBroker
+        from app.models import PortfolioSnapshot
         broker = AlpacaBroker()
         balance = await broker.get_account_balance("default")
+
+        # Compute daily P&L: diff the two most recent snapshots.
+        # The snapshot job runs at 4:05 PM; this summary runs at 4:10 PM,
+        # so today's snapshot is already committed when we query here.
+        snapshots = await asyncio.to_thread(
+            lambda: db.query(PortfolioSnapshot)
+            .order_by(PortfolioSnapshot.date.desc())
+            .limit(2)
+            .all()
+        )
+        daily_pnl = (
+            float(snapshots[0].total_equity) - float(snapshots[1].total_equity)
+            if len(snapshots) >= 2
+            else 0.0
+        )
 
         await notifier.notify_daily_summary(
             trades_executed=executed,
             trades_blocked=blocked,
             holds=holds,
             portfolio_value=balance["total_value"],
-            daily_pnl=0,  # TODO: compute from snapshots once Phase B is built
+            daily_pnl=daily_pnl,
         )
     except Exception as e:
         logger.exception("Daily summary failed: %s", e)
