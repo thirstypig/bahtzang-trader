@@ -77,13 +77,17 @@ ALLOWED_EMAIL accepts a single email or comma-separated list (case-insensitive, 
 
 ### Trading Pipeline (plans/executor.py)
 ```
-Gather (Alpaca) → Earnings (Finnhub cache) → Think (Claude, 30s timeout) → Coerce zero-value to hold → Validate (per-portfolio constraints) → Act (Alpaca) → Log (PostgreSQL)
+Gather (Alpaca) → Earnings (Finnhub cache) → Branch on decision_mode → Coerce zero-value to hold → Validate (per-portfolio constraints) → Act (Alpaca) → Log (PostgreSQL)
+  claude_decides:              Claude Sonnet generates all decisions (30s timeout, USAGE/HEADROOM block)
+  rules_decide:                Strategy.generate_signals() only — Claude never called
+  rules_with_claude_oversight: Strategy signals → per-decision Claude review → confirmed or overridden
 Every decision logged — even holds and blocked trades
 Alpaca SDK calls wrapped in asyncio.to_thread() to avoid blocking the event loop
 Earnings data: position sizing reduced 50% at 0-1 days, 70% at 2 days before earnings
 Pipeline types: Position, Quote, NewsItem, TradeDecision, CycleResult (pipeline_types.py)
 Claude prompt includes a USAGE/HEADROOM block: total_invested vs max, orders_used_today vs limit, position slots, and effective_buy_ceiling = min(cash, max_single_trade, invest_headroom) — closes the information asymmetry that previously blocked trades at validation
 Coerce-before-validate: qty<=0 or price<=0 → hold (with reason preserved in audit trail)
+Oversight trades: rules_recommendation (JSON) on Trade stores strategy's original signal before Claude review
 ```
 
 ### Portfolios (plans/)
@@ -98,6 +102,23 @@ Per-trade atomic commits — each trade committed immediately after Alpaca order
 fetch_market_data() shared between scheduled runs and manual "Run Now".
 Default portfolio created on first startup if table is empty (lifespan hook in main.py).
 Circuit breaker RED level sets is_active=False on all portfolios (replaces global kill switch).
+```
+
+### Decision Modes
+```
+Each portfolio independently sets decision_mode (varchar, stored on Portfolio):
+  claude_decides              — Claude Sonnet makes all trade decisions. Higher API cost, adapts to context.
+  rules_decide                — Deterministic strategy only. Claude never called. Cheapest. Exactly replicates backtests.
+  rules_with_claude_oversight — Strategy recommends; Claude reviews per-decision and may override.
+
+strategy_id (varchar) and strategy_params (JSON) select the strategy and its parameters for rules modes.
+STRATEGY_REGISTRY (app/strategies/registry.py) maps id → class; strategies are:
+  sma_crossover, rsi_mean_reversion, buy_and_hold, dual_momentum
+
+Oversight trades: rules_recommendation JSON column on Trade stores the strategy's original signal before Claude
+review. Divergence (strategy action ≠ final action) is detected at read time from this column.
+Mode changes logged in PortfolioStrategyAudit with old/new config snapshot.
+GET /portfolios/{id}/oversight-activity returns confirmed/overridden summary stats + per-decision records.
 ```
 
 ### Frontend Auth Guard
@@ -122,11 +143,19 @@ backend/
       base.py         # BrokerInterface ABC (typed: Position, AccountBalance)
       alpaca.py       # AlpacaBroker (async via to_thread, primary broker)
       schwab.py       # SchwabBroker (backup, shared httpx client for token + API)
+    strategies/       # Shared strategy infrastructure (NOT a feature module — like analytics.py)
+      __init__.py     # Re-exports: BaseStrategy, StrategySignal, STRATEGY_REGISTRY, all strategy classes
+      base.py         # BaseStrategy ABC + StrategySignal dataclass
+      registry.py     # STRATEGY_REGISTRY dict + get_strategy_info()
+      sma_crossover.py     # SMACrossover (50/200 golden/death cross)
+      rsi_mean_reversion.py # RSIMeanReversion (30/70 thresholds)
+      buy_and_hold.py      # BuyAndHold (equal-weight day-1 benchmark)
+      dual_momentum.py     # DualMomentum (Antonacci: SPY/VEU/BIL monthly rotation)
     backtest/         # Feature module: backtesting framework (Phase F)
       models.py       # BacktestConfig, BacktestResult, OHLCVCache tables
       data.py         # Alpaca OHLCV fetch + PostgreSQL cache with gap-fill
       engine.py       # Day-by-day simulation with lookahead bias prevention
-      strategies.py   # BaseStrategy + SMA Crossover, RSI Mean Reversion, Buy & Hold
+      strategies.py   # Shim (deprecated): re-exports app.strategies.*; keeps PositionInfo + SimulationState
       routes.py       # CRUD /backtest + background run
     earnings/         # Feature module: earnings calendar (Phase F)
       models.py       # EarningsEvent table (Finnhub cache)
@@ -147,6 +176,7 @@ backend/
       routes.py       # GET /forex/symbols, CRUD /forex/backtests with background runner
       cli.py          # Standalone runner: python -m app.forex.cli
     analytics.py      # Portfolio metrics: Sharpe, Sortino, drawdown, win rate, profit factor
+    # strategies/ — see above; lives at app level, not inside a feature module
     pipeline_types.py # TypedDict definitions for pipeline data (Position, Quote, TradeDecision, etc.)
     claude_brain.py   # AsyncAnthropic → Claude Sonnet → CSV prompt (30s timeout) + earnings context
     circuit_breaker.py # 3-tier staged halts (YELLOW/ORANGE/RED) on portfolio P&L
@@ -164,7 +194,7 @@ backend/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
   railway.toml        # Railway deploy config
   pytest.ini          # Test config (markers: unit, integration, e2e)
-  tests/              # Test suites (290 backend tests)
+  tests/              # Test suites (302 backend tests)
     conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
     plans/            # Portfolio model, executor, constraints, route, snapshot tests
     earnings/         # Earnings route integration tests
@@ -172,6 +202,7 @@ backend/
     test_claude_brain_prompt.py  # USAGE/HEADROOM block in the Claude prompt
     test_zero_qty_coercion.py    # Coerce qty<=0 / price<=0 to hold + plan headroom plumbing
     test_allowed_emails.py       # CSV-parsed ALLOWED_EMAIL allow-list
+    test_dual_momentum_strategy.py  # DualMomentum unit tests (12 tests)
 
 frontend/
   src/
@@ -266,6 +297,8 @@ New features go in their own Python packages under `backend/app/`:
 - Router registered in `main.py` with a single `include_router()` line
 - Integration with the trading pipeline kept to minimal touchpoints
 - Example: `backtest/` and `earnings/` are fully self-contained packages
+
+**Shared infrastructure (not feature modules):** Code used by multiple features lives at the `app/` level, not inside a feature module. Examples: `analytics.py`, `pipeline_types.py`, `strategies/`. Do not import from a feature module to serve another feature — that is an isolation violation. If the live executor needs strategies, import from `app.strategies`, not `app.backtest.strategies`.
 
 ---
 

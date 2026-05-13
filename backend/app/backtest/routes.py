@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.auth import require_auth
 from app.database import get_db
 from app.backtest.models import BacktestConfig, BacktestResult
-from app.backtest.strategies import STRATEGY_REGISTRY, get_strategy_info
+from app.strategies import STRATEGY_REGISTRY, get_strategy_info
 
 logger = logging.getLogger(__name__)
 

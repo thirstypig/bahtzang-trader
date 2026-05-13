@@ -26,6 +26,9 @@ function makePortfolio(overrides: Partial<InvestmentPlan> = {}): InvestmentPlan 
     is_active: true,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
+    decision_mode: "claude_decides",
+    strategy_id: null,
+    strategy_params: {},
     ...overrides,
   };
 }

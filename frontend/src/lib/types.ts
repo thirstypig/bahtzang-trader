@@ -141,6 +141,11 @@ export interface PortfolioStrategy {
   audit_log: StrategyAuditEntry[];
 }
 
+export type DecisionMode =
+  | "claude_decides"
+  | "rules_decide"
+  | "rules_with_claude_oversight";
+
 export interface InvestmentPlan {
   id: number;
   name: string;
@@ -156,6 +161,9 @@ export interface InvestmentPlan {
   updated_at: string;
   trade_count?: number;
   invested?: number;
+  decision_mode: DecisionMode;
+  strategy_id: string | null;
+  strategy_params: Record<string, unknown>;
 }
 
 export interface PlanPosition {
@@ -188,6 +196,38 @@ export interface EarningsEvent {
   eps_estimate: number | null;
   revenue_estimate: number | null;
   hour: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Oversight Activity
+// ---------------------------------------------------------------------------
+
+export interface OversightRecord {
+  id: number;
+  timestamp: string;
+  ticker: string;
+  rules_recommendation: {
+    action: string;
+    ticker?: string;
+    quantity?: number;
+    confidence?: number;
+    reasoning?: string;
+  };
+  final_action: string;
+  executed: boolean;
+  diverged: boolean;
+  claude_reasoning: string | null;
+}
+
+export interface OversightActivity {
+  summary: {
+    total: number;
+    confirmed: number;
+    overridden: number;
+    confirmed_pct: number;
+    overridden_pct: number;
+  };
+  records: OversightRecord[];
 }
 
 export type ForexEarlyExitMode = "none" | "progress" | "time_band";

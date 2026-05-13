@@ -75,6 +75,147 @@ def _plan_to_guardrails_config(plan: Portfolio) -> dict:
     return config
 
 
+def _live_state_for_strategy(plan: Portfolio, db: Session):
+    """Build a SimulationState from live virtual positions for strategy.decide()."""
+    from app.backtest.strategies import PositionInfo, SimulationState
+
+    virtual_positions = compute_virtual_positions(db, plan.id)
+    positions_info = {
+        ticker: PositionInfo(quantity=max(1, int(qty)), avg_price=0.0)
+        for ticker, qty in virtual_positions.items()
+    }
+    return SimulationState(cash=float(plan.virtual_cash), positions=positions_info)
+
+
+async def _get_strategy_decisions(
+    plan: Portfolio,
+    db: Session,
+    price_map: dict[str, float],
+) -> list[dict]:
+    """Derive trade decisions from a deterministic strategy (rules_decide mode).
+
+    Fetches recent OHLCV bars, runs the registered strategy, and translates
+    StrategySignal objects into the same TradeDecision dict format the Claude
+    path produces — so the rest of the executor loop is mode-agnostic.
+
+    # TODO: move fetch_and_cache_bars / load_bars out of app.backtest to
+    # app.market_data so they can be shared without violating feature isolation.
+    """
+    from datetime import date as _date, timedelta
+    from app.strategies import STRATEGY_REGISTRY
+    from app.backtest.data import fetch_and_cache_bars, load_bars
+    from app.backtest.strategies import PositionInfo, SimulationState
+    from app.technical_analysis import _compute_indicators
+    from app.claude_brain import GOAL_WATCHLIST
+
+    strategy_cls = STRATEGY_REGISTRY.get(plan.strategy_id or "")
+    if not strategy_cls:
+        logger.warning("Plan %d: unknown strategy '%s' — holding", plan.id, plan.strategy_id)
+        return [{"action": "hold", "ticker": "", "quantity": 0,
+                 "reasoning": f"Unknown strategy: {plan.strategy_id}", "confidence": 0.0}]
+
+    strategy = strategy_cls()
+    params = plan.strategy_params or {}
+
+    # Build ticker universe: owned positions + goal watchlist + strategy-specific tickers
+    virtual_positions = compute_virtual_positions(db, plan.id)
+    tickers: set[str] = set(virtual_positions.keys())
+    tickers.update(GOAL_WATCHLIST.get(plan.trading_goal, []))
+    if isinstance(params.get("tickers"), list):
+        tickers.update(params["tickers"])
+    # DualMomentum always needs SPY, VEU, BIL for its momentum comparison
+    if plan.strategy_id == "dual_momentum":
+        tickers.update(["SPY", "VEU", "BIL"])
+    tickers.discard("")
+    tickers_list = sorted(tickers)
+
+    if not tickers_list:
+        return [{"action": "hold", "ticker": "", "quantity": 0,
+                 "reasoning": "No tickers to evaluate", "confidence": 0.0}]
+
+    # Fetch ~14 months of daily bars (DualMomentum needs 12-month lookback + warm-up)
+    today = _date.today()
+    start = today - timedelta(days=420)
+    await fetch_and_cache_bars(tickers_list, start, today, db)
+    all_bars = load_bars(tickers_list, start, today, db)
+
+    if not all_bars:
+        return [{"action": "hold", "ticker": "", "quantity": 0,
+                 "reasoning": "No OHLCV data available for strategy", "confidence": 0.0}]
+
+    # Compute indicators on the full bar history
+    indicators: dict = {}
+    for ticker, df in all_bars.items():
+        if len(df) >= 14:
+            ind = _compute_indicators(df)
+            if ind:
+                indicators[ticker] = ind
+
+    # Build live state from virtual positions
+    state = _live_state_for_strategy(plan, db)
+
+    signals = strategy.decide(
+        current_date=today,
+        indicators=indicators,
+        state=state,
+        bars=all_bars,
+        params=params,
+    )
+
+    if not signals:
+        return [{"action": "hold", "ticker": "", "quantity": 0,
+                 "reasoning": "Strategy returned no signals for this cycle", "confidence": 0.0}]
+
+    # Translate StrategySignal → TradeDecision dict format + position sizing
+    budget = float(plan.budget)
+    max_position_pct = float(plan.kelly_fraction)
+    decisions: list[dict] = []
+
+    for signal in signals:
+        if signal.action == "hold":
+            decisions.append({
+                "action": "hold",
+                "ticker": signal.ticker or "",
+                "quantity": 0,
+                "reasoning": signal.reason,
+                "confidence": signal.confidence,
+            })
+
+        elif signal.action == "buy":
+            price = price_map.get(signal.ticker, 0.0)
+            if price <= 0:
+                logger.info("Plan %d: no live price for %s — skipping buy signal", plan.id, signal.ticker)
+                continue
+            # Size proportional to confidence, capped at max_position_pct of budget
+            alloc = min(budget * max_position_pct * signal.confidence, float(plan.virtual_cash) * 0.95)
+            qty = round(alloc / price, 4) if alloc > 0 else 0.0
+            if qty <= 0:
+                continue
+            decisions.append({
+                "action": "buy",
+                "ticker": signal.ticker,
+                "quantity": qty,
+                "reasoning": signal.reason,
+                "confidence": signal.confidence,
+            })
+
+        elif signal.action == "sell":
+            own_qty = virtual_positions.get(signal.ticker, 0.0)
+            if own_qty <= 0:
+                logger.info("Plan %d: sell signal for %s but not held — skipping", plan.id, signal.ticker)
+                continue
+            decisions.append({
+                "action": "sell",
+                "ticker": signal.ticker,
+                "quantity": own_qty,
+                "reasoning": signal.reason,
+                "confidence": signal.confidence,
+            })
+
+    return decisions or [{"action": "hold", "ticker": "", "quantity": 0,
+                          "reasoning": "Strategy produced no actionable signals", "confidence": 0.0}]
+
+
 async def run_plan_cycle(
     db: Session,
     plan: Portfolio,
@@ -149,19 +290,57 @@ async def _execute_plan_cycle(
         .count()
     )
 
-    # Get Claude's decisions for this plan
-    decisions = await claude_brain.get_trade_decision(
-        positions=plan_positions,
-        cash_available=float(plan.virtual_cash),
-        market_data=quotes,
-        news=news,
-        guardrails_config=plan_config,
-        technicals_csv=technicals_csv,
-        sector_csv=sector_csv,
-        earnings_csv=earnings_csv,
-        total_invested=plan_total_invested,
-        orders_used_today=plan_orders_today,
-    )
+    # === Decision generation — branched by portfolio.decision_mode ===
+    if plan.decision_mode == "rules_decide":
+        decisions = await _get_strategy_decisions(plan, db, price_map)
+    elif plan.decision_mode == "rules_with_claude_oversight":
+        strategy_decisions = await _get_strategy_decisions(plan, db, price_map)
+        oversight_context = {
+            "cash_available": float(plan.virtual_cash),
+            "positions": plan_positions,
+            "quotes": quotes,
+            "news": news,
+            "technicals_csv": technicals_csv,
+            "earnings_csv": earnings_csv,
+            "sector_csv": sector_csv,
+            "trading_goal": plan.trading_goal,
+            "risk_profile": plan.risk_profile,
+        }
+        decisions = []
+        for sd in strategy_decisions:
+            review = await claude_brain.review_trade_decision(sd, oversight_context, plan)
+            decision = sd.copy()
+            decision["_rules_recommendation"] = {k: v for k, v in sd.items() if not k.startswith("_")}
+            if not review.get("confirmed", True) and review.get("override_decision"):
+                override = review["override_decision"]
+                for key in ("action", "ticker", "quantity", "confidence"):
+                    if key in override:
+                        decision[key] = override[key]
+                decision["reasoning"] = (
+                    f"[Strategy: {sd.get('reasoning', '')}] "
+                    f"[Claude override: {review.get('reasoning', '')}]"
+                )
+            else:
+                decision["reasoning"] = (
+                    f"{sd.get('reasoning', '')} "
+                    f"[Claude confirmed: {review.get('reasoning', '')}]"
+                ).strip()
+            decisions.append(decision)
+    else:
+        # "claude_decides" — existing behavior, unchanged
+        decisions = await claude_brain.get_trade_decision(
+            positions=plan_positions,
+            cash_available=float(plan.virtual_cash),
+            market_data=quotes,
+            news=news,
+            guardrails_config=plan_config,
+            technicals_csv=technicals_csv,
+            sector_csv=sector_csv,
+            earnings_csv=earnings_csv,
+            total_invested=plan_total_invested,
+            orders_used_today=plan_orders_today,
+        )
+    # === End decision generation ===
 
     results: list[CycleResult] = []
     # 071-fix: Convert Decimal to float — executor uses float arithmetic throughout
@@ -314,6 +493,9 @@ async def _execute_plan_cycle(
         # 063-fix: Log trade + update plan cash + commit atomically per decision,
         # immediately after the Alpaca order. This closes the cash-duplication
         # window where a later commit failure would leave a real order unlogged.
+        # Pop before Trade creation — _rules_recommendation is an audit artifact,
+        # not a field on the decision dict that downstream code should see.
+        rules_rec = decision.pop("_rules_recommendation", None)
         plan_trade = Trade(
             portfolio_id=plan.id,
             ticker=decision.get("ticker", ""),
@@ -328,6 +510,7 @@ async def _execute_plan_cycle(
             alpaca_order_id=alpaca_order_id,
             virtual_cash_before=cash_before,
             virtual_cash_after=remaining_cash,
+            rules_recommendation=rules_rec,
         )
         db.add(plan_trade)
         if executed:

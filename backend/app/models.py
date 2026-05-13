@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import (
-    Boolean, Date, DateTime, Float, ForeignKey, Index, Integer,
+    Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, JSON,
     Numeric, String, Text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -64,6 +64,8 @@ class Trade(Base):
     # 071-fix: Numeric for virtual cash tracking
     virtual_cash_before: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
     virtual_cash_after: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
+    # rules_with_claude_oversight: stores the strategy's original signal before Claude review
+    rules_recommendation: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
         Index("ix_trades_timestamp_executed", "timestamp", "executed"),
@@ -94,6 +96,7 @@ class Trade(Base):
             d["alpaca_order_id"] = self.alpaca_order_id
             d["virtual_cash_before"] = float(self.virtual_cash_before) if self.virtual_cash_before is not None else None
             d["virtual_cash_after"] = float(self.virtual_cash_after) if self.virtual_cash_after is not None else None
+            d["rules_recommendation"] = self.rules_recommendation
         return d
 
 

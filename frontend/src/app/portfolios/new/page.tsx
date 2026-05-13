@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createPortfolio } from "@/lib/api";
-import type { TradingGoal } from "@/lib/types";
+import { createPortfolio, getStrategies } from "@/lib/api";
+import type { DecisionMode, TradingGoal, StrategyInfo } from "@/lib/types";
+import Tip from "@/components/Tip";
 
 // ---------------------------------------------------------------------------
 // Metadata for each selector
@@ -102,6 +103,77 @@ const FREQS = [
     multiplier: 1.1,
   },
 ];
+
+const DECISION_MODES: {
+  value: DecisionMode;
+  label: string;
+  icon: string;
+  description: string;
+}[] = [
+  {
+    value: "claude_decides",
+    label: "Claude decides",
+    icon: "🤖",
+    description:
+      "Claude Sonnet weighs all signals and makes each trade decision. Higher API cost, non-reproducible, adapts to context.",
+  },
+  {
+    value: "rules_decide",
+    label: "Rules decide",
+    icon: "⚙️",
+    description:
+      "A deterministic strategy makes every decision. Cheap, reproducible, fully backtestable. Claude is not called.",
+  },
+  {
+    value: "rules_with_claude_oversight",
+    label: "Rules + Claude oversight",
+    icon: "🔬",
+    description:
+      "Strategy produces a recommendation; Claude reviews and can override only in exceptional circumstances (e.g., earnings event). Best of both, higher cost.",
+  },
+];
+
+function renderParamInput(
+  param: StrategyInfo["params"][number],
+  value: string,
+  onChange: (key: string, val: string) => void,
+) {
+  const id = `param-${param.key}`;
+  if (param.type === "boolean") {
+    return (
+      <div key={param.key} className="flex items-center gap-3 col-span-2">
+        <input
+          id={id}
+          type="checkbox"
+          checked={value === "true"}
+          onChange={(e) => onChange(param.key, e.target.checked ? "true" : "false")}
+          className="w-4 h-4 rounded border border-border"
+        />
+        <label htmlFor={id} className="text-sm font-medium">{param.label}</label>
+      </div>
+    );
+  }
+  return (
+    <div key={param.key}>
+      <label htmlFor={id} className="block text-sm font-medium mb-1">
+        {param.label}
+      </label>
+      <input
+        id={id}
+        type={param.type === "number" || param.type === "int" ? "number" : "text"}
+        value={value}
+        onChange={(e) => onChange(param.key, e.target.value)}
+        placeholder={
+          param.type === "list" ? "AAPL, MSFT, NVDA" : String(param.default ?? "")
+        }
+        className="w-full px-3 py-2 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent text-sm"
+      />
+      {param.type === "list" && (
+        <p className="text-xs text-muted mt-1">Comma-separated tickers</p>
+      )}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Goal / risk alignment matrix
@@ -426,6 +498,75 @@ export default function NewPortfolioPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Decision Engine state
+  const [decisionMode, setDecisionMode] = useState<DecisionMode>("claude_decides");
+  const [strategyId, setStrategyId] = useState("");
+  const [strategyParams, setStrategyParams] = useState<Record<string, string>>({});
+  const [strategies, setStrategies] = useState<StrategyInfo[]>([]);
+  const [strategiesLoading, setStrategiesLoading] = useState(false);
+  const strategiesLoaded = useRef(false);
+
+  const selectedStrategy = strategies.find((s) => s.id === strategyId) ?? null;
+
+  async function loadStrategies() {
+    if (strategiesLoaded.current) return;
+    try {
+      setStrategiesLoading(true);
+      const data = await getStrategies();
+      setStrategies(data);
+      strategiesLoaded.current = true;
+    } catch {
+      // silently fail — strategy list is non-critical
+    } finally {
+      setStrategiesLoading(false);
+    }
+  }
+
+  function handleDecisionModeChange(mode: DecisionMode) {
+    setDecisionMode(mode);
+    if (mode !== "claude_decides") loadStrategies();
+    if (mode === "claude_decides") {
+      setStrategyId("");
+      setStrategyParams({});
+    }
+  }
+
+  function handleStrategyChange(id: string) {
+    setStrategyId(id);
+    const strat = strategies.find((s) => s.id === id);
+    if (strat) {
+      const defaults: Record<string, string> = {};
+      for (const p of strat.params) {
+        defaults[p.key] = String(p.default ?? "");
+      }
+      setStrategyParams(defaults);
+    } else {
+      setStrategyParams({});
+    }
+  }
+
+  function handleParamChange(key: string, val: string) {
+    setStrategyParams((prev) => ({ ...prev, [key]: val }));
+  }
+
+  function buildStrategyParams(): Record<string, unknown> {
+    if (!selectedStrategy) return {};
+    const result: Record<string, unknown> = {};
+    for (const p of selectedStrategy.params) {
+      const val = strategyParams[p.key] ?? "";
+      if (p.type === "number" || p.type === "int") {
+        result[p.key] = parseFloat(val) || (p.default ?? 0);
+      } else if (p.type === "boolean") {
+        result[p.key] = val === "true";
+      } else if (p.type === "list") {
+        result[p.key] = val.split(",").map((s) => s.trim()).filter(Boolean);
+      } else {
+        result[p.key] = val;
+      }
+    }
+    return result;
+  }
+
   const scoreResult = useMemo(() => {
     const budgetNum = parseFloat(budget) || 0;
     const targetNum = parseFloat(targetAmt) || 0;
@@ -447,6 +588,10 @@ export default function NewPortfolioPage() {
         setError("Budget must be a positive number");
         return;
       }
+      if (decisionMode !== "claude_decides" && !strategyId) {
+        setError("A strategy is required when using Rules or Hybrid mode");
+        return;
+      }
 
       const portfolio = await createPortfolio({
         name: name.trim(),
@@ -456,6 +601,9 @@ export default function NewPortfolioPage() {
         trading_frequency: freq as "1x" | "3x" | "5x",
         target_amount: targetAmt ? parseFloat(targetAmt) : undefined,
         target_date: targetDate || undefined,
+        decision_mode: decisionMode,
+        strategy_id: strategyId || null,
+        strategy_params: buildStrategyParams(),
       });
 
       router.push(`/portfolios/${portfolio.id}`);
@@ -562,6 +710,66 @@ export default function NewPortfolioPage() {
               />
             ))}
           </div>
+        </div>
+
+        {/* Decision Engine */}
+        <div>
+          <h2 className="text-base font-semibold mb-1 flex items-center gap-2">
+            Decision Engine
+            <Tip text="Controls which system makes trade decisions. Rules modes are cheaper and reproducible; Claude modes adapt to context." />
+          </h2>
+          <p className="text-xs text-muted mb-3">How should trade decisions be made?</p>
+          <div className="grid grid-cols-3 gap-3">
+            {DECISION_MODES.map((dm) => (
+              <SelectCard
+                key={dm.value}
+                icon={dm.icon}
+                label={dm.label}
+                description={dm.description}
+                selected={decisionMode === dm.value}
+                onClick={() => handleDecisionModeChange(dm.value)}
+              />
+            ))}
+          </div>
+
+          {decisionMode !== "claude_decides" && (
+            <div className="mt-4 bz-glass-soft rounded-xl p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Strategy</label>
+                {strategiesLoading ? (
+                  <p className="text-sm text-muted">Loading strategies...</p>
+                ) : (
+                  <select
+                    value={strategyId}
+                    onChange={(e) => handleStrategyChange(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent"
+                  >
+                    <option value="">— Select a strategy —</option>
+                    {strategies.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} — {s.description}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {selectedStrategy && selectedStrategy.params.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-3">Strategy Parameters</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedStrategy.params.map((p) =>
+                      renderParamInput(
+                        p,
+                        strategyParams[p.key] ?? String(p.default ?? ""),
+                        handleParamChange,
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Target Goals */}

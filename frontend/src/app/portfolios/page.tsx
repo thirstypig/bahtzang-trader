@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getPortfolios, deletePortfolio } from "@/lib/api";
 import type { InvestmentPlan } from "@/lib/types";
+import DecisionModeBadge from "@/components/DecisionModeBadge";
 
 const PortfolioAllocationChart = dynamic(
   () => import("@/components/PortfolioAllocationChart"),
@@ -113,7 +114,13 @@ export default function PortfoliosPage() {
                 <div key={portfolio.id} className="bg-card rounded-lg p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-xl font-bold">{portfolio.name}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-xl font-bold">{portfolio.name}</h3>
+                        <DecisionModeBadge
+                          mode={portfolio.decision_mode ?? "claude_decides"}
+                          strategyName={portfolio.strategy_id ?? null}
+                        />
+                      </div>
                       <p className="text-sm text-muted">
                         {portfolio.trading_goal}
                       </p>

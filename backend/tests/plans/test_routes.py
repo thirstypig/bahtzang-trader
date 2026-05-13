@@ -5,7 +5,7 @@ SQLite doesn't support PostgreSQL advisory locks.
 """
 
 import pytest
-from tests.conftest import make_plan
+from tests.conftest import make_plan, make_trade
 
 
 @pytest.mark.unit
@@ -238,3 +238,154 @@ class TestSnapshots:
         resp = client.get(f"/portfolios/{plan_id}/snapshots")
         assert resp.status_code == 200
         assert resp.json() == []
+
+
+@pytest.mark.integration
+class TestOversightActivity:
+    def _create_portfolio(self, client, mode="rules_with_claude_oversight"):
+        resp = client.post("/portfolios", json={
+            "name": "Oversight Portfolio",
+            "budget": 5000,
+            "trading_goal": "maximize_returns",
+            "decision_mode": mode,
+            "strategy_id": "sma_crossover",
+            "strategy_params": {},
+        })
+        assert resp.status_code == 200, resp.text
+        return resp.json()["id"]
+
+    def test_returns_404_for_nonexistent_portfolio(self, client):
+        resp = client.get("/portfolios/99999/oversight-activity")
+        assert resp.status_code == 404
+
+    def test_empty_when_no_oversight_trades(self, client):
+        plan_id = self._create_portfolio(client)
+        resp = client.get(f"/portfolios/{plan_id}/oversight-activity")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["summary"]["total"] == 0
+        assert data["summary"]["confirmed"] == 0
+        assert data["summary"]["overridden"] == 0
+        assert data["records"] == []
+
+    def test_confirmed_when_strategy_and_final_action_match(self, client, db_session):
+        plan_id = self._create_portfolio(client)
+        make_trade(db_session, plan_id, action="buy", rules_recommendation={
+            "action": "buy", "ticker": "AAPL", "quantity": 5, "confidence": 0.75,
+            "reasoning": "Golden cross signal",
+        })
+        resp = client.get(f"/portfolios/{plan_id}/oversight-activity")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["summary"]["total"] == 1
+        assert data["summary"]["confirmed"] == 1
+        assert data["summary"]["overridden"] == 0
+        rec = data["records"][0]
+        assert rec["diverged"] is False
+        assert rec["final_action"] == "buy"
+        assert rec["rules_recommendation"]["action"] == "buy"
+
+    def test_overridden_when_final_action_differs_from_strategy(self, client, db_session):
+        plan_id = self._create_portfolio(client)
+        make_trade(db_session, plan_id, action="hold", rules_recommendation={
+            "action": "buy", "ticker": "AAPL", "quantity": 5, "confidence": 0.75,
+            "reasoning": "Golden cross signal",
+        })
+        resp = client.get(f"/portfolios/{plan_id}/oversight-activity")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["summary"]["total"] == 1
+        assert data["summary"]["confirmed"] == 0
+        assert data["summary"]["overridden"] == 1
+        rec = data["records"][0]
+        assert rec["diverged"] is True
+        assert rec["final_action"] == "hold"
+
+    def test_summary_percentages_computed_correctly(self, client, db_session):
+        plan_id = self._create_portfolio(client)
+        # 3 confirmed, 1 overridden
+        for _ in range(3):
+            make_trade(db_session, plan_id, action="buy", rules_recommendation={"action": "buy"})
+        make_trade(db_session, plan_id, action="hold", rules_recommendation={"action": "buy"})
+
+        resp = client.get(f"/portfolios/{plan_id}/oversight-activity")
+        data = resp.json()
+        assert data["summary"]["total"] == 4
+        assert data["summary"]["confirmed"] == 3
+        assert data["summary"]["overridden"] == 1
+        assert data["summary"]["confirmed_pct"] == 75.0
+        assert data["summary"]["overridden_pct"] == 25.0
+
+    def test_excludes_trades_without_rules_recommendation(self, client, db_session):
+        plan_id = self._create_portfolio(client)
+        # One claude_decides trade — no rules_recommendation column (SQL NULL)
+        make_trade(db_session, plan_id, action="buy")
+        # One oversight trade
+        make_trade(db_session, plan_id, action="sell", rules_recommendation={"action": "sell"})
+
+        resp = client.get(f"/portfolios/{plan_id}/oversight-activity")
+        data = resp.json()
+        assert data["summary"]["total"] == 1
+        assert data["records"][0]["final_action"] == "sell"
+
+    def test_limit_parameter_respected(self, client, db_session):
+        plan_id = self._create_portfolio(client)
+        for i in range(5):
+            make_trade(db_session, plan_id, ticker=f"T{i}", action="buy",
+                       rules_recommendation={"action": "buy"})
+
+        resp = client.get(f"/portfolios/{plan_id}/oversight-activity?limit=3")
+        data = resp.json()
+        assert len(data["records"]) == 3
+
+
+@pytest.mark.integration
+class TestDecisionMode:
+    def _create(self, client, **extra):
+        return client.post("/portfolios", json={
+            "name": "DM Test",
+            "budget": 1000,
+            "trading_goal": "maximize_returns",
+            **extra,
+        })
+
+    def test_portfolio_create_defaults_to_claude_decides(self, client):
+        resp = self._create(client)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["decision_mode"] == "claude_decides"
+        assert data["strategy_id"] is None
+        assert data["strategy_params"] == {}
+
+    def test_portfolio_create_rules_mode_requires_strategy_id(self, client):
+        resp = self._create(client, decision_mode="rules_decide")
+        assert resp.status_code == 422
+
+    def test_portfolio_create_invalid_strategy_id_rejected(self, client):
+        resp = self._create(
+            client,
+            decision_mode="rules_decide",
+            strategy_id="nonexistent_strategy",
+        )
+        assert resp.status_code == 422
+
+    def test_decision_mode_change_audited(self, client):
+        plan_id = self._create(client).json()["id"]
+
+        patch_resp = client.patch(f"/portfolios/{plan_id}", json={
+            "decision_mode": "rules_decide",
+            "strategy_id": "sma_crossover",
+            "strategy_params": {"short_window": 10, "long_window": 50},
+            "reason": "Switching to rules-based for this portfolio",
+        })
+        assert patch_resp.status_code == 200
+        data = patch_resp.json()
+        assert data["decision_mode"] == "rules_decide"
+        assert data["strategy_id"] == "sma_crossover"
+
+        # Verify audit entry recorded
+        audit_resp = client.get(f"/portfolios/{plan_id}/strategy")
+        assert audit_resp.status_code == 200
+        audit_log = audit_resp.json()["audit_log"]
+        actions = [entry["action"] for entry in audit_log]
+        assert "decision_mode_changed" in actions

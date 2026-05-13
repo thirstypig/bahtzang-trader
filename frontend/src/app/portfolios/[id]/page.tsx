@@ -11,6 +11,7 @@ import {
   getPortfolioStrategy,
 } from "@/lib/api";
 import type { InvestmentPlan, Trade, PortfolioStrategy } from "@/lib/types";
+import DecisionModeBadge from "@/components/DecisionModeBadge";
 
 const PortfolioEquityCurve = dynamic(
   () => import("@/components/PortfolioEquityCurve"),
@@ -192,7 +193,13 @@ export default function PortfolioDetailPage() {
           >
             ← Back to Portfolios
           </Link>
-          <h1 className="text-3xl font-bold">{data.name}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-bold">{data.name}</h1>
+            <DecisionModeBadge
+              mode={data.decision_mode ?? "claude_decides"}
+              strategyName={data.strategy_id ?? null}
+            />
+          </div>
           <p className="text-muted mt-2">
             {data.trading_goal} • {data.risk_profile} • {data.trading_frequency}
           </p>
@@ -301,8 +308,22 @@ export default function PortfolioDetailPage() {
                 : "text-muted hover:text-primary"
             }`}
           >
-            Strategy
+            Trading Rules
           </button>
+          <Link
+            href={`/portfolios/${portfolioId}/strategy`}
+            className="px-4 py-2 font-medium text-muted hover:text-primary transition-colors"
+          >
+            Decision Engine
+          </Link>
+          {data.decision_mode === "rules_with_claude_oversight" && (
+            <Link
+              href={`/portfolios/${portfolioId}/oversight`}
+              className="px-4 py-2 font-medium text-muted hover:text-primary transition-colors"
+            >
+              Oversight
+            </Link>
+          )}
         </div>
 
         {activeTab === "overview" && (

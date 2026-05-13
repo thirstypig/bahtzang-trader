@@ -209,6 +209,22 @@ export const roadmapItems: RoadmapItem[] = [
     priority: "medium",
     phase: "Phase B",
   },
+  {
+    id: "dual-momentum-strategy",
+    title: "Dual Momentum strategy",
+    description: "Antonacci Dual Momentum: compare SPY vs VEU (international) absolute/relative momentum monthly, rotate into BIL (T-bills) when both are negative. 12 unit tests. Registered in STRATEGY_REGISTRY and available via backtest + decision engine.",
+    status: "done",
+    priority: "medium",
+    phase: "Phase F",
+  },
+  {
+    id: "decision-mode-toggle",
+    title: "Decision mode toggle per portfolio",
+    description: "Each portfolio independently selects its decision mode: Claude decides (AI-only), Rules decide (deterministic strategy, backtest-exact), or Rules + Claude oversight (strategy recommends, Claude reviews). New DB columns (decision_mode, strategy_id, strategy_params), executor branching, oversight audit endpoint, and frontend Decision Engine page. 17 new tests.",
+    status: "done",
+    priority: "high",
+    phase: "Phase G prep",
+  },
   // Planned
   {
     id: "paper-to-live",
@@ -225,5 +241,21 @@ export const roadmapItems: RoadmapItem[] = [
     status: "planned",
     priority: "low",
     phase: "Phase H",
+  },
+  {
+    id: "trend-following-strategy",
+    title: "Time-series trend-following strategy",
+    description: "Absolute momentum / time-series momentum: go long when asset is above its own 12-month return threshold, exit to cash otherwise. Simpler than Dual Momentum, works on single-asset portfolios. Complements the existing rule-based strategy library.",
+    status: "planned",
+    priority: "medium",
+    phase: "Phase H",
+  },
+  {
+    id: "risk-parity-strategy",
+    title: "Risk parity portfolio strategy",
+    description: "Equal risk contribution weighting across positions: size each holding so its contribution to total portfolio volatility is equal. Requires rolling volatility estimates. More complex than equal-weight but better theoretical diversification properties.",
+    status: "planned",
+    priority: "low",
+    phase: "Phase H+",
   },
 ];

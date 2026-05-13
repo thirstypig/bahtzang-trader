@@ -10,7 +10,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import (
-    Boolean, Date, DateTime, ForeignKey, Index, Integer,
+    Boolean, Date, DateTime, ForeignKey, Index, Integer, JSON,
     Numeric, String, UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -32,6 +32,11 @@ class Portfolio(Base):
     target_amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
     target_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    # Decision mode: who drives trade decisions for this portfolio
+    decision_mode: Mapped[str] = mapped_column(String(32), nullable=False, default="claude_decides")
+    strategy_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    strategy_params: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
     # Strategy rules (per-portfolio, not global)
     cooldown_hours: Mapped[int] = mapped_column(Integer, nullable=False, default=48)
@@ -65,6 +70,9 @@ class Portfolio(Base):
             "target_amount": float(self.target_amount) if self.target_amount is not None else None,
             "target_date": self.target_date,
             "is_active": self.is_active,
+            "decision_mode": self.decision_mode,
+            "strategy_id": self.strategy_id,
+            "strategy_params": self.strategy_params if self.strategy_params is not None else {},
             "cooldown_hours": self.cooldown_hours,
             "min_confidence": float(self.min_confidence),
             "respect_wash_sale": self.respect_wash_sale,

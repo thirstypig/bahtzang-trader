@@ -1,13 +1,19 @@
 """Claude Sonnet trading decision engine."""
 
+from __future__ import annotations
+
 import json
 import logging
 import re
+from typing import TYPE_CHECKING
 
 import anthropic
 
 from app.config import settings
 from app.pipeline_types import Position, Quote, NewsItem, TradeDecision
+
+if TYPE_CHECKING:
+    from app.plans.models import Portfolio
 
 logger = logging.getLogger(__name__)
 
@@ -318,6 +324,133 @@ async def get_trade_decision(
         }
         for d in decisions
     ]
+
+
+_REVIEW_SYSTEM_PROMPT = """You are a trading oversight reviewer. A deterministic rules-based strategy has produced a recommendation. Your job is NOT to second-guess the strategy on every call — your job is to flag situations where blindly following the rules would be clearly wrong. Override only with strong, specific justification.
+
+Default to confirming the rules recommendation. Override is the exception, not the default. If you override, you must cite specific market data, earnings events, or news that the rules-based strategy could not see.
+
+Override criteria (the only acceptable reasons to override):
+- Earnings announcement within 2 days on a buy signal (binary event risk)
+- A clear negative news catalyst for the specific stock (not general market fear)
+- Portfolio kill switch is active
+
+Respond with a JSON object only:
+{"confirmed": true, "override_decision": null, "reasoning": "...", "override_confidence": 0.0}
+
+If overriding, set confirmed=false and provide override_decision with {action, ticker, quantity, reasoning, confidence}.
+You MUST respond with valid JSON only. No markdown, no explanation outside the JSON."""
+
+
+async def review_trade_decision(
+    rules_decision: dict,
+    context: dict,
+    portfolio: Portfolio,
+) -> dict:
+    """Ask Claude to confirm or override a single rules-based trade decision.
+
+    Used by rules_with_claude_oversight mode. Fails closed: timeout or
+    malformed response returns confirmed=True so oversight failures never
+    block a valid strategy signal.
+
+    Returns {confirmed, override_decision, reasoning, override_confidence}.
+    """
+    from app.strategies import STRATEGY_REGISTRY
+
+    strategy_id = portfolio.strategy_id or "unknown"
+    strategy_cls = STRATEGY_REGISTRY.get(strategy_id)
+    strategy_description = (
+        getattr(strategy_cls, "description", "No description available")
+        if strategy_cls else "Unknown strategy"
+    )
+
+    # Whitelist expected keys to prevent prompt injection from strategy output
+    _SAFE_DECISION_KEYS = {"action", "ticker", "quantity", "confidence", "reasoning"}
+    safe_decision = {k: v for k, v in rules_decision.items() if k in _SAFE_DECISION_KEYS}
+
+    _SAFE_CONTEXT_KEYS = {
+        "cash_available", "positions", "quotes", "news",
+        "technicals_csv", "earnings_csv", "sector_csv",
+        "trading_goal", "risk_profile",
+    }
+    safe_context = {k: v for k, v in context.items() if k in _SAFE_CONTEXT_KEYS}
+
+    prompt_parts = [
+        f"Strategy: {strategy_id}",
+        f"Description: {strategy_description}",
+        "",
+        "Rules-based recommendation:",
+        json.dumps(safe_decision, indent=2),
+        "",
+        "Portfolio context:",
+        f"- Trading goal: {portfolio.trading_goal}",
+        f"- Risk profile: {portfolio.risk_profile}",
+        f"- Cash available: ${safe_context.get('cash_available', 0):,.2f}",
+    ]
+
+    if context.get("kill_switch"):
+        prompt_parts += ["", "KILL SWITCH: Active — no new buy or sell trades should be placed."]
+
+    if safe_context.get("positions"):
+        prompt_parts += ["", f"Positions: {json.dumps(safe_context['positions'])}"]
+
+    if safe_context.get("technicals_csv"):
+        prompt_parts += ["", safe_context["technicals_csv"]]
+
+    if safe_context.get("earnings_csv"):
+        prompt_parts += ["", safe_context["earnings_csv"]]
+
+    if safe_context.get("sector_csv"):
+        prompt_parts += ["", safe_context["sector_csv"]]
+
+    if safe_context.get("news"):
+        prompt_parts += ["", f"News ({len(safe_context['news'])} items):", json.dumps(safe_context["news"][:5])]
+
+    if safe_context.get("quotes"):
+        ticker = safe_decision.get("ticker", "")
+        relevant = [q for q in safe_context["quotes"] if q.get("ticker") == ticker]
+        if relevant:
+            prompt_parts += ["", f"Quote for {ticker}: {json.dumps(relevant[0])}"]
+
+    prompt_parts += [
+        "",
+        "Confirm or override. Default to confirmed=true unless you have strong, specific justification.",
+    ]
+
+    try:
+        message = await client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=512,
+            system=_REVIEW_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": "\n".join(prompt_parts)}],
+            timeout=30.0,
+        )
+    except anthropic.APITimeoutError:
+        logger.warning("Claude review API timed out — failing closed (confirmed=True)")
+        return {
+            "confirmed": True,
+            "override_decision": None,
+            "reasoning": "Review timed out — strategy signal confirmed by default",
+            "override_confidence": 0.0,
+        }
+
+    parsed = _parse_claude_json(message.content[0].text)
+
+    if not isinstance(parsed, dict) or "confirmed" not in parsed:
+        logger.warning("Claude review returned malformed response — failing closed")
+        return {
+            "confirmed": True,
+            "override_decision": None,
+            "reasoning": "Malformed review response — strategy signal confirmed by default",
+            "override_confidence": 0.0,
+        }
+
+    return {
+        "confirmed": bool(parsed.get("confirmed", True)),
+        "override_decision": parsed.get("override_decision"),
+        "reasoning": str(parsed.get("reasoning", "")),
+        "override_confidence": float(parsed.get("override_confidence", 0.0)),
+    }
 
 
 def _parse_claude_json(text: str) -> dict | list:

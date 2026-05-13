@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy import desc, func, text
@@ -16,6 +16,7 @@ from app.brokers.alpaca import AlpacaBroker
 from app.auth import require_auth
 from app.database import get_db
 from app.guardrails import VALID_GOALS
+from app.strategies import STRATEGY_REGISTRY
 from app.models import Trade
 from app.plans.executor import compute_virtual_positions
 from app.plans.models import Portfolio, PlanSnapshot, PortfolioStrategyAudit
@@ -35,6 +36,7 @@ router = APIRouter(prefix="/portfolios", tags=["portfolios"])
 
 VALID_PROFILES = "conservative|moderate|aggressive"
 VALID_FREQUENCIES = "1x|3x|5x"
+VALID_DECISION_MODES = "claude_decides|rules_decide|rules_with_claude_oversight"
 
 
 class PortfolioCreateRequest(BaseModel):
@@ -47,6 +49,21 @@ class PortfolioCreateRequest(BaseModel):
     target_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     cooldown_hours: int = Field(default=48, ge=1, le=168)
     min_confidence: float = Field(default=0.55, ge=0, le=1)
+    decision_mode: str = Field(default="claude_decides", pattern=f"^({VALID_DECISION_MODES})$")
+    strategy_id: str | None = None
+    strategy_params: dict = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_strategy_id(self) -> "PortfolioCreateRequest":
+        if self.decision_mode != "claude_decides":
+            if not self.strategy_id:
+                raise ValueError("strategy_id is required when decision_mode is not 'claude_decides'")
+            if self.strategy_id not in STRATEGY_REGISTRY:
+                raise ValueError(
+                    f"Unknown strategy '{self.strategy_id}'. "
+                    f"Valid strategies: {sorted(STRATEGY_REGISTRY.keys())}"
+                )
+        return self
 
 
 class PortfolioUpdateRequest(BaseModel):
@@ -60,7 +77,22 @@ class PortfolioUpdateRequest(BaseModel):
     is_active: bool | None = None
     cooldown_hours: int | None = Field(None, ge=1, le=168)
     min_confidence: float | None = Field(None, ge=0, le=1)
+    decision_mode: str | None = Field(None, pattern=f"^({VALID_DECISION_MODES})$")
+    strategy_id: str | None = None
+    strategy_params: dict | None = None
     reason: str | None = Field(None, max_length=500)
+
+    @model_validator(mode="after")
+    def validate_strategy_id(self) -> "PortfolioUpdateRequest":
+        if self.decision_mode is not None and self.decision_mode != "claude_decides":
+            if not self.strategy_id:
+                raise ValueError("strategy_id is required when decision_mode is not 'claude_decides'")
+            if self.strategy_id not in STRATEGY_REGISTRY:
+                raise ValueError(
+                    f"Unknown strategy '{self.strategy_id}'. "
+                    f"Valid strategies: {sorted(STRATEGY_REGISTRY.keys())}"
+                )
+        return self
 
 
 class StrategyUpdateRequest(BaseModel):
@@ -197,6 +229,9 @@ async def create_portfolio(
         kelly_fraction=Decimal("0.15"),  # Default Kelly fraction
         circuit_breaker_daily_pct=Decimal("-5.0"),
         circuit_breaker_weekly_pct=Decimal("-10.0"),
+        decision_mode=body.decision_mode,
+        strategy_id=body.strategy_id,
+        strategy_params=body.strategy_params,
     )
     db.add(portfolio)
     db.commit()
@@ -361,7 +396,15 @@ async def update_portfolio(
         "cooldown_hours", "min_confidence", "respect_wash_sale",
         "kelly_fraction", "circuit_breaker_daily_pct", "circuit_breaker_weekly_pct"
     }
+    _DECISION_MODE_FIELDS = {"decision_mode", "strategy_id", "strategy_params"}
     reason = updates.pop("reason", None)
+
+    # Snapshot decision-mode config before any changes (for audit diff)
+    old_dm_config = {
+        "decision_mode": portfolio.decision_mode,
+        "strategy_id": portfolio.strategy_id,
+        "strategy_params": portfolio.strategy_params,
+    }
 
     # 096-fix: Guard against future mass-assignment if sensitive fields
     # are accidentally added to PortfolioUpdateRequest.
@@ -387,6 +430,24 @@ async def update_portfolio(
                     )
                     db.add(audit)
             setattr(portfolio, key, value)
+
+    # Log decision-mode changes as a single bundled audit entry
+    if any(k in updates for k in _DECISION_MODE_FIELDS):
+        new_dm_config = {
+            "decision_mode": portfolio.decision_mode,
+            "strategy_id": portfolio.strategy_id,
+            "strategy_params": portfolio.strategy_params,
+        }
+        if old_dm_config != new_dm_config:
+            db.add(PortfolioStrategyAudit(
+                portfolio_id=portfolio_id,
+                user_email=user.get("email", "unknown"),
+                timestamp=datetime.now(timezone.utc),
+                action="decision_mode_changed",
+                old_value=str(old_dm_config),
+                new_value=str(new_dm_config),
+                reason=reason,
+            ))
 
     db.commit()
     db.refresh(portfolio)
@@ -604,6 +665,66 @@ def get_portfolio_strategy(
         circuit_breaker_weekly_pct=float(portfolio.circuit_breaker_weekly_pct),
         audit_log=audit_log,
     )
+
+
+@router.get("/{portfolio_id}/oversight-activity")
+def get_oversight_activity(
+    portfolio_id: int,
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_auth),
+):
+    """Oversight decisions for rules_with_claude_oversight portfolios.
+
+    Returns only trades where rules_recommendation IS NOT NULL — i.e. the
+    strategy produced a signal that went through Claude review. Diverged=True
+    means Claude overrode the strategy's original action.
+    """
+    portfolio = db.query(Portfolio).filter(Portfolio.id == portfolio_id).first()
+    if not portfolio:
+        raise HTTPException(404, "Portfolio not found")
+
+    trades = (
+        db.query(Trade)
+        .filter(
+            Trade.portfolio_id == portfolio_id,
+            Trade.rules_recommendation.isnot(None),
+        )
+        .order_by(desc(Trade.timestamp))
+        .limit(limit)
+        .all()
+    )
+
+    records = []
+    overridden_count = 0
+    for t in trades:
+        rr = t.rules_recommendation or {}
+        diverged = rr.get("action") != t.action
+        if diverged:
+            overridden_count += 1
+        records.append({
+            "id": t.id,
+            "timestamp": t.timestamp.isoformat(),
+            "ticker": t.ticker,
+            "rules_recommendation": rr,
+            "final_action": t.action,
+            "executed": t.executed,
+            "diverged": diverged,
+            "claude_reasoning": t.claude_reasoning,
+        })
+
+    total = len(records)
+    confirmed_count = total - overridden_count
+    return {
+        "summary": {
+            "total": total,
+            "confirmed": confirmed_count,
+            "overridden": overridden_count,
+            "confirmed_pct": round(confirmed_count / total * 100, 1) if total > 0 else 0.0,
+            "overridden_pct": round(overridden_count / total * 100, 1) if total > 0 else 0.0,
+        },
+        "records": records,
+    }
 
 
 @router.post("/{portfolio_id}/strategy", response_model=StrategyResponse)

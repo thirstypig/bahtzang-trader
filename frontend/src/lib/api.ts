@@ -7,6 +7,7 @@ import {
   ForexBacktestDetail,
   ForexBacktestSummary,
   InvestmentPlan,
+  OversightActivity,
   PlanPosition,
   PlanSnapshotData,
   Portfolio,
@@ -287,6 +288,9 @@ export async function createPortfolio(plan: {
   trading_frequency?: InvestmentPlan["trading_frequency"];
   target_amount?: number | null;
   target_date?: string | null;
+  decision_mode?: InvestmentPlan["decision_mode"];
+  strategy_id?: string | null;
+  strategy_params?: Record<string, unknown>;
 }): Promise<InvestmentPlan> {
   return fetchAPI<InvestmentPlan>("/portfolios", {
     method: "POST",
@@ -360,6 +364,13 @@ export interface PortfolioStrategy {
 
 export async function getPortfolioStrategy(id: number): Promise<PortfolioStrategy> {
   return fetchAPI<PortfolioStrategy>(`/portfolios/${id}/strategy`);
+}
+
+export async function getOversightActivity(
+  id: number,
+  limit = 50,
+): Promise<OversightActivity> {
+  return fetchAPI<OversightActivity>(`/portfolios/${id}/oversight-activity?limit=${limit}`);
 }
 
 export async function updatePortfolioStrategy(
