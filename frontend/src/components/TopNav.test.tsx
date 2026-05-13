@@ -16,6 +16,10 @@ vi.mock("@/lib/theme", () => ({
   useTheme: () => ({ theme: "dark", toggle: vi.fn() }),
 }));
 
+vi.mock("@/lib/auth", () => ({
+  useAuth: () => ({ user: { name: "James Chang", email: "jimmychang316@gmail.com" }, signOut: vi.fn() }),
+}));
+
 describe("TopNav", () => {
   it("renders all four group triggers", () => {
     render(<TopNav />);

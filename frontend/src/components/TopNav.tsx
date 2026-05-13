@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
 import * as Icons from "@/components/icons";
 
 /* ── Navigation structure ──────────────────────────────────
@@ -101,6 +102,19 @@ function NavItemCard({ item, active, role }: NavItemCardProps) {
 export default function TopNav() {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
+  const { user, signOut } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
@@ -245,11 +259,31 @@ export default function TopNav() {
               )}
             </button>
 
-            <div
-              aria-hidden="true"
-              className="hidden h-8 w-8 items-center justify-center rounded-full bg-accent/30 text-xs font-semibold text-primary sm:flex"
-            >
-              JC
+            <div ref={profileRef} className="relative hidden sm:block">
+              <button
+                type="button"
+                onClick={() => setProfileOpen((v) => !v)}
+                aria-label="Account menu"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/30 text-xs font-semibold text-primary hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                {user?.name ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() : "JC"}
+              </button>
+              {profileOpen && (
+                <div className="absolute right-0 top-full mt-2 w-52 bz-glass-strong rounded-xl shadow-lg py-1 z-50">
+                  {user?.email && (
+                    <div className="px-4 py-2 border-b border-border">
+                      <p className="text-xs text-muted truncate">{user.email}</p>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { setProfileOpen(false); signOut(); }}
+                    className="w-full text-left px-4 py-2 text-sm text-neg hover:bg-neg/10 transition-colors"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              )}
             </div>
 
             <button
