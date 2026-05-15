@@ -31,7 +31,8 @@ export default function PortfoliosPage() {
   useEffect(() => {
     if (!menuOpen) return;
     function close(e: MouseEvent) {
-      if (!(e.target as Element).closest("[data-portfolio-menu]")) setMenuOpen(null);
+      const el = (e.target as Element).closest("[data-portfolio-menu]");
+      if (!el || el.getAttribute("data-portfolio-menu") !== String(menuOpen)) setMenuOpen(null);
     }
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
@@ -55,7 +56,7 @@ export default function PortfoliosPage() {
       setDeleting(true);
       setDeleteError(null);
       await deletePortfolio(id);
-      setPortfolios(portfolios.filter((p) => p.id !== id));
+      setPortfolios((prev) => prev.filter((p) => p.id !== id));
       setDeleteTarget(null);
       setMenuOpen(null);
     } catch (err) {
@@ -71,7 +72,7 @@ export default function PortfoliosPage() {
     try {
       setPausing(portfolio.id);
       const updated = await updatePortfolio(portfolio.id, { is_active: !portfolio.is_active });
-      setPortfolios(portfolios.map((p) => (p.id === portfolio.id ? { ...p, is_active: updated.is_active } : p)));
+      setPortfolios((prev) => prev.map((p) => (p.id === portfolio.id ? { ...p, is_active: updated.is_active } : p)));
       setMenuOpen(null);
     } catch {
       // silent — detail page has the authoritative kill switch
@@ -160,7 +161,7 @@ export default function PortfoliosPage() {
                     </div>
 
                     {/* ⋮ menu */}
-                    <div className="relative" data-portfolio-menu>
+                    <div className="relative" data-portfolio-menu={portfolio.id}>
                       {deleteTarget === portfolio.id ? (
                         <div className="flex gap-2">
                           <button

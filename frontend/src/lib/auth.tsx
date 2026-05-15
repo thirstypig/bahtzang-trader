@@ -27,7 +27,10 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-const ALLOWED_EMAIL = process.env.NEXT_PUBLIC_ALLOWED_EMAIL || "";
+const ALLOWED_EMAILS = (process.env.NEXT_PUBLIC_ALLOWED_EMAIL || "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 // 007-fix: Throw if used outside provider instead of silent no-op
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -52,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     function applySession(session: Session | null) {
       const extracted = extractUser(session);
-      if (extracted && ALLOWED_EMAIL && extracted.email !== ALLOWED_EMAIL) {
+      if (extracted && ALLOWED_EMAILS.length > 0 && !ALLOWED_EMAILS.includes(extracted.email.toLowerCase())) {
         setDenied(true);
         setUser(null);
         setApiToken(null);
