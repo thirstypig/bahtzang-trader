@@ -82,6 +82,11 @@ const TESTS = {
         covers: "Antonacci Dual Momentum: SPY vs VEU comparison, BIL rotation when both negative, 1-month/12-month lookbacks, insufficient data handling, parameter overrides",
       },
       {
+        file: "tests/test_goal_prompts.py",
+        tests: 4,
+        covers: "GOAL_PROMPTS safety: no bare crypto symbols in any goal prompt, expected goal keys present, regression guard against BTC/ETH re-introduction",
+      },
+      {
         file: "tests/test_zero_qty_coercion.py",
         tests: 13,
         covers: "Coerce buy/sell with qty<=0 or price<=0 to hold before validation; plan executor passes total_invested + orders_today to Claude prompt",
@@ -254,6 +259,11 @@ const TESTS = {
         tests: 5,
         covers: "New portfolio form: rules_decide requires strategy selection, invalid submission blocked, valid claude_decides submission proceeds",
       },
+      {
+        file: "src/app/portfolios/page.test.tsx",
+        tests: 13,
+        covers: "Portfolio list: Pause/Resume toggle (shows correct label, calls updatePortfolio with correct is_active), delete confirm flow, loading state, error state, empty state",
+      },
     ],
   },
   "E2E Browser Tests": {
@@ -268,8 +278,8 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (324 tests)" },
-  { cmd: "npm run test:frontend", desc: "All frontend tests (107 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (328 tests)" },
+  { cmd: "npm run test:frontend", desc: "All frontend tests (120 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
   { cmd: "npm run test:backend:cov", desc: "Backend tests with coverage report" },
@@ -365,7 +375,7 @@ export default function TestingPage() {
             <tbody className="divide-y divide-border/50">
               <tr>
                 <td className="px-3 py-2 font-mono text-accent">Pre-commit hook</td>
-                <td className="px-3 py-2 text-secondary">tsc + eslint + pytest (324) + vitest (107)</td>
+                <td className="px-3 py-2 text-secondary">tsc + eslint + pytest (328) + vitest (120)</td>
                 <td className="px-3 py-2 text-muted">Every git commit (~5s)</td>
               </tr>
               <tr>
