@@ -107,6 +107,7 @@ export default function TopNav() {
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!profileOpen) return;
     function handleClickOutside(e: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
@@ -114,7 +115,7 @@ export default function TopNav() {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [profileOpen]);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);

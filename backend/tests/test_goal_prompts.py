@@ -7,7 +7,7 @@ buy was blocked by the $1 minimum guardrail. This test prevents re-introduction.
 """
 import re
 import pytest
-from app.claude_brain import GOAL_PROMPTS
+from app.claude_brain import GOAL_PROMPTS, GOAL_WATCHLIST
 
 BARE_CRYPTO = {"BTC", "ETH", "SOL", "ADA", "DOGE", "XRP", "MATIC", "AVAX"}
 
@@ -55,4 +55,24 @@ class TestGoalPromptNoCrypto:
         }
         assert set(GOAL_PROMPTS.keys()) == expected, (
             f"GOAL_PROMPTS keys changed. Expected {expected}, got {set(GOAL_PROMPTS.keys())}"
+        )
+
+
+@pytest.mark.unit
+class TestGoalWatchlistNoCrypto:
+    def test_all_watchlists_have_no_bare_crypto(self):
+        """No watchlist may contain bare crypto symbols — this is the actual ticker source fed to Alpaca."""
+        for goal_key, tickers in GOAL_WATCHLIST.items():
+            for ticker in tickers:
+                assert ticker not in BARE_CRYPTO, (
+                    f"Bare crypto symbol '{ticker}' in GOAL_WATCHLIST['{goal_key}']. "
+                    f"StockHistoricalDataClient returns wrong prices for crypto tickers. "
+                    f"See docs/solutions/logic-errors/crypto-tickers-in-stock-client-prompt.md"
+                )
+
+    def test_goal_watchlist_keys_match_goal_prompts(self):
+        """GOAL_WATCHLIST and GOAL_PROMPTS must have the same keys — both must be updated together."""
+        assert set(GOAL_WATCHLIST.keys()) == set(GOAL_PROMPTS.keys()), (
+            f"Key mismatch: GOAL_WATCHLIST={set(GOAL_WATCHLIST.keys())}, "
+            f"GOAL_PROMPTS={set(GOAL_PROMPTS.keys())}"
         )

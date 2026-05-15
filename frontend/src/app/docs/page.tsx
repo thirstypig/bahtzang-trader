@@ -59,8 +59,11 @@ function renderMarkdown(md: string): string {
     // Bold and italic
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-primary">$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-accent underline hover:text-accent-text">$1</a>')
+    // Links — strip javascript: URIs before injecting into href
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
+      const safe = /^(https?:\/\/|\/|#)/.test(url) ? url : "#";
+      return `<a href="${safe}" target="_blank" rel="noopener noreferrer" class="text-accent underline hover:text-accent-text">${text}</a>`;
+    })
     // Unordered lists
     .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-secondary">$1</li>')
     // Horizontal rules
