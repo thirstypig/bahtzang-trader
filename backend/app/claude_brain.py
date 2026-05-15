@@ -68,7 +68,7 @@ GOAL_PROMPTS = {
     "maximize_returns": (
         "TRADING GOAL: MAXIMIZE RETURNS (target 15-30% annual). "
         "Seek highest risk-adjusted returns through momentum and factor investing. "
-        "Focus on: AAPL, NVDA, MSFT, TSLA, GOOGL, AMZN, META, QQQ, XLK, BTC, ETH. "
+        "Focus on: AAPL, NVDA, MSFT, TSLA, GOOGL, AMZN, META, QQQ, XLK. "
         "Look for RSI oversold bounces, MACD positive crossovers, sector momentum leaders. "
         "Hold positions 5-30 days. Maintain 60% buy bias when technicals align. "
         "Keep 20% cash for dip purchases."
@@ -104,7 +104,7 @@ GOAL_PROMPTS = {
     "swing_trading": (
         "TRADING GOAL: SWING TRADING (target 20-40% annual, 2-7 day holds). "
         "Capture 2-5% moves on technical setups. Trade frequently. "
-        "Focus on: AAPL, MSFT, NVDA, TSLA, GOOGL, AMD, QQQ, BTC, ETH. "
+        "Focus on: AAPL, MSFT, NVDA, TSLA, GOOGL, AMD, QQQ. "
         "Setups: RSI oversold bounce (<30), MACD bullish crossover, Bollinger breakout. "
         "Take profits at 3-5%. Cut losses at 5% hard stop. "
         "Exit by day 6 regardless (time decay). Max 5 simultaneous positions. "
