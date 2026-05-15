@@ -72,6 +72,16 @@ const TESTS = {
         covers: "Headroom block (invested, orders, position slots, effective buy ceiling, sizing, backward-compat) + timeline-goal sanitization (valid render, malformed date suppressed, uncoercible amount suppressed, zero/negative suppressed, string-numeric coerced)",
       },
       {
+        file: "tests/test_claude_brain_review.py",
+        tests: 5,
+        covers: "review_trade_decision() oversight function: normal confirm, earnings override, malformed JSON fail-closed, APITimeoutError fail-closed, kill switch context",
+      },
+      {
+        file: "tests/test_dual_momentum_strategy.py",
+        tests: 12,
+        covers: "Antonacci Dual Momentum: SPY vs VEU comparison, BIL rotation when both negative, 1-month/12-month lookbacks, insufficient data handling, parameter overrides",
+      },
+      {
         file: "tests/test_zero_qty_coercion.py",
         tests: 13,
         covers: "Coerce buy/sell with qty<=0 or price<=0 to hold before validation; plan executor passes total_invested + orders_today to Claude prompt",
@@ -117,8 +127,13 @@ const TESTS = {
     suites: [
       {
         file: "tests/plans/test_routes.py",
-        tests: 22,
-        covers: "Portfolio CRUD lifecycle at /portfolios/*, input validation (422), 404 handling, CSV export, target field nulling; _total_budgets() float type invariant (4 cases: empty/single/multi/exclude)",
+        tests: 33,
+        covers: "Portfolio CRUD lifecycle at /portfolios/*, input validation (422), 404 handling, CSV export, target field nulling; _total_budgets() float type invariant; oversight-activity endpoint (7 cases); decision mode CRUD + audit trail (5 cases)",
+      },
+      {
+        file: "tests/test_executor_decision_modes.py",
+        tests: 6,
+        covers: "Executor decision-mode branching: claude_decides calls Claude, rules_decide never calls Claude, rules_with_claude_oversight calls both + logs rules_recommendation, trading constraints still block rules-mode signals",
       },
       {
         file: "tests/earnings/test_routes.py",
@@ -219,6 +234,26 @@ const TESTS = {
         tests: 11,
         covers: "All four group triggers (Core/Trading/Forex/Admin), brand mark, mega-menu open/close, item descriptions, Esc, toggle, aria-expanded, search/notifications/theme/mobile chrome",
       },
+      {
+        file: "src/components/DecisionModeBadge.test.tsx",
+        tests: 6,
+        covers: "Renders correct label and color for each decision mode (claude_decides, rules_decide, rules_with_claude_oversight); strategy name shown when provided",
+      },
+      {
+        file: "src/app/portfolios/[id]/strategy/page.test.tsx",
+        tests: 6,
+        covers: "Decision Engine page: current mode badge on load, confirmation modal on mode switch, mode change apply/cancel, error when rules mode saved without strategy",
+      },
+      {
+        file: "src/app/portfolios/[id]/oversight/page.test.tsx",
+        tests: 6,
+        covers: "Oversight Activity page: empty state, summary stat cards, Confirmed/Overridden badges, ticker + signal display, API error state",
+      },
+      {
+        file: "src/app/portfolios/new/page.test.tsx",
+        tests: 5,
+        covers: "New portfolio form: rules_decide requires strategy selection, invalid submission blocked, valid claude_decides submission proceeds",
+      },
     ],
   },
   "E2E Browser Tests": {
@@ -233,8 +268,8 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (290 tests)" },
-  { cmd: "npm run test:frontend", desc: "All frontend tests (84 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (324 tests)" },
+  { cmd: "npm run test:frontend", desc: "All frontend tests (107 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
   { cmd: "npm run test:backend:cov", desc: "Backend tests with coverage report" },
@@ -330,7 +365,7 @@ export default function TestingPage() {
             <tbody className="divide-y divide-border/50">
               <tr>
                 <td className="px-3 py-2 font-mono text-accent">Pre-commit hook</td>
-                <td className="px-3 py-2 text-secondary">tsc + eslint + pytest (290) + vitest (84)</td>
+                <td className="px-3 py-2 text-secondary">tsc + eslint + pytest (324) + vitest (107)</td>
                 <td className="px-3 py-2 text-muted">Every git commit (~5s)</td>
               </tr>
               <tr>

@@ -10,6 +10,32 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.25.0",
+    date: "2026-05-14",
+    changes: [
+      { type: "feat", title: "Portfolio list: Pause/Resume in ⋮ menu — stop or resume a portfolio without navigating to the detail page; paused portfolios shown at 60% opacity with a 'Paused' badge" },
+      { type: "fix", title: "BTC/ETH removed from Claude's goal prompts — Alpaca's stock data client was returning ~$35 for 'BTC' (wrong equities instrument), causing 160+ silent blocked trades per week" },
+    ],
+  },
+  {
+    version: "0.24.0",
+    date: "2026-05-13",
+    changes: [
+      { type: "feat", title: "Sign-out dropdown on avatar button in TopNav — click the JC avatar to reveal email + Sign out; click-outside closes it" },
+    ],
+  },
+  {
+    version: "0.23.0",
+    date: "2026-05-12",
+    changes: [
+      { type: "feat", title: "Decision modes per portfolio: claude_decides (AI-only), rules_decide (deterministic, backtest-exact), rules_with_claude_oversight (strategy recommends, Claude reviews)" },
+      { type: "feat", title: "Decision Engine page (/portfolios/[id]/strategy): switch modes with confirmation modal, view strategy params, read audit log of mode changes" },
+      { type: "feat", title: "Oversight Activity page (/portfolios/[id]/oversight): confirmed vs overridden summary stats + per-decision record with strategy signal vs Claude's final action" },
+      { type: "feat", title: "Four rule-based strategies registered: SMA Crossover, RSI Mean Reversion, Buy-and-Hold, Dual Momentum (Antonacci SPY/VEU/BIL monthly rotation)" },
+      { type: "docs", title: "decision-modes.md + adding-a-strategy.md: plain-English guide to all three modes and 3-step developer guide for adding new strategies" },
+    ],
+  },
+  {
     version: "0.22.0",
     date: "2026-05-10",
     changes: [

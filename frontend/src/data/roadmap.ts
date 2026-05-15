@@ -225,6 +225,22 @@ export const roadmapItems: RoadmapItem[] = [
     priority: "high",
     phase: "Phase G prep",
   },
+  {
+    id: "sign-out",
+    title: "Sign-out button",
+    description: "Avatar button in TopNav opens a dropdown showing the signed-in email and a Sign out link. Click-outside closes it. Replaces the static JC initials placeholder.",
+    status: "done",
+    priority: "low",
+    phase: "Phase UI",
+  },
+  {
+    id: "portfolio-pause-resume",
+    title: "Portfolio pause/resume from list view",
+    description: "⋮ menu on each portfolio card now shows Pause/Resume (reversible, no confirm) and Delete (with confirm). Paused portfolios render at 60% opacity with a 'Paused' badge. Previously required navigating to the detail page to pause.",
+    status: "done",
+    priority: "medium",
+    phase: "Phase UI",
+  },
   // Planned
   {
     id: "paper-to-live",
