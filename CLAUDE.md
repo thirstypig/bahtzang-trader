@@ -3,7 +3,7 @@
 ## Current status
 
 <!-- now-tldr -->
-An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). Pipeline is smoke-tested and working end-to-end: 5 production bugs fixed during first smoke-test session (Decimal TypeError on portfolio create, stale cache, change_pct parse, empty-portfolio prompt, hold/blocked label). /settings and /markets pages added. Now accumulating 30+ paper trades to gate the Phase G live switch.
+An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). 24/30 paper trades executed (as of 2026-05-14); 6 more needed to gate the Phase G live switch. Only Test 4 ($10k portfolio) is active; three $100 test portfolios deactivated (spent). Fixed: BTC/ETH removed from Claude prompts (StockHistoricalDataClient returned wrong $35 price for crypto tickers). Decision modes, oversight activity, pause/resume UI, sign-out all shipped.
 <!-- /now-tldr -->
 
 ## Project Overview
@@ -221,7 +221,7 @@ frontend/
       earnings/       # /earnings (upcoming earnings calendar, color-coded proximity)
       portfolios/     # /portfolios (list + /portfolios/[id] detail + /portfolios/new)
       forex/          # /forex (independent swing-zone backtest UI — for non-engineer collaborator)
-      testing/        # /testing (test inventory, execution cadence, 374 tests)
+      testing/        # /testing (test inventory, execution cadence, 431 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       settings/       # /settings (timezone selector, display prefs; home for future notification prefs)
@@ -281,7 +281,7 @@ frontend/
 ### Testing
 - Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
 - Frontend: Vitest + @testing-library/react + jsdom
-- 374 total tests (290 backend + 84 frontend), ~9s full suite
+- 431 total tests (324 backend + 107 frontend), ~9s full suite
 - Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
 - Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
 - Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)
@@ -357,7 +357,7 @@ When you notice a pattern, preference, decision, or piece of context that should
 - **No manual per-trade approval in Stage 1.** Bridge-gate review at end of each window is the human checkpoint.
 - **Portfolio-only execution model.** The global trader is gone. Every trade runs through a Portfolio. Do not re-introduce a global execution path.
 - **Forex tool is deliberately siloed.** It's a sandbox for a friend's strategy (Nick Shawn). Don't extend or integrate it into the main trading pipeline without a proven edge.
-- **374 tests are the baseline.** Don't ship features that drop the count or break CI.
+- **431 tests are the baseline.** Don't ship features that drop the count or break CI.
 
 (If a new fact or argument genuinely challenges one of these, say so directly. Otherwise, build on them.)
 
