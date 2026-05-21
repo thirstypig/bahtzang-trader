@@ -238,7 +238,15 @@ export default function DecisionEnginePage() {
   }
 
   function buildStrategyParams(): Record<string, unknown> {
-    if (!selectedStrategy) return {};
+    if (!selectedStrategy) {
+      // claude_decides has no strategy schema — the only param it honors is an
+      // optional manual ticker override that widens Claude's candidate universe.
+      const raw = (strategyParams["tickers"] ?? "").trim();
+      if (!raw) return {};
+      return {
+        tickers: raw.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
+      };
+    }
     const result: Record<string, unknown> = {};
     for (const p of selectedStrategy.params) {
       const val = strategyParams[p.key] ?? "";
@@ -391,6 +399,26 @@ export default function DecisionEnginePage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Manual universe override — claude_decides has no strategy schema */}
+        {decisionMode === "claude_decides" && (
+          <div className="bz-glass rounded-xl p-6 space-y-3">
+            <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">
+              Additional Tickers
+            </h2>
+            <p className="text-sm text-muted">
+              Hand-pick extra symbols for Claude to consider, on top of this goal&apos;s
+              built-in watchlist. Comma-separated. Leave blank to use the default universe.
+            </p>
+            <input
+              type="text"
+              value={strategyParams["tickers"] ?? ""}
+              onChange={(e) => handleParamChange("tickers", e.target.value)}
+              placeholder="e.g. PLTR, COIN, SHOP"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent text-sm"
+            />
           </div>
         )}
 

@@ -93,8 +93,8 @@ MAXIMIZE_RETURNS_UNIVERSE: list[str] = [
 
 GOAL_WATCHLIST: dict[str, list[str]] = {
     "maximize_returns":      MAXIMIZE_RETURNS_UNIVERSE,
-    "steady_income":         ["SCHD", "VYM", "JEPI", "O", "JNJ", "PG"],
-    "capital_preservation":  ["SHV", "BIL", "XLU", "USMV", "PG", "JNJ"],
+    "steady_income":         ["SCHD", "VYM", "JEPI", "O", "JNJ", "PG", "AGG", "BND", "LQD", "HYG"],
+    "capital_preservation":  ["SHV", "BIL", "XLU", "USMV", "PG", "JNJ", "IEF", "AGG", "GLD"],
     "beat_sp500":            ["XLK", "XLV", "XLF", "XLE", "XLI", "XLY", "XLP", "XLB", "XLRE", "XLU"],
     "swing_trading":         ["AAPL", "MSFT", "NVDA", "TSLA", "GOOGL", "AMD", "QQQ"],
     "passive_index":         ["VOO", "VTI", "VXUS"],
@@ -114,7 +114,8 @@ GOAL_PROMPTS = {
     "steady_income": (
         "TRADING GOAL: STEADY INCOME (target 4-8% annual yield). "
         "Generate income through dividends and covered call premiums. "
-        "Consider high-dividend ETFs and stocks like SCHD, VYM, JEPI, O, JNJ, PG. "
+        "Consider high-dividend ETFs and stocks like SCHD, VYM, JEPI, O, JNJ, PG, "
+        "and bond-income ETFs (AGG, BND, LQD, HYG) for steady coupon yield. "
         "IMPORTANT: Verify current dividend yields from the market data provided — "
         "do not assume historical yields are still accurate. "
         "Prefer stocks with strong dividend history and sustainable payout ratios. "
@@ -125,7 +126,8 @@ GOAL_PROMPTS = {
     "capital_preservation": (
         "TRADING GOAL: CAPITAL PRESERVATION (target 2-4% annual, minimize losses). "
         "Preserve capital above all. Consider treasury ETFs and low-volatility stocks "
-        "like SHV, BIL, XLU, USMV, PG, JNJ — verify current yields from market data. "
+        "like SHV, BIL, XLU, USMV, PG, JNJ — plus intermediate treasuries (IEF), "
+        "aggregate bonds (AGG), and gold (GLD) as a hedge — verify current yields from market data. "
         "Maintain minimum 20% cash reserve at all times. "
         "If any position drops > 8%, sell immediately. "
         "Require 80% confidence minimum. HOLD 80% of the time. "
