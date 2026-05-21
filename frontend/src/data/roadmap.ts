@@ -241,6 +241,14 @@ export const roadmapItems: RoadmapItem[] = [
     priority: "medium",
     phase: "Phase UI",
   },
+  {
+    id: "research-universe-screener",
+    title: "Research universe expansion + daily screener",
+    description: "maximize_returns universe widened from 9 names to ~100 across all 11 sectors. New /screener ranks ~500 S&P 500 names each weekday (momentum, relative strength vs SPY, trend, volatility) as advisory research — does not auto-trade. Adds manual per-strategy ticker override and bond/commodity ETFs to income & preservation goals.",
+    status: "done",
+    priority: "medium",
+    phase: "Phase UI",
+  },
   // Planned
   {
     id: "paper-to-live",

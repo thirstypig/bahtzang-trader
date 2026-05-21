@@ -9,7 +9,7 @@ AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. 
 ```
 ┌─────────────────────────────────┐
 │  Next.js 14 Frontend (Railway)  │  www.bahtzang.com
-│  Dashboard · Trades · Analytics  │  18 pages + login
+│  Portfolio · Trades · Analytics  │  25 pages
 │  Backtest · Earnings · Settings │
 └──────────────┬──────────────────┘
                │ REST API + Bearer JWT
@@ -43,7 +43,7 @@ AI-powered trading bot that uses Claude Sonnet to make buy/sell/hold decisions. 
 bahtzang-trader/
 ├── frontend/                # Next.js 14 (App Router)
 │   └── src/
-│       ├── app/             # 18 pages (dashboard, trades, plans, analytics, backtest, forex, etc.)
+│       ├── app/             # 25 pages (portfolio, trades, strategies, screener, analytics, backtest, forex, etc.)
 │       ├── components/      # Reusable UI (TopNav, ThemeToggle, charts, KillSwitchButton, etc.)
 │       ├── lib/             # API client, auth, theme, Supabase, types
 │       └── data/            # Static data (roadmap, changelog, concepts)
@@ -88,10 +88,12 @@ bahtzang-trader/
 | `/status` | Live service health checks |
 | `/about` | Architecture diagram, tech stack, design philosophy |
 | `/docs` | Documentation links (GitHub, Swagger, Supabase, Railway) |
-| `/plans` | Investment plans — pie-style portfolio slices with independent budgets |
-| `/plans/[id]` | Plan detail — positions, equity curve, trade history, run/export |
+| `/` | Portfolio — account holdings (shares, cost basis vs market value, P&L) + latest AI decision |
+| `/portfolios` | Strategies — sub-accounts with independent budgets, rules, and kill switches |
+| `/portfolios/[id]` | Strategy detail — virtual positions, equity curve, trade history, run/export |
+| `/screener` | Daily ranked S&P 500 candidates (momentum/trend/relative-strength) — advisory |
 | `/forex` | Independent swing-zone strategy backtester (separate from Claude trader) |
-| `/testing` | Test inventory, execution cadence, 389 tests (316 backend + 73 frontend) |
+| `/testing` | Test inventory, execution cadence, 477 tests (348 backend + 129 frontend) |
 | `/concepts` | Feature concepts — tabbed: Strategic/SEO/Integrations/UX |
 | `/login` | Google Sign-In via Supabase |
 
@@ -140,12 +142,12 @@ npm run dev:backend      # http://localhost:4060
 
 ## Testing
 
-389 tests (316 backend + 73 frontend), all passing in ~5s. Pre-commit hook + GitHub Actions CI runs `next lint` too.
+477 tests (348 backend + 129 frontend), all passing in ~9s. Pre-commit hook + GitHub Actions CI runs `next lint` too.
 
 ```bash
 npm test                   # Run all tests (backend + frontend)
-npm run test:backend       # pytest (316 tests, ~4s)
-npm run test:frontend      # Vitest + Testing Library (73 tests, ~3s)
+npm run test:backend       # pytest (348 tests, ~4s)
+npm run test:frontend      # Vitest + Testing Library (129 tests, ~3s)
 npm run test:backend:cov   # Backend with coverage report
 ```
 

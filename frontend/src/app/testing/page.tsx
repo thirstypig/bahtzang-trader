@@ -83,8 +83,18 @@ const TESTS = {
       },
       {
         file: "tests/test_goal_prompts.py",
-        tests: 4,
-        covers: "GOAL_PROMPTS safety: no bare crypto symbols in any goal prompt, expected goal keys present, regression guard against BTC/ETH re-introduction",
+        tests: 7,
+        covers: "GOAL_PROMPTS/GOAL_WATCHLIST safety: no bare crypto in any prompt or watchlist, expected goal keys present, all watchlist tickers are plain 1-5 letter symbols (no dotted/class-share tickers), regression guard against BTC/ETH re-introduction",
+      },
+      {
+        file: "tests/test_market_data.py",
+        tests: 3,
+        covers: "get_quotes partial-failure hardening: one ticker raising is dropped (batch survives), all-fail returns [] not an exception, happy-path passthrough",
+      },
+      {
+        file: "tests/screener/test_engine.py",
+        tests: 7,
+        covers: "Screener rank_universe (pure): uptrend outranks downtrend, insufficient-history excluded, extreme-volatility excluded, top_n cap + rank numbering, empty universe; _compute_factors None below min bars + trend score",
       },
       {
         file: "tests/test_zero_qty_coercion.py",
@@ -175,6 +185,21 @@ const TESTS = {
         tests: 6,
         covers: "Forex backtest CRUD, validation (date order, unknown symbol), background runner stub",
       },
+      {
+        file: "tests/plans/test_fetch_market_data.py",
+        tests: 2,
+        covers: "fetch_market_data folds strategy_params['tickers'] into the claude_decides universe; malformed (non-list) param ignored, not char-splatted",
+      },
+      {
+        file: "tests/screener/test_run_screener.py",
+        tests: 2,
+        covers: "run_screener orchestration: success persists ranked candidates + status=complete; failing data fetch marks status=failed (not stuck running) + records error",
+      },
+      {
+        file: "tests/screener/test_routes.py",
+        tests: 3,
+        covers: "/screener returns latest complete run + ranked candidates, empty state, background refresh trigger",
+      },
     ],
   },
   "Frontend Unit Tests": {
@@ -246,8 +271,8 @@ const TESTS = {
       },
       {
         file: "src/app/portfolios/[id]/strategy/page.test.tsx",
-        tests: 6,
-        covers: "Decision Engine page: current mode badge on load, confirmation modal on mode switch, mode change apply/cancel, error when rules mode saved without strategy",
+        tests: 8,
+        covers: "Decision Engine page: current mode badge on load, confirmation modal on mode switch, mode change apply/cancel, error when rules mode saved without strategy, manual ticker override (parsed + uppercased) save + pre-fill in claude_decides mode",
       },
       {
         file: "src/app/portfolios/[id]/oversight/page.test.tsx",
@@ -263,6 +288,16 @@ const TESTS = {
         file: "src/app/portfolios/page.test.tsx",
         tests: 13,
         covers: "Portfolio list: Pause/Resume toggle (shows correct label, calls updatePortfolio with correct is_active), delete confirm flow, loading state, error state, empty state",
+      },
+      {
+        file: "src/components/AccountHoldings.test.tsx",
+        tests: 4,
+        covers: "Account holdings table: cost basis derived from shares × avg price (not market value), fractional share formatting, sort by market value desc, empty state",
+      },
+      {
+        file: "src/app/screener/page.test.tsx",
+        tests: 3,
+        covers: "Screener page: empty state, ranked candidates with formatted factor percentages, background refresh trigger + notice",
       },
     ],
   },

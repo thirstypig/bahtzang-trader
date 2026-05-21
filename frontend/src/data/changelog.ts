@@ -10,6 +10,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.26.0",
+    date: "2026-05-21",
+    changes: [
+      { type: "feat", title: "Stock screener (/screener): ranks ~500 S&P 500 names every weekday morning by momentum, relative strength vs SPY, trend, and volatility — advisory only, it surfaces research and does not auto-trade" },
+      { type: "feat", title: "Home renamed 'Portfolio' and now shows a holdings table — what you own, shares (including fractional), cost basis vs current value, and gain/loss" },
+      { type: "feat", title: "Sub-accounts renamed 'Strategies' (URL unchanged); each strategy's detail page now shows its Virtual Positions table (previously built but never displayed)" },
+      { type: "feat", title: "maximize_returns research universe widened from 9 mega-cap tech names to ~100 diversified large-caps across all 11 sectors" },
+      { type: "feat", title: "Manual 'Additional Tickers' override on the Decision Engine page — hand-add symbols for Claude to consider on top of a goal's built-in watchlist" },
+      { type: "feat", title: "Bond & commodity ETFs added to income/preservation goals — steady_income (AGG, BND, LQD, HYG), capital_preservation (IEF, AGG, GLD); kept out of maximize_returns where they'd dilute returns" },
+      { type: "fix", title: "get_quotes hardened (one failing ticker can no longer abort a whole cycle's market-data fetch) and the misleading fractional-shares docstring corrected to match real Alpaca behavior" },
+    ],
+  },
+  {
     version: "0.25.0",
     date: "2026-05-14",
     changes: [
