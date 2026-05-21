@@ -28,6 +28,11 @@ def _get_data_client() -> StockHistoricalDataClient:
     return _data_client
 
 
+# Alpaca accepts a list of symbols per StockBarsRequest; batching avoids one
+# round-trip per ticker. ~500 names → ~5 requests instead of ~500.
+_FETCH_CHUNK = 100
+
+
 async def fetch_and_cache_bars(
     tickers: list[str],
     start: date,
@@ -36,10 +41,15 @@ async def fetch_and_cache_bars(
 ) -> None:
     """Fetch daily bars from Alpaca and insert into ohlcv_cache.
 
-    Only fetches date ranges not already cached (gap-fill logic).
+    Only fetches tickers without full cached coverage (gap-fill), and fetches
+    those in multi-symbol batches rather than one request per ticker — critical
+    now that the screener scans ~500 names.
     """
+    # 1. Per-ticker coverage check (cheap DB reads) → list of tickers to fetch.
+    expected = (end - start).days * 0.7  # ~70% of calendar days are trading days
+    to_fetch: list[str] = []
+    cached_by_ticker: dict[str, set] = {}
     for ticker in tickers:
-        # Find what's already cached
         cached_dates = set(
             row[0]
             for row in db.execute(
@@ -50,59 +60,57 @@ async def fetch_and_cache_bars(
                 )
             ).all()
         )
+        if cached_dates and len(cached_dates) >= expected * 0.9:
+            continue  # full coverage — skip
+        to_fetch.append(ticker)
+        cached_by_ticker[ticker] = cached_dates
 
-        if cached_dates:
-            # Check if we have full coverage (allow ~10% missing for holidays)
-            expected = (end - start).days * 0.7  # ~70% are trading days
-            if len(cached_dates) >= expected * 0.9:
-                logger.info("Cache hit for %s (%d bars)", ticker, len(cached_dates))
-                continue
+    if not to_fetch:
+        logger.info("OHLCV cache hit for all %d tickers", len(tickers))
+        return
 
-        logger.info("Fetching OHLCV for %s: %s to %s", ticker, start, end)
+    # 2. Fetch the uncached tickers in multi-symbol chunks.
+    client = _get_data_client()
+    for i in range(0, len(to_fetch), _FETCH_CHUNK):
+        chunk = to_fetch[i:i + _FETCH_CHUNK]
+        logger.info("Fetching OHLCV batch: %d tickers (%s..)", len(chunk), chunk[0])
         try:
-            client = _get_data_client()
             request = StockBarsRequest(
-                symbol_or_symbols=[ticker],
+                symbol_or_symbols=chunk,
                 timeframe=TimeFrame.Day,
                 start=start,
                 end=end,
             )
             bars = await asyncio.to_thread(client.get_stock_bars, request)
             bars_df = bars.df
-
             if bars_df.empty:
-                logger.warning("No bars returned for %s", ticker)
+                logger.warning("No bars returned for batch starting %s", chunk[0])
                 continue
 
-            # Handle multi-index (symbol, timestamp)
-            if isinstance(bars_df.index, pd.MultiIndex):
-                if ticker in bars_df.index.get_level_values(0):
-                    bars_df = bars_df.loc[ticker]
-                else:
-                    logger.warning("Ticker %s not found in response", ticker)
-                    continue
+            multi = isinstance(bars_df.index, pd.MultiIndex)
+            present = set(bars_df.index.get_level_values(0)) if multi else set(chunk)
 
-            count = 0
-            for ts, row in bars_df.iterrows():
-                bar_date = ts.date() if hasattr(ts, "date") else ts
-                if bar_date in cached_dates:
+            for ticker in chunk:
+                if ticker not in present:
                     continue
-                db.add(OHLCVCache(
-                    ticker=ticker,
-                    bar_date=bar_date,
-                    open=float(row["open"]),
-                    high=float(row["high"]),
-                    low=float(row["low"]),
-                    close=float(row["close"]),
-                    volume=int(row["volume"]),
-                ))
-                count += 1
-
+                tdf = bars_df.loc[ticker] if multi else bars_df
+                cached_dates = cached_by_ticker.get(ticker, set())
+                for ts, row in tdf.iterrows():
+                    bar_date = ts.date() if hasattr(ts, "date") else ts
+                    if bar_date in cached_dates:
+                        continue
+                    db.add(OHLCVCache(
+                        ticker=ticker,
+                        bar_date=bar_date,
+                        open=float(row["open"]),
+                        high=float(row["high"]),
+                        low=float(row["low"]),
+                        close=float(row["close"]),
+                        volume=int(row["volume"]),
+                    ))
             db.commit()
-            logger.info("Cached %d new bars for %s", count, ticker)
-
         except Exception as e:
-            logger.error("Failed to fetch bars for %s: %s", ticker, e)
+            logger.error("Failed to fetch OHLCV batch starting %s: %s", chunk[0], e)
             db.rollback()
 
 

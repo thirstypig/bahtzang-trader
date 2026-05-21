@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getScreener, refreshScreener } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import type { ScreenerResult } from "@/lib/types";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
@@ -10,27 +11,34 @@ function pct(v: number): string {
 }
 
 export default function ScreenerPage() {
+  const { user } = useAuth();
   const [data, setData] = useState<ScreenerResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  async function load() {
-    try {
-      setLoading(true);
-      setError(null);
-      setData(await getScreener());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load screener");
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  // Gate the fetch on auth (avoids a 401 flash before the token is set) and
+  // guard against setState after unmount.
   useEffect(() => {
-    load();
-  }, []);
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const d = await getScreener();
+        if (!cancelled) setData(d);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load screener");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   async function handleRefresh() {
     try {

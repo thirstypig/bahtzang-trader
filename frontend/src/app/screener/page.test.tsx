@@ -8,6 +8,12 @@ vi.mock("@/lib/api", () => ({
   refreshScreener: vi.fn(),
 }));
 
+vi.mock("@/lib/auth", () => {
+  // Stable reference so the page's [user] effect dependency doesn't thrash.
+  const user = { id: "test-user" };
+  return { useAuth: () => ({ user }) };
+});
+
 import { getScreener, refreshScreener } from "@/lib/api";
 const mockGet = vi.mocked(getScreener);
 const mockRefresh = vi.mocked(refreshScreener);
