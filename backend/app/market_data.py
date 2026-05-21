@@ -40,9 +40,19 @@ async def get_quote(ticker: str) -> dict:
 
 
 async def get_quotes(tickers: list[str]) -> list[dict]:
-    """Fetch quotes for multiple tickers in parallel."""
+    """Fetch quotes for multiple tickers in parallel.
+
+    return_exceptions=True so one ticker's network/parse failure can't sink the
+    whole batch. With a ~100-name candidate universe a single transient error
+    would otherwise abort every portfolio's market-data fetch for the cycle.
+    Failed tickers are dropped here; their prices are backfilled from Alpaca
+    bars in the executor's indicator-patch step.
+    """
     # 006-fix: Use asyncio.gather instead of sequential loop
-    return list(await asyncio.gather(*(get_quote(t) for t in tickers)))
+    results = await asyncio.gather(
+        *(get_quote(t) for t in tickers), return_exceptions=True
+    )
+    return [r for r in results if isinstance(r, dict)]
 
 
 async def get_news(tickers: list[str] | None = None) -> list[dict]:

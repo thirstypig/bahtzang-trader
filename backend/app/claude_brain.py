@@ -55,8 +55,44 @@ RISK_PROMPTS = {
     ),
 }
 
+# Broad ~100-name candidate universe for maximize_returns. Liquid US large-caps
+# spanning all 11 GICS sectors + a few broad/sector ETFs, so Claude can hunt for
+# setups beyond mega-cap tech instead of rotating the same handful of names.
+# Constraints: no crypto (StockHistoricalDataClient returns wrong prices — see
+# test_goal_prompts.py), no dotted/class-share tickers (e.g. BRK.B) that the
+# Alpaca bar fetch chokes on. Edit this list to reshape the universe.
+MAXIMIZE_RETURNS_UNIVERSE: list[str] = [
+    # Information technology
+    "AAPL", "MSFT", "NVDA", "AVGO", "ORCL", "CRM", "ADBE", "AMD", "CSCO",
+    "ACN", "QCOM", "TXN", "IBM", "NOW", "INTU", "AMAT", "MU", "INTC",
+    # Communication services
+    "GOOGL", "META", "NFLX", "DIS", "CMCSA", "TMUS", "VZ", "T",
+    # Consumer discretionary
+    "AMZN", "TSLA", "HD", "MCD", "NKE", "LOW", "SBUX", "BKNG", "TJX",
+    # Consumer staples
+    "PG", "KO", "PEP", "COST", "WMT", "PM", "MO", "CL",
+    # Health care
+    "UNH", "JNJ", "LLY", "ABBV", "MRK", "PFE", "TMO", "ABT", "DHR",
+    "BMY", "AMGN", "MDT",
+    # Financials
+    "JPM", "V", "MA", "BAC", "WFC", "GS", "MS", "AXP", "SPGI", "BLK",
+    "C", "SCHW",
+    # Industrials
+    "CAT", "BA", "HON", "UPS", "GE", "RTX", "LMT", "DE", "UNP", "MMM",
+    # Energy
+    "XOM", "CVX", "COP", "SLB", "EOG",
+    # Materials
+    "LIN", "SHW", "FCX", "NEM",
+    # Utilities
+    "NEE", "DUK", "SO",
+    # Real estate
+    "AMT", "PLD", "EQIX",
+    # Broad / sector ETFs
+    "SPY", "QQQ", "IWM", "XLK", "XLF", "XLE", "XLV",
+]
+
 GOAL_WATCHLIST: dict[str, list[str]] = {
-    "maximize_returns":      ["AAPL", "NVDA", "MSFT", "TSLA", "GOOGL", "AMZN", "META", "QQQ", "XLK"],
+    "maximize_returns":      MAXIMIZE_RETURNS_UNIVERSE,
     "steady_income":         ["SCHD", "VYM", "JEPI", "O", "JNJ", "PG"],
     "capital_preservation":  ["SHV", "BIL", "XLU", "USMV", "PG", "JNJ"],
     "beat_sp500":            ["XLK", "XLV", "XLF", "XLE", "XLI", "XLY", "XLP", "XLB", "XLRE", "XLU"],
@@ -68,7 +104,9 @@ GOAL_PROMPTS = {
     "maximize_returns": (
         "TRADING GOAL: MAXIMIZE RETURNS (target 15-30% annual). "
         "Seek highest risk-adjusted returns through momentum and factor investing. "
-        "Focus on: AAPL, NVDA, MSFT, TSLA, GOOGL, AMZN, META, QQQ, XLK. "
+        "Evaluate the FULL candidate set in MARKET QUOTES and TECHNICALS — do NOT "
+        "limit yourself to mega-cap tech. Hunt across every sector for the strongest "
+        "setups, including names you do not currently hold. "
         "Look for RSI oversold bounces, MACD positive crossovers, sector momentum leaders. "
         "Hold positions 5-30 days. Maintain 60% buy bias when technicals align. "
         "Keep 20% cash for dip purchases."

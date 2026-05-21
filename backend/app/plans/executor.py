@@ -579,6 +579,13 @@ async def fetch_market_data(
     if plans:
         for plan in plans:
             all_tickers.update(GOAL_WATCHLIST.get(plan.trading_goal, []))
+            # Per-portfolio universe override (claude_decides path). This is also
+            # the slot a daily screener writes its top candidates into. Previously
+            # strategy_params["tickers"] was only honored by the rules-strategy
+            # path — so Claude-mode portfolios silently ignored it.
+            extra = (plan.strategy_params or {}).get("tickers")
+            if isinstance(extra, list):
+                all_tickers.update(t for t in extra if isinstance(t, str) and t)
     all_tickers.discard("")
     held_tickers = sorted(all_tickers)
 
