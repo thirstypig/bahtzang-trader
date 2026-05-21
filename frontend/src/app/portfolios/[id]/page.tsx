@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import type { InvestmentPlan, Trade, PortfolioStrategy } from "@/lib/types";
 import DecisionModeBadge from "@/components/DecisionModeBadge";
+import PortfolioPositions from "@/components/PortfolioPositions";
 
 const PortfolioEquityCurve = dynamic(
   () => import("@/components/PortfolioEquityCurve"),
@@ -158,8 +159,8 @@ export default function PortfolioDetailPage() {
   if (loading) {
     return (
       <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">Portfolio Details</h1>
-        <div className="text-muted">Loading portfolio...</div>
+        <h1 className="text-3xl font-bold mb-6">Strategy Details</h1>
+        <div className="text-muted">Loading strategy...</div>
       </div>
     );
   }
@@ -171,10 +172,10 @@ export default function PortfolioDetailPage() {
           href="/portfolios"
           className="text-accent hover:underline text-sm mb-4 inline-block"
         >
-          ← Back to Portfolios
+          ← Back to Strategies
         </Link>
         <div className="p-4 bg-red-100 text-red-800 rounded-lg">
-          {error || "Portfolio not found"}
+          {error || "Strategy not found"}
         </div>
       </div>
     );
@@ -191,7 +192,7 @@ export default function PortfolioDetailPage() {
             href="/portfolios"
             className="text-accent hover:underline text-sm mb-4 inline-block"
           >
-            ← Back to Portfolios
+            ← Back to Strategies
           </Link>
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-3xl font-bold">{data.name}</h1>
@@ -332,6 +333,8 @@ export default function PortfolioDetailPage() {
               <h2 className="text-lg font-semibold mb-4">Equity Curve</h2>
               <PortfolioEquityCurve portfolioId={portfolioId} />
             </div>
+
+            <PortfolioPositions portfolioId={portfolioId} />
 
             <div className="bg-card rounded-lg p-6">
               <h2 className="text-lg font-semibold mb-4">Recent Trades</h2>

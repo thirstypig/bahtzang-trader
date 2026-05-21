@@ -84,8 +84,8 @@ export default function PortfoliosPage() {
   if (loading) {
     return (
       <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">Investment Portfolios</h1>
-        <div className="text-muted">Loading portfolios...</div>
+        <h1 className="text-3xl font-bold mb-6">Strategies</h1>
+        <div className="text-muted">Loading strategies...</div>
       </div>
     );
   }
@@ -94,17 +94,16 @@ export default function PortfoliosPage() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Investment Portfolios</h1>
+          <h1 className="text-3xl font-bold">Strategies</h1>
           <p className="text-muted mt-2">
-            Manage your portfolio slices with individual budgets and risk
-            profiles
+            Manage each strategy&apos;s budget, trading rules, and risk profile
           </p>
         </div>
         <Link
           href="/portfolios/new"
           className="px-4 py-2 bg-accent text-white rounded-lg hover:opacity-90 transition-opacity"
         >
-          + New Portfolio
+          + New Strategy
         </Link>
       </div>
 
@@ -116,12 +115,12 @@ export default function PortfoliosPage() {
 
       {portfolios.length === 0 ? (
         <div className="text-center py-12 bg-card rounded-lg">
-          <p className="text-muted mb-4">No portfolios created yet.</p>
+          <p className="text-muted mb-4">No strategies created yet.</p>
           <Link
             href="/portfolios/new"
             className="text-accent hover:underline font-medium"
           >
-            Create your first portfolio
+            Create your first strategy
           </Link>
         </div>
       ) : (
@@ -184,7 +183,7 @@ export default function PortfoliosPage() {
                           <button
                             onClick={() => setMenuOpen(menuOpen === portfolio.id ? null : portfolio.id)}
                             className="p-1.5 text-muted hover:text-primary rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                            aria-label="Portfolio actions"
+                            aria-label="Strategy actions"
                           >
                             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                               <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />

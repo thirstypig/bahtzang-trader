@@ -63,7 +63,7 @@ describe("PortfoliosPage — pause/resume", () => {
     render(<PortfoliosPage />);
     await waitFor(() => expect(screen.getByText("Test Portfolio")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByLabelText("Portfolio actions"));
+    fireEvent.click(screen.getByLabelText("Strategy actions"));
     expect(screen.getByText("Pause")).toBeInTheDocument();
     expect(screen.queryByText("Resume")).not.toBeInTheDocument();
   });
@@ -73,7 +73,7 @@ describe("PortfoliosPage — pause/resume", () => {
     render(<PortfoliosPage />);
     await waitFor(() => expect(screen.getByText("Test Portfolio")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByLabelText("Portfolio actions"));
+    fireEvent.click(screen.getByLabelText("Strategy actions"));
     expect(screen.getByText("Resume")).toBeInTheDocument();
     expect(screen.queryByText("Pause")).not.toBeInTheDocument();
   });
@@ -82,7 +82,7 @@ describe("PortfoliosPage — pause/resume", () => {
     render(<PortfoliosPage />);
     await waitFor(() => expect(screen.getByText("Test Portfolio")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByLabelText("Portfolio actions"));
+    fireEvent.click(screen.getByLabelText("Strategy actions"));
     fireEvent.click(screen.getByText("Pause"));
 
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(1, { is_active: false }));
@@ -94,7 +94,7 @@ describe("PortfoliosPage — pause/resume", () => {
     render(<PortfoliosPage />);
     await waitFor(() => expect(screen.getByText("Test Portfolio")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByLabelText("Portfolio actions"));
+    fireEvent.click(screen.getByLabelText("Strategy actions"));
     fireEvent.click(screen.getByText("Resume"));
 
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(1, { is_active: true }));
@@ -116,7 +116,7 @@ describe("PortfoliosPage — pause/resume", () => {
     render(<PortfoliosPage />);
     await waitFor(() => expect(screen.getByText("Test Portfolio")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByLabelText("Portfolio actions"));
+    fireEvent.click(screen.getByLabelText("Strategy actions"));
     expect(screen.getByText("Pause")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Pause"));
@@ -129,7 +129,7 @@ describe("PortfoliosPage — delete flow", () => {
     render(<PortfoliosPage />);
     await waitFor(() => expect(screen.getByText("Test Portfolio")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByLabelText("Portfolio actions"));
+    fireEvent.click(screen.getByLabelText("Strategy actions"));
     fireEvent.click(screen.getByText("Delete"));
 
     expect(screen.getByText("Confirm delete")).toBeInTheDocument();
@@ -140,7 +140,7 @@ describe("PortfoliosPage — delete flow", () => {
     render(<PortfoliosPage />);
     await waitFor(() => expect(screen.getByText("Test Portfolio")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByLabelText("Portfolio actions"));
+    fireEvent.click(screen.getByLabelText("Strategy actions"));
     fireEvent.click(screen.getByText("Delete"));
     fireEvent.click(screen.getByText("Confirm delete"));
 
@@ -152,7 +152,7 @@ describe("PortfoliosPage — delete flow", () => {
     render(<PortfoliosPage />);
     await waitFor(() => expect(screen.getByText("Test Portfolio")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByLabelText("Portfolio actions"));
+    fireEvent.click(screen.getByLabelText("Strategy actions"));
     fireEvent.click(screen.getByText("Delete"));
     fireEvent.click(screen.getByText("Cancel"));
 
@@ -165,7 +165,7 @@ describe("PortfoliosPage — loading and error states", () => {
   it("shows loading state initially", () => {
     mockGet.mockReturnValue(new Promise(() => {})); // never resolves
     render(<PortfoliosPage />);
-    expect(screen.getByText("Loading portfolios...")).toBeInTheDocument();
+    expect(screen.getByText("Loading strategies...")).toBeInTheDocument();
   });
 
   it("shows error message when getPortfolios fails", async () => {
@@ -177,6 +177,6 @@ describe("PortfoliosPage — loading and error states", () => {
   it("shows empty state when no portfolios exist", async () => {
     mockGet.mockResolvedValue([]);
     render(<PortfoliosPage />);
-    await waitFor(() => expect(screen.getByText(/No portfolios created yet/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/No strategies created yet/i)).toBeInTheDocument());
   });
 });

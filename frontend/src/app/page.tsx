@@ -5,6 +5,7 @@ import { getPortfolio, getTrades } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Balance, Position, Trade } from "@/lib/types";
 import PortfolioCard from "@/components/PortfolioCard";
+import AccountHoldings from "@/components/AccountHoldings";
 import DecisionCard from "@/components/DecisionCard";
 import dynamic from "next/dynamic";
 import BotStatusBanner from "@/components/BotStatusBanner";
@@ -70,11 +71,11 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-6">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-primary">Dashboard</h1>
-          <Tip text="This is your home base. It shows your current portfolio value, what the AI decided to do most recently, and how your money is allocated across stocks." />
+          <h1 className="text-2xl font-bold text-primary">Portfolio</h1>
+          <Tip text="Everything you own: your total value, what the AI decided most recently, your holdings, and how your money is allocated across stocks." />
         </div>
         <p className="mt-1 text-sm text-muted">
-          Real-time portfolio overview and AI trading decisions
+          What you own right now, plus the latest AI trading decision
         </p>
       </div>
 
@@ -83,6 +84,10 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <PortfolioCard balance={balance} positions={positions} />
         <DecisionCard trade={lastDecision} />
+      </div>
+
+      <div className="mt-6">
+        <AccountHoldings positions={positions} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
