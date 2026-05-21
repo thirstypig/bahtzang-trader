@@ -187,8 +187,8 @@ const TESTS = {
       },
       {
         file: "tests/plans/test_fetch_market_data.py",
-        tests: 2,
-        covers: "fetch_market_data folds strategy_params['tickers'] into the claude_decides universe; malformed (non-list) param ignored, not char-splatted",
+        tests: 3,
+        covers: "fetch_market_data folds strategy_params['tickers'] into the claude_decides universe; malformed (non-list) param ignored, not char-splatted; AV quotes scoped to held positions only (not fanned over the universe)",
       },
       {
         file: "tests/screener/test_run_screener.py",
@@ -313,7 +313,7 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (348 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (349 tests)" },
   { cmd: "npm run test:frontend", desc: "All frontend tests (129 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },

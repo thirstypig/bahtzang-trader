@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Lookback windows in trading days (~21/mo)
 _W3, _W6, _W12 = 63, 126, 252
-MIN_BARS = 120          # need at least ~6mo of history to be scorable
+MIN_BARS = 253          # need the full 12-month window so momentum is comparable across names
 MAX_VOLATILITY = 1.5    # hard-exclude annualized vol above this (broken/meme)
 DEFAULT_TOP_N = 40
 FETCH_CALENDAR_DAYS = 400  # ~280 trading days → enough for the 252d window
@@ -137,6 +137,10 @@ def rank_universe(
     z_mom = _zscores([scored[t]["momentum"] for t in tickers])
     z_rel = _zscores([scored[t]["rel_strength"] for t in tickers])
     z_vol = _zscores([scored[t]["volatility"] for t in tickers])
+    # z-score trend too, so its weight is comparable to the other factors
+    # (raw trend_score is bounded 0..1 while z-scores swing ~±3, which would
+    # otherwise leave trend ~5-10x underweighted vs its nominal W_TREND).
+    z_trend = _zscores([scored[t]["trend_score"] for t in tickers])
 
     ranked: list[dict] = []
     for i, t in enumerate(tickers):
@@ -144,7 +148,7 @@ def rank_universe(
         composite = (
             W_MOMENTUM * z_mom[i]
             + W_REL_STRENGTH * z_rel[i]
-            + W_TREND * f["trend_score"]
+            + W_TREND * z_trend[i]
             - W_VOL * z_vol[i]
         )
         ranked.append({"ticker": t, "composite_score": composite, **f})

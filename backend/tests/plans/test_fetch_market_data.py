@@ -74,3 +74,27 @@ class TestFetchMarketDataUniverse:
 
         assert "AAPL,MSFT" not in universe  # not added whole
         assert "A" not in universe and "," not in universe  # not iterated char-by-char
+
+    async def test_quotes_not_fanned_over_the_universe(self, db_session):
+        """Alpha Vantage quotes cover only held positions, never the full watchlist.
+
+        Guards the fix that stopped the ~100-call AV fan-out from burning the
+        free-tier daily quota (which is shared with the get_news call). With no
+        held positions, get_quotes must not be called at all — even though the
+        indicator batch still covers the whole candidate universe.
+        """
+        from app.plans import executor
+
+        plan = _make_plan(db_session, {})  # no positions, no override
+
+        with patch.object(executor.broker, "get_positions", new=AsyncMock(return_value=[])), \
+             patch.object(executor.broker, "get_account_balance",
+                          new=AsyncMock(return_value={"cash_available": 1.0, "total_value": 1.0})), \
+             patch.object(executor.market_data, "get_quotes", new=AsyncMock(return_value=[])) as mock_q, \
+             patch.object(executor.market_data, "get_news", new=AsyncMock(return_value=[])), \
+             patch.object(executor, "get_indicators", new=AsyncMock(return_value={})) as mock_ind, \
+             patch.object(executor, "get_sector_signals", new=AsyncMock(return_value=[])):
+            await executor.fetch_market_data(db_session, [plan.id], plans=[plan])
+
+        assert "AAPL" in set(mock_ind.call_args.args[0])  # indicators still cover the universe
+        mock_q.assert_not_called()  # but quotes were NOT fanned out over it

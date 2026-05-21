@@ -572,10 +572,14 @@ async def fetch_market_data(
         broker.get_account_balance("default"),
     )
 
-    # Union account tickers + per-plan virtual positions + goal watchlists.
-    all_tickers = {p.get("instrument", {}).get("symbol", "") for p in positions}
+    # Held positions only — used for the Alpha Vantage quote fetch.
+    position_tickers = {p.get("instrument", {}).get("symbol", "") for p in positions}
     for pid in plan_ids:
-        all_tickers.update(compute_virtual_positions(db, pid).keys())
+        position_tickers.update(compute_virtual_positions(db, pid).keys())
+    position_tickers.discard("")
+
+    # Full candidate universe = held + goal watchlists + per-plan overrides.
+    all_tickers = set(position_tickers)
     if plans:
         for plan in plans:
             all_tickers.update(GOAL_WATCHLIST.get(plan.trading_goal, []))
@@ -589,7 +593,12 @@ async def fetch_market_data(
     all_tickers.discard("")
     held_tickers = sorted(all_tickers)
 
-    quotes_task = market_data.get_quotes(held_tickers) if held_tickers else asyncio.sleep(0, result=[])
+    # Quote ONLY held positions via Alpha Vantage. Fanning AV out over the full
+    # ~100-name universe burns the free-tier daily quota and starves the shared
+    # get_news call. Candidate prices are filled from the Alpaca indicator batch
+    # (one request) in the price-patch step below.
+    quote_syms = sorted(position_tickers)
+    quotes_task = market_data.get_quotes(quote_syms) if quote_syms else asyncio.sleep(0, result=[])
     news_task = market_data.get_news(held_tickers if held_tickers else None)
     indicators_task = get_indicators(held_tickers) if held_tickers else asyncio.sleep(0, result={})
     sector_task = get_sector_signals()
