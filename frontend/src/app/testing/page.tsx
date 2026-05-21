@@ -278,7 +278,7 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (346 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (348 tests)" },
   { cmd: "npm run test:frontend", desc: "All frontend tests (129 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
