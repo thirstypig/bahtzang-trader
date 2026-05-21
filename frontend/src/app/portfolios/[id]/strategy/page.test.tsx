@@ -158,6 +158,38 @@ describe("DecisionEnginePage — edit flow", () => {
     });
   });
 
+  it("saves a manual ticker override (parsed + uppercased) in claude_decides mode", async () => {
+    mockGetDetail.mockResolvedValue(BASE_PORTFOLIO);
+    mockUpdate.mockResolvedValue(BASE_PORTFOLIO);
+    const user = userEvent.setup();
+    render(<DecisionEnginePage />);
+
+    await waitFor(() => screen.getByText("Claude decides"));
+
+    await user.type(screen.getByPlaceholderText(/PLTR, COIN, SHOP/), "pltr, coin");
+    await user.click(screen.getByText("Save"));
+
+    await waitFor(() =>
+      expect(mockUpdate).toHaveBeenCalledWith(1, {
+        decision_mode: "claude_decides",
+        strategy_id: null,
+        strategy_params: { tickers: ["PLTR", "COIN"] },
+      }),
+    );
+  });
+
+  it("pre-fills the ticker override from existing strategy_params", async () => {
+    mockGetDetail.mockResolvedValue({
+      ...BASE_PORTFOLIO,
+      strategy_params: { tickers: ["NVDA", "AMD"] },
+    });
+    render(<DecisionEnginePage />);
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText(/PLTR, COIN, SHOP/)).toHaveValue("NVDA, AMD"),
+    );
+  });
+
   it("shows error when rules mode saved without strategy", async () => {
     mockGetDetail.mockResolvedValue({
       ...BASE_PORTFOLIO,
