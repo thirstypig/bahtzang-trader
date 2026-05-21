@@ -38,6 +38,7 @@ const NAV: NavGroup[] = [
     title: "Trading",
     items: [
       { href: "/portfolios", label: "Strategies", icon: Icons.Plans, description: "Each strategy's budget, rules, and kill switch" },
+      { href: "/screener", label: "Screener", icon: Icons.Analytics, description: "Daily ranked S&P 500 candidates (advisory)" },
       { href: "/markets", label: "Markets", icon: Icons.Markets, description: "Financial products: current, near-term, and future" },
       { href: "/backtest", label: "Backtest", icon: Icons.Backtest, description: "Stocks strategy backtests on historical data" },
       { href: "/earnings", label: "Earnings", icon: Icons.Earnings, description: "Upcoming earnings with proximity warnings" },

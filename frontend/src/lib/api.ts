@@ -11,6 +11,7 @@ import {
   PlanPosition,
   PlanSnapshotData,
   Portfolio,
+  ScreenerResult,
   StrategyInfo,
   Trade,
 } from "./types";
@@ -335,6 +336,14 @@ export async function exportPortfolioTradesCsv(id: number): Promise<void> {
 
 export async function getPortfolioPositions(id: number): Promise<PlanPosition[]> {
   return fetchAPI<PlanPosition[]>(`/portfolios/${id}/positions`);
+}
+
+export async function getScreener(): Promise<ScreenerResult> {
+  return fetchAPI<ScreenerResult>(`/screener`);
+}
+
+export async function refreshScreener(): Promise<{ status: string }> {
+  return fetchAPI<{ status: string }>(`/screener/refresh`, { method: "POST" });
 }
 
 export async function getPortfolioSnapshots(
