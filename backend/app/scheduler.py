@@ -247,6 +247,24 @@ async def _refresh_earnings():
         db.close()
 
 
+SCREENER_JOB_ID = "daily_screener"
+
+
+async def _run_screener():
+    """Refresh the screener's ranked candidates (advisory — does not trade)."""
+    logger.info("Running daily screener")
+    db = SessionLocal()
+    try:
+        from app.screener.engine import run_screener
+
+        run = await run_screener(db)
+        logger.info("Screener done: status=%s, %d candidates", run.status, run.scored_count)
+    except Exception as e:
+        logger.exception("Daily screener failed: %s", e)
+    finally:
+        db.close()
+
+
 SUMMARY_JOB_ID = "daily_summary"
 
 
@@ -306,6 +324,17 @@ def start_scheduler():
     scheduler.add_job(
         _refresh_earnings, earnings_trigger,
         id=EARNINGS_JOB_ID, replace_existing=True,
+    )
+
+    # Daily screener refresh at 7:30 AM ET (after earnings, before first cycle)
+    screener_trigger = CronTrigger(
+        day_of_week="mon-fri",
+        hour=7, minute=30,
+        timezone=ET,
+    )
+    scheduler.add_job(
+        _run_screener, screener_trigger,
+        id=SCREENER_JOB_ID, replace_existing=True,
     )
 
     # Daily summary at 4:10 PM ET (after snapshot)

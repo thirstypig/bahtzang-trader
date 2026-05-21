@@ -24,6 +24,7 @@ from app.forex.models import ForexBacktestRun, ForexBar  # noqa: F401
 from app.plans.models import (  # noqa: F401
     Portfolio, PlanSnapshot, PortfolioTouchHistory, PortfolioStrategyAudit
 )
+from app.screener.models import ScreenerRun, ScreenerCandidate  # noqa: F401
 
 
 class Trade(Base):

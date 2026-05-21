@@ -292,3 +292,30 @@ export interface ForexBacktestDetail extends ForexBacktestSummary {
   equity_curve: { date: string; equity: number }[];
   trades_log: ForexTrade[];
 }
+
+export interface ScreenerCandidate {
+  rank: number;
+  ticker: string;
+  composite_score: number;
+  momentum: number;
+  rel_strength: number;
+  trend_score: number;
+  rsi: number;
+  volatility: number;
+  price: number;
+}
+
+export interface ScreenerRun {
+  id: number;
+  run_at: string;
+  universe_size: number;
+  scored_count: number;
+  status: string;
+  error: string | null;
+}
+
+export interface ScreenerResult {
+  run: ScreenerRun | null;
+  refreshing?: boolean;
+  candidates: ScreenerCandidate[];
+}
