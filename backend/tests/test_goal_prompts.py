@@ -76,3 +76,19 @@ class TestGoalWatchlistNoCrypto:
             f"Key mismatch: GOAL_WATCHLIST={set(GOAL_WATCHLIST.keys())}, "
             f"GOAL_PROMPTS={set(GOAL_PROMPTS.keys())}"
         )
+
+    def test_all_watchlist_tickers_are_plain_symbols(self):
+        """Watchlist entries must be plain equity symbols (1-5 uppercase letters).
+
+        Dotted/class-share tickers (e.g. BRK.B) and other punctuated forms have
+        inconsistent representations across the Alpaca, Alpha Vantage and yfinance
+        clients and silently break the bar/quote fetch. This guards the widened
+        ~100-name maximize_returns universe against a malformed symbol slipping in.
+        """
+        for goal_key, tickers in GOAL_WATCHLIST.items():
+            for ticker in tickers:
+                assert re.fullmatch(r"[A-Z]{1,5}", ticker), (
+                    f"Malformed ticker '{ticker}' in GOAL_WATCHLIST['{goal_key}']. "
+                    f"Use a plain 1-5 letter uppercase symbol; dotted/class-share "
+                    f"tickers break the data clients."
+                )

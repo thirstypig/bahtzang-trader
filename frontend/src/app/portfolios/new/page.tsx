@@ -580,7 +580,7 @@ export default function NewPortfolioPage() {
       setError(null);
 
       if (!name.trim()) {
-        setError("Portfolio name is required");
+        setError("Strategy name is required");
         return;
       }
       const budgetNum = parseFloat(budget);
@@ -618,11 +618,11 @@ export default function NewPortfolioPage() {
     <div className="p-6 md:p-8 max-w-3xl">
       <div className="mb-8">
         <Link href="/portfolios" className="text-accent hover:underline text-sm mb-4 inline-block">
-          ← Back to Portfolios
+          ← Back to Strategies
         </Link>
-        <h1 className="text-3xl font-bold">Create New Portfolio</h1>
+        <h1 className="text-3xl font-bold">Create New Strategy</h1>
         <p className="text-muted mt-2">
-          Set up a new portfolio slice with its own budget, goal, and trading rules
+          Set up a new strategy with its own budget, goal, and trading rules
         </p>
       </div>
 
@@ -810,7 +810,7 @@ export default function NewPortfolioPage() {
             disabled={saving}
             className="flex-1 px-4 py-3 bg-accent text-white rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 font-medium"
           >
-            {saving ? "Creating..." : "Create Portfolio"}
+            {saving ? "Creating..." : "Create Strategy"}
           </button>
           <button
             type="button"

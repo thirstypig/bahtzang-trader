@@ -47,7 +47,7 @@ describe("TopNav", () => {
     const items = screen.getAllByRole("menuitem");
     expect(items.length).toBe(5);
     const labels = items.map((i) => i.textContent);
-    expect(labels.some((t) => t?.includes("Portfolios"))).toBe(true);
+    expect(labels.some((t) => t?.includes("Strategies"))).toBe(true);
     expect(labels.some((t) => t?.includes("Markets"))).toBe(true);
     expect(labels.some((t) => t?.includes("Backtest"))).toBe(true);
     expect(labels.some((t) => t?.includes("Earnings"))).toBe(true);

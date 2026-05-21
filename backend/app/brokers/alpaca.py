@@ -69,8 +69,13 @@ class AlpacaBroker(BrokerInterface):
     ) -> dict:
         """Place a market buy or sell order on Alpaca.
 
-        Supports fractional shares — Alpaca accepts float qty for eligible
-        securities. Falls back to whole-share qty for crypto/options.
+        Sends ``quantity`` as a float; Alpaca fills it fractionally for
+        fractionable equities and ETFs (which is every name in the trading
+        universe). There is NO whole-share fallback here: a fractional qty on
+        a non-fractionable symbol (most crypto/options, a few illiquid
+        equities) is rejected by Alpaca, so callers must size whole-share qty
+        for those. Fractional orders also require TIF=DAY, which is set below
+        for all orders.
         """
         if action not in ("buy", "sell"):
             raise ValueError(f"Invalid action: {action}. Must be 'buy' or 'sell'.")

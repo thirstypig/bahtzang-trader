@@ -29,7 +29,7 @@ const NAV: NavGroup[] = [
   {
     title: "Core",
     items: [
-      { href: "/", label: "Dashboard", icon: Icons.Dashboard, description: "Portfolio snapshot, AI decisions, key metrics" },
+      { href: "/", label: "Portfolio", icon: Icons.Dashboard, description: "Your holdings, total value, and latest AI decision" },
       { href: "/trades", label: "Trades", icon: Icons.Trades, description: "Full trade history with reasoning" },
       { href: "/analytics", label: "Analytics", icon: Icons.Analytics, description: "Sharpe, drawdown, win-rate, equity curve" },
     ],
@@ -37,7 +37,7 @@ const NAV: NavGroup[] = [
   {
     title: "Trading",
     items: [
-      { href: "/portfolios", label: "Portfolios", icon: Icons.Plans, description: "Strategy + budget + kill switch per portfolio" },
+      { href: "/portfolios", label: "Strategies", icon: Icons.Plans, description: "Each strategy's budget, rules, and kill switch" },
       { href: "/markets", label: "Markets", icon: Icons.Markets, description: "Financial products: current, near-term, and future" },
       { href: "/backtest", label: "Backtest", icon: Icons.Backtest, description: "Stocks strategy backtests on historical data" },
       { href: "/earnings", label: "Earnings", icon: Icons.Earnings, description: "Upcoming earnings with proximity warnings" },

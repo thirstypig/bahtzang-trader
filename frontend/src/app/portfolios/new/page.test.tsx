@@ -77,7 +77,7 @@ describe("NewPortfolioPage — Decision Engine validation", () => {
     await waitFor(() => expect(mockGetStrategies).toHaveBeenCalledOnce());
 
     // Submit without selecting a strategy
-    await user.click(screen.getByText("Create Portfolio"));
+    await user.click(screen.getByText("Create Strategy"));
 
     expect(
       await screen.findByText("A strategy is required when using Rules or Hybrid mode"),
@@ -93,7 +93,7 @@ describe("NewPortfolioPage — Decision Engine validation", () => {
     await user.click(screen.getByText("Rules + Claude oversight"));
     await waitFor(() => expect(mockGetStrategies).toHaveBeenCalledOnce());
 
-    await user.click(screen.getByText("Create Portfolio"));
+    await user.click(screen.getByText("Create Strategy"));
 
     expect(
       await screen.findByText("A strategy is required when using Rules or Hybrid mode"),
@@ -153,7 +153,7 @@ describe("NewPortfolioPage — Decision Engine validation", () => {
     await fillRequiredFields(user);
 
     // Default mode is claude_decides — submit directly
-    await user.click(screen.getByText("Create Portfolio"));
+    await user.click(screen.getByText("Create Strategy"));
 
     await waitFor(() => expect(mockCreate).toHaveBeenCalledOnce());
     const call = mockCreate.mock.calls[0][0];
