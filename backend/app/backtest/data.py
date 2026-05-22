@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from collections import defaultdict
 from datetime import date, timedelta
 
 import pandas as pd
@@ -45,25 +46,23 @@ async def fetch_and_cache_bars(
     those in multi-symbol batches rather than one request per ticker — critical
     now that the screener scans ~500 names.
     """
-    # 1. Per-ticker coverage check (cheap DB reads) → list of tickers to fetch.
+    # 1. Coverage check in ONE grouped query (was a SELECT per ticker — an N+1
+    #    against the pooler that dominated cost at ~500 screener tickers).
     expected = (end - start).days * 0.7  # ~70% of calendar days are trading days
-    to_fetch: list[str] = []
-    cached_by_ticker: dict[str, set] = {}
-    for ticker in tickers:
-        cached_dates = set(
-            row[0]
-            for row in db.execute(
-                select(OHLCVCache.bar_date).where(
-                    OHLCVCache.ticker == ticker,
-                    OHLCVCache.bar_date >= start,
-                    OHLCVCache.bar_date <= end,
-                )
-            ).all()
+    cached_by_ticker: dict[str, set] = defaultdict(set)
+    for tk, bd in db.execute(
+        select(OHLCVCache.ticker, OHLCVCache.bar_date).where(
+            OHLCVCache.ticker.in_(tickers),
+            OHLCVCache.bar_date >= start,
+            OHLCVCache.bar_date <= end,
         )
-        if cached_dates and len(cached_dates) >= expected * 0.9:
-            continue  # full coverage — skip
-        to_fetch.append(ticker)
-        cached_by_ticker[ticker] = cached_dates
+    ).all():
+        cached_by_ticker[tk].add(bd)
+
+    to_fetch = [
+        t for t in tickers
+        if len(cached_by_ticker.get(t, ())) < expected * 0.9  # incomplete coverage
+    ]
 
     if not to_fetch:
         logger.info("OHLCV cache hit for all %d tickers", len(tickers))
