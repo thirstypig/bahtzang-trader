@@ -73,3 +73,20 @@ class TestComputeFactors:
         f = _compute_factors(_bars(daily=0.002), None)
         assert f is not None
         assert f["trend_score"] == 1.0  # price > 50d SMA > 200d SMA
+
+
+@pytest.mark.unit
+class TestLiquidityFloor:
+    def test_thin_name_excluded(self):
+        """A name below the $20M median dollar-volume floor never ranks."""
+        thin = _bars(daily=0.003, n=260)
+        thin["volume"] = 1_000                          # ~$100k/day — way under floor
+        ranked = rank_universe({"THIN": thin, "LIQ": _bars(daily=0.001, n=260)})
+        tickers = [r["ticker"] for r in ranked]
+        assert "THIN" not in tickers
+        assert "LIQ" in tickers
+
+    def test_liquid_name_passes(self):
+        from app.screener.engine import _median_dollar_volume, MIN_DOLLAR_VOLUME
+        df = _bars(n=260)                               # ~100 × 1M = ~$100M/day
+        assert _median_dollar_volume(df) >= MIN_DOLLAR_VOLUME

@@ -93,3 +93,44 @@ SP500_UNIVERSE: list[str] = [
 # Defensive de-dupe + drop empties (in case of edit slips), preserving order.
 _seen: set[str] = set()
 SP500_UNIVERSE = [t for t in SP500_UNIVERSE if t and not (t in _seen or _seen.add(t))]
+
+
+# S&P 400 mid-cap extension (approximate snapshot, same caveats as above).
+# Mid-caps widen the screener's pond beyond the 500 — historically where
+# momentum strategies find names before they graduate to the large-cap index.
+# The liquidity floor in the engine (median dollar volume) is the real gate:
+# any name here that's too thin to trade with acceptable spreads is excluded
+# at ranking time, and delisted/renamed tickers are skipped by the fetch.
+MIDCAP_EXTENSION: list[str] = [
+    # A-C
+    "AA", "AAON", "ACM", "AFG", "AGCO", "ALK", "AM", "AMG", "AN", "ANF",
+    "APP", "AR", "ARMK", "ASB", "ATR", "AVT", "AYI", "BC", "BERY", "BIO",
+    "BJ", "BLD", "BMRN", "BRBR", "BRKR", "BURL", "BWXT", "CASY", "CBSH", "CC",
+    "CFR", "CG", "CGNX", "CHE", "CHDN", "CIEN", "CLF", "CLH", "CMC", "CNH",
+    "COHR", "COKE", "CR", "CROX", "CSL", "CUBE", "CW",
+    # D-G
+    "DAR", "DBX", "DCI", "DKS", "DLB", "DOCU", "DT", "DUOL", "EHC", "ELF",
+    "EME", "ENSG", "ETSY", "EWBC", "EXEL", "EXP", "FAF", "FBIN", "FIX", "FIVE",
+    "FLEX", "FLR", "FND", "FNF", "GAP", "GGG", "GLPI", "GME", "GMED", "GNRC",
+    "GPK", "GTLS", "GWRE",
+    # H-M
+    "H", "HALO", "HLI", "HQY", "HRB", "HSIC", "HWM", "IBKR", "ILMN", "INGR",
+    "IOT", "ITT", "JAZZ", "JEF", "JLL", "KBR", "KNSL", "KNX", "LAD", "LECO",
+    "LII", "LNTH", "LPLA", "LSCC", "MANH", "MASI", "MEDP", "MKSI", "MORN",
+    "MTDR", "MTSI", "MUSA",
+    # N-S
+    "NBIX", "NVT", "NYT", "OC", "OGE", "OHI", "OLED", "ONTO", "ORI", "OSK",
+    "OVV", "PCTY", "PEN", "PFGC", "PNFP", "POOL", "PRI", "PSTG", "RBA", "RBC",
+    "RGA", "RGLD", "RLI", "RPM", "RS", "SAIA", "SCI", "SEIC", "SF", "SFM",
+    "SMCI", "SNX", "SSD", "SSNC", "STLD",
+    # T-Z
+    "TER", "TXRH", "THC", "TOL", "TPL", "TPX", "TREX", "TTC", "TTEK", "UFPI",
+    "UHS", "USFD", "VOYA", "WAL", "WCC", "WEX", "WING", "WSM", "WSO", "WTRG",
+    "WWD", "X", "XPO", "ZION",
+]
+
+_seen2: set[str] = set(SP500_UNIVERSE)
+MIDCAP_EXTENSION = [t for t in MIDCAP_EXTENSION if t and not (t in _seen2 or _seen2.add(t))]
+
+# Full screener pond: large caps + mid-cap extension.
+SCREENER_UNIVERSE: list[str] = SP500_UNIVERSE + MIDCAP_EXTENSION

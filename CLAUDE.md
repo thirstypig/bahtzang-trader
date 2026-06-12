@@ -34,7 +34,7 @@ npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
-npm run test:backend     # pytest (363 tests, ~4s)
+npm run test:backend     # pytest (373 tests, ~4s)
 npm run test:frontend    # Vitest (129 tests, ~3s)
 npm run test:backend:cov # Backend with coverage report
 ```
@@ -90,6 +90,7 @@ Pipeline types: Position, Quote, NewsItem, TradeDecision, CycleResult (pipeline_
 Claude prompt includes a USAGE/HEADROOM block: total_invested vs max, orders_used_today vs limit, position slots, and effective_buy_ceiling = min(cash, max_single_trade, invest_headroom) — closes the information asymmetry that previously blocked trades at validation
 Coerce-before-validate: qty<=0 or price<=0 → hold (with reason preserved in audit trail)
 Oversight trades: rules_recommendation (JSON) on Trade stores strategy's original signal before Claude review
+Screener feed: strategy_params["screener_top_n"] (0-40) folds the latest complete screener run's top-N into the plan's universe + a ranked SCREENER CSV into its Claude prompt (per-plan opt-in, gated in _execute_plan_cycle)
 ```
 
 ### Portfolios (plans/)
@@ -177,10 +178,10 @@ backend/
       engine.py       # Bar-by-bar simulator: bracket SL/TP, zone-break exit, optional progress/time_band early exits
       routes.py       # GET /forex/symbols, CRUD /forex/backtests with background runner
       cli.py          # Standalone runner: python -m app.forex.cli
-    screener/         # Feature module: daily S&P 500 ranking (advisory — does NOT auto-trade)
-      universe.py     # SP500_UNIVERSE — version-controlled ~500-name snapshot
+    screener/         # Feature module: daily large/mid-cap ranking; feeds opted-in portfolios via strategy_params.screener_top_n
+      universe.py     # SCREENER_UNIVERSE = SP500_UNIVERSE (~486) + MIDCAP_EXTENSION (~163) — version-controlled snapshots
       models.py       # ScreenerRun + ScreenerCandidate (ranked, with factor breakdown)
-      engine.py       # rank_universe() — momentum + rel-strength vs SPY + trend + vol z-score composite; run_screener() persists a run
+      engine.py       # rank_universe() — momentum + rel-strength vs SPY + trend + vol z-score composite, $20M median dollar-volume liquidity floor; run_screener() persists a run; latest_top_tickers()/format_screener_csv() feed the executor
       routes.py       # GET /screener (latest ranked candidates), POST /screener/refresh (background)
     analytics.py      # Portfolio metrics: Sharpe, Sortino, drawdown, win rate, profit factor
     # strategies/ — see above; lives at app level, not inside a feature module
@@ -201,7 +202,7 @@ backend/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
   railway.toml        # Railway deploy config
   pytest.ini          # Test config (markers: unit, integration, e2e)
-  tests/              # Test suites (363 backend tests)
+  tests/              # Test suites (373 backend tests)
     conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
     plans/            # Portfolio model, executor, constraints, route, snapshot tests
     earnings/         # Earnings route integration tests
@@ -229,7 +230,7 @@ frontend/
       portfolios/     # /portfolios (list + /portfolios/[id] detail + /portfolios/new)
       screener/       # /screener (daily ranked S&P 500 candidates — advisory research view)
       forex/          # /forex (independent swing-zone backtest UI — for non-engineer collaborator)
-      testing/        # /testing (test inventory, execution cadence, 492 tests)
+      testing/        # /testing (test inventory, execution cadence, 502 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       settings/       # /settings (timezone selector, display prefs; home for future notification prefs)
@@ -289,7 +290,7 @@ frontend/
 ### Testing
 - Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
 - Frontend: Vitest + @testing-library/react + jsdom
-- 492 total tests (363 backend + 129 frontend), ~9s full suite
+- 502 total tests (373 backend + 129 frontend), ~9s full suite
 - Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
 - Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
 - Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)
@@ -365,7 +366,7 @@ When you notice a pattern, preference, decision, or piece of context that should
 - **No manual per-trade approval in Stage 1.** Bridge-gate review at end of each window is the human checkpoint.
 - **Portfolio-only execution model.** The global trader is gone. Every trade runs through a Portfolio. Do not re-introduce a global execution path.
 - **Forex tool is deliberately siloed.** It's a sandbox for a friend's strategy (Nick Shawn). Don't extend or integrate it into the main trading pipeline without a proven edge.
-- **492 tests are the baseline.** Don't ship features that drop the count or break CI.
+- **502 tests are the baseline.** Don't ship features that drop the count or break CI.
 
 (If a new fact or argument genuinely challenges one of these, say so directly. Otherwise, build on them.)
 

@@ -68,8 +68,8 @@ const TESTS = {
       },
       {
         file: "tests/test_claude_brain_prompt.py",
-        tests: 13,
-        covers: "Headroom block (invested, orders, position slots, effective buy ceiling, sizing, backward-compat) + timeline-goal sanitization (valid render, malformed date suppressed, uncoercible amount suppressed, zero/negative suppressed, string-numeric coerced) + exit-only block (present when flagged with stop-loss %, absent by default)",
+        tests: 15,
+        covers: "Headroom block (invested, orders, position slots, effective buy ceiling, sizing, backward-compat) + timeline-goal sanitization (valid render, malformed date suppressed, uncoercible amount suppressed, zero/negative suppressed, string-numeric coerced) + exit-only block (present when flagged with stop-loss %, absent by default) + screener CSV block (rendered with weighting note when fed, absent by default)",
       },
       {
         file: "tests/test_claude_brain_review.py",
@@ -93,8 +93,8 @@ const TESTS = {
       },
       {
         file: "tests/screener/test_engine.py",
-        tests: 7,
-        covers: "Screener rank_universe (pure): uptrend outranks downtrend, insufficient-history excluded, extreme-volatility excluded, top_n cap + rank numbering, empty universe; _compute_factors None below min bars + trend score",
+        tests: 9,
+        covers: "Screener rank_universe (pure): uptrend outranks downtrend, insufficient-history excluded, extreme-volatility excluded, top_n cap + rank numbering, empty universe; _compute_factors None below min bars + trend score; $20M liquidity floor (thin names excluded, liquid pass)",
       },
       {
         file: "tests/test_zero_qty_coercion.py",
@@ -194,6 +194,11 @@ const TESTS = {
         file: "tests/test_backtest_data.py",
         tests: 5,
         covers: "fetch_and_cache_bars OHLCV pipeline (real SQLite cache, mocked Alpaca): gap-fill skips fully-cached tickers, all-cached never calls Alpaca, uncached tickers fetched in one multi-symbol batch; load_bars issues ONE grouped query regardless of ticker count + DataFrame shape/order",
+      },
+      {
+        file: "tests/plans/test_screener_feed.py",
+        tests: 6,
+        covers: "Screener→portfolio feed: opted-in plan gets top-N tickers + ranked CSV, non-opted plan gets neither, failed runs ignored, latest complete run wins, screener_top_n sanitized (cap 40, junk→0), CSV gated per plan in run_plan_cycle",
       },
       {
         file: "tests/plans/test_exit_only_cycle.py",
@@ -323,7 +328,7 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (363 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (373 tests)" },
   { cmd: "npm run test:frontend", desc: "All frontend tests (129 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },

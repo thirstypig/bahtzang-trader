@@ -135,7 +135,8 @@ async def test_plan_executor_passes_headroom_to_claude(db_session):
 
     async def fake_claude(*, positions, cash_available, market_data, news,
                           guardrails_config, technicals_csv, sector_csv, earnings_csv,
-                          total_invested, orders_used_today, exit_only=False):
+                          screener_csv="", total_invested=0.0, orders_used_today=0,
+                          exit_only=False):
         captured["cash_available"] = cash_available
         captured["total_invested"] = total_invested
         captured["orders_used_today"] = orders_used_today
