@@ -69,13 +69,13 @@ Verified: batched fetch smoke-tested end-to-end against live Alpaca (6 tickers, 
 ## Prevention
 
 - **When you scale a config input (a universe, a batch size, a fan-out width), re-audit every shared component that consumes it.** The bug wasn't in the new code — it was in old code whose small-N assumption the new code violated. Grep the call graph of the changed input.
-- **Per-item network calls are an N+1 — batch against the API's bulk endpoint.** If a sibling module already batches (here `technical_analysis._fetch_daily_bars`), copy that pattern rather than the per-item one.
+- **Per-item calls are an N+1 — batch them — and the network call is rarely the *only* one.** Batch against the API's bulk endpoint (here, copy `technical_analysis._fetch_daily_bars`). But note: this exact function had **two** N+1s stacked. The first fix (PR #26) batched the *network* fetch (~500 Alpaca calls → ~5); a follow-up `/ce:review` then found the *coverage check* still did one **DB** `SELECT` per ticker (~500 pooler round-trips), fixed in PR #27 with a single `WHERE ticker IN (...)` query. When you kill one N+1, scan the same function for the next — they nest.
 - **Unbounded `asyncio.gather` over a rate-limited or shared-key dependency is a footgun.** Cap concurrency, or — better — don't make the calls at all if the data is available from a cheaper source (here, Alpaca indicators already provided prices). Watch especially for *collateral* starvation: a wasteful fan-out on a shared key can kill a different, load-bearing call.
-- **Mocked-boundary tests won't catch scale/rate problems.** Add at least one smoke test against the real API for shared data-fetch infra, and a guard test that pins the intended call scope (e.g. "quotes cover held only").
+- **Mocked-boundary tests won't catch scale/rate problems.** Add at least one smoke test against the real API for shared data-fetch infra, and a guard test that pins the intended call scope (e.g. "quotes cover held only"). *Done:* `tests/test_backtest_data.py` now exercises the real SQLite cache with a mocked Alpaca boundary, pinning gap-fill (cached ticker skipped), the cache-hit no-op (Alpaca never called), and the batch shape (uncached tickers fetched in one request) — and `tests/plans/test_fetch_market_data.py::test_quotes_not_fanned_over_the_universe` pins the quote scope.
 - **Run a review on net-new code even when it shipped per-PR with green tests.** Both issues passed CI; only `/ce:review` surfaced them.
 
 ## Related
 
 - `docs/solutions/integration-issues/strategy-params-tickers-ignored-in-claude-mode.md` — the other half of the universe-widening work; same theme of a change interacting badly with infra that wasn't updated for it.
 - `docs/solutions/logic-errors/crypto-tickers-in-stock-client-prompt.md` — another silent data-pipeline failure in the same `claude_brain.py` / market-data area.
-- Shipped in PR #26 (review fixes), following the universe widening (PR #20) and screener (PR #22).
+- Shipped in PR #26 (review fixes), following the universe widening (PR #20) and screener (PR #22). PR #27 fixed the recursive coverage-check N+1 found by re-review and added the guard tests above.
