@@ -187,6 +187,7 @@ async def get_trade_decision(
     earnings_csv: str = "",
     total_invested: float = 0.0,
     orders_used_today: int = 0,
+    exit_only: bool = False,
 ) -> list[TradeDecision]:
     """Send portfolio context to Claude and get a structured trade decision.
 
@@ -194,6 +195,10 @@ async def get_trade_decision(
     compute headroom against guardrail limits BEFORE proposing a trade —
     closes the information-asymmetry that previously caused valid signals
     to be blocked at validation time.
+
+    `exit_only` marks the afternoon risk-check cycle: the prompt restricts
+    Claude to sell/hold, and the executor independently suppresses any buy
+    that slips through.
     """
     risk_profile = guardrails_config.get("risk_profile", "moderate")
     trading_goal = guardrails_config.get("trading_goal", "maximize_returns")
@@ -260,6 +265,21 @@ async def get_trade_decision(
         f"- Max single buy this cycle: ${effective_buy_ceiling:,.0f}  (min of cash, max_single_trade, invest_headroom)",
         f"- Min confidence to clear validation: {min_confidence:.0%}",
     ]
+
+    if exit_only:
+        stop_loss = safe_config.get("stop_loss_threshold")
+        stop_loss_txt = f"{float(stop_loss):.0%}" if stop_loss else "the configured stop-loss"
+        prompt_parts += [
+            "",
+            "EXIT-ONLY CYCLE — this is the afternoon risk check, not a trading cycle. "
+            "You may ONLY propose sell or hold; any buy will be rejected. "
+            "Review each held position's unrealized P&L (in PORTFOLIO above): "
+            f"a position down more than {stop_loss_txt} from cost basis should be sold "
+            "unless you have a specific, current reason to keep it. Also exit on "
+            "clearly deteriorating technicals, imminent earnings you wouldn't hold "
+            "through, or a negative news catalyst. Protecting capital into the close "
+            "takes priority over conviction. If nothing warrants an exit, hold.",
+        ]
 
     # Add technicals if available
     if technicals_csv:

@@ -55,6 +55,40 @@ def compute_virtual_positions(db: Session, plan_id: int) -> dict[str, float]:
     return {row.ticker: float(row.net_qty) for row in rows if row.net_qty > 0}
 
 
+def compute_virtual_cost_basis(db: Session, plan_id: int) -> dict[str, float]:
+    """Average cost per share of each open virtual position.
+
+    Walks executed trades in time order using the average-cost method: buys
+    re-average, sells reduce quantity at the prevailing average (average
+    unchanged). Without this, every virtual position reaches Claude with
+    unrealized_pnl=0 — the exit-only cycle can't cut a loser it can't see.
+    """
+    trades = (
+        db.query(Trade)
+        .filter(Trade.portfolio_id == plan_id, Trade.executed.is_(True))
+        .order_by(Trade.timestamp, Trade.id)
+        .all()
+    )
+    qty: dict[str, float] = {}
+    avg: dict[str, float] = {}
+    for t in trades:
+        if not t.ticker or t.price is None:
+            continue
+        q = float(t.quantity or 0)
+        if q <= 0:
+            continue
+        p = float(t.price)
+        held = qty.get(t.ticker, 0.0)
+        if t.action == "buy":
+            qty[t.ticker] = held + q
+            avg[t.ticker] = (held * avg.get(t.ticker, 0.0) + q * p) / (held + q)
+        elif t.action == "sell":
+            qty[t.ticker] = max(0.0, held - q)
+            if qty[t.ticker] == 0:
+                avg.pop(t.ticker, None)
+    return {tk: a for tk, a in avg.items() if qty.get(tk, 0.0) > 0}
+
+
 def _plan_to_guardrails_config(plan: Portfolio) -> dict:
     """Convert a Portfolio to a guardrails config dict for Claude.
 
@@ -226,12 +260,14 @@ async def run_plan_cycle(
     technicals_csv: str,
     sector_csv: str,
     earnings_csv: str,
+    exit_only: bool = False,
 ) -> list[CycleResult]:
     """Execute a trading cycle for a single portfolio using shared market data.
 
     087-fix: Inlined the per-plan lock (was a separate wrapper/_locked split).
     061-fix: Per-plan lock prevents concurrent runs from double-spending.
     063-fix: Commits each trade individually right after Alpaca order.
+    exit_only: afternoon risk check — buys are suppressed, sells/holds proceed.
     """
     async with _get_plan_lock(plan.id):
         # Re-read plan inside the lock to get the latest virtual_cash
@@ -239,6 +275,7 @@ async def run_plan_cycle(
         return await _execute_plan_cycle(
             db, plan, positions, balance,
             quotes, news, technicals_csv, sector_csv, earnings_csv,
+            exit_only=exit_only,
         )
 
 
@@ -252,6 +289,7 @@ async def _execute_plan_cycle(
     technicals_csv: str,
     sector_csv: str,
     earnings_csv: str,
+    exit_only: bool = False,
 ) -> list[CycleResult]:
 
     # Build plan-specific context
@@ -261,18 +299,26 @@ async def _execute_plan_cycle(
     # 098-fix: Build price lookup dict once instead of O(T) linear scans per ticker
     price_map = {q["ticker"]: q["price"] for q in quotes}
 
-    # Convert virtual positions to the format Claude expects
-    plan_positions = [
-        {
+    # Convert virtual positions to the format Claude expects, with real
+    # cost basis and unrealized P&L derived from this plan's trade history.
+    # P&L fields stay 0 when we lack a live price or a cost basis — better
+    # to show nothing than a fake number Claude would act on.
+    avg_costs = compute_virtual_cost_basis(db, plan.id)
+    plan_positions = []
+    for ticker, qty in virtual_positions.items():
+        live_price = price_map.get(ticker, 0)
+        market_value = qty * live_price
+        avg_cost = avg_costs.get(ticker, 0.0)
+        cost_basis = qty * avg_cost
+        has_pnl = live_price > 0 and cost_basis > 0
+        plan_positions.append({
             "instrument": {"symbol": ticker, "asset_type": "stock"},
             "quantity": qty,
-            "market_value": qty * price_map.get(ticker, 0),
-            "cost_basis": 0,
-            "unrealized_pnl": 0,
-            "unrealized_pnl_pct": 0,
-        }
-        for ticker, qty in virtual_positions.items()
-    ]
+            "market_value": market_value,
+            "cost_basis": round(cost_basis, 2),
+            "unrealized_pnl": round(market_value - cost_basis, 2) if has_pnl else 0,
+            "unrealized_pnl_pct": round((market_value / cost_basis - 1) * 100, 2) if has_pnl else 0,
+        })
 
     # Compute plan-level usage so Claude can size proposals to fit. Without
     # this Claude saw `cash_available=$0.21` only as a portfolio-line
@@ -339,8 +385,27 @@ async def _execute_plan_cycle(
             earnings_csv=earnings_csv,
             total_invested=plan_total_invested,
             orders_used_today=plan_orders_today,
+            exit_only=exit_only,
         )
     # === End decision generation ===
+
+    # Exit-only enforcement — single point for ALL decision modes. The Claude
+    # prompt already says "no buys" on exit cycles, but prompts are requests,
+    # not guarantees, and the rules strategies don't know about exit cycles
+    # at all. Suppressed buys are logged as holds so the audit trail shows
+    # what would have been bought and why it wasn't.
+    if exit_only:
+        for decision in decisions:
+            if decision.get("action") == "buy":
+                logger.info(
+                    "Plan %d: exit-only cycle — suppressing buy of %s",
+                    plan.id, decision.get("ticker"),
+                )
+                decision["action"] = "hold"
+                decision["quantity"] = 0
+                decision["reasoning"] = (
+                    f"[Exit-only cycle: buy suppressed] {decision.get('reasoning', '')}"
+                ).strip()
 
     results: list[CycleResult] = []
     # 071-fix: Convert Decimal to float — executor uses float arithmetic throughout
@@ -630,7 +695,7 @@ async def fetch_market_data(
     return positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv
 
 
-async def run_all_plans(db: Session) -> dict[int, list[CycleResult]]:
+async def run_all_plans(db: Session, exit_only: bool = False) -> dict[int, list[CycleResult]]:
     """Run trading cycles for all active portfolios with shared market data.
 
     Portfolio-only model: there is no global kill switch. Each portfolio's
@@ -638,6 +703,8 @@ async def run_all_plans(db: Session) -> dict[int, list[CycleResult]]:
     halt that portfolio. The broker-wide circuit breaker still triggers on
     account-level drawdown and, when RED, deactivates every active portfolio
     in one shot (faster than per-portfolio toggles in a panic).
+
+    exit_only=True is the 3:30 PM risk check: sells/holds only.
     """
 
     # 1. Shared data fetch (once for all portfolios)
@@ -680,6 +747,7 @@ async def run_all_plans(db: Session) -> dict[int, list[CycleResult]]:
             results = await run_plan_cycle(
                 db, plan, positions, balance,
                 quotes, news, technicals_csv, sector_csv, earnings_csv,
+                exit_only=exit_only,
             )
             all_results[plan.id] = results
             for r in results:

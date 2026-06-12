@@ -278,3 +278,35 @@ async def test_timeline_block_coerces_string_target_amount(captured_prompt):
         guardrails_config=config,
     )
     assert "TIMELINE GOAL: Grow portfolio to $100,000 by 2027-12-31" in captured_prompt[0]
+
+
+@pytest.mark.asyncio
+async def test_exit_only_block_present_when_flagged(captured_prompt):
+    """exit_only=True adds the afternoon-risk-check instruction with the
+    portfolio's stop-loss threshold rendered as a percentage."""
+    config = {
+        "max_total_invested": 50_000, "max_single_trade_size": 5_000,
+        "daily_order_limit": 5, "min_confidence": 0.6, "max_positions": 10,
+        "stop_loss_threshold": 0.05,
+    }
+    await claude_brain.get_trade_decision(
+        positions=[], cash_available=10_000, market_data=[], news=[],
+        guardrails_config=config, exit_only=True,
+    )
+    prompt = captured_prompt[0]
+    assert "EXIT-ONLY CYCLE" in prompt
+    assert "ONLY propose sell or hold" in prompt
+    assert "down more than 5%" in prompt
+
+
+@pytest.mark.asyncio
+async def test_exit_only_block_absent_by_default(captured_prompt):
+    config = {
+        "max_total_invested": 50_000, "max_single_trade_size": 5_000,
+        "daily_order_limit": 5, "min_confidence": 0.6, "max_positions": 10,
+    }
+    await claude_brain.get_trade_decision(
+        positions=[], cash_available=10_000, market_data=[], news=[],
+        guardrails_config=config,
+    )
+    assert "EXIT-ONLY CYCLE" not in captured_prompt[0]

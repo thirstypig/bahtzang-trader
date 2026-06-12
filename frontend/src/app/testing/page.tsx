@@ -68,8 +68,8 @@ const TESTS = {
       },
       {
         file: "tests/test_claude_brain_prompt.py",
-        tests: 11,
-        covers: "Headroom block (invested, orders, position slots, effective buy ceiling, sizing, backward-compat) + timeline-goal sanitization (valid render, malformed date suppressed, uncoercible amount suppressed, zero/negative suppressed, string-numeric coerced)",
+        tests: 13,
+        covers: "Headroom block (invested, orders, position slots, effective buy ceiling, sizing, backward-compat) + timeline-goal sanitization (valid render, malformed date suppressed, uncoercible amount suppressed, zero/negative suppressed, string-numeric coerced) + exit-only block (present when flagged with stop-loss %, absent by default)",
       },
       {
         file: "tests/test_claude_brain_review.py",
@@ -192,8 +192,13 @@ const TESTS = {
       },
       {
         file: "tests/test_backtest_data.py",
-        tests: 3,
-        covers: "fetch_and_cache_bars OHLCV pipeline (real SQLite cache, mocked Alpaca): gap-fill skips fully-cached tickers, all-cached never calls Alpaca, uncached tickers fetched in one multi-symbol batch",
+        tests: 5,
+        covers: "fetch_and_cache_bars OHLCV pipeline (real SQLite cache, mocked Alpaca): gap-fill skips fully-cached tickers, all-cached never calls Alpaca, uncached tickers fetched in one multi-symbol batch; load_bars issues ONE grouped query regardless of ticker count + DataFrame shape/order",
+      },
+      {
+        file: "tests/plans/test_exit_only_cycle.py",
+        tests: 7,
+        covers: "3:30 PM exit-only cycle: buys suppressed to holds for claude_decides AND rules modes (single executor enforcement point), sells still execute, normal cycles unaffected; virtual positions carry real cost basis + unrealized P&L (average-cost method: buys re-average, sells don't, closed positions drop out)",
       },
       {
         file: "tests/screener/test_run_screener.py",
@@ -318,7 +323,7 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (352 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (363 tests)" },
   { cmd: "npm run test:frontend", desc: "All frontend tests (129 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
