@@ -102,6 +102,11 @@ const TESTS = {
         covers: "Coerce buy/sell with qty<=0 or price<=0 to hold before validation; plan executor passes total_invested + orders_today to Claude prompt",
       },
       {
+        file: "tests/test_crypto_support.py",
+        tests: 9,
+        covers: "Crypto routing: is_crypto slash-pair classification; indicators route crypto to CryptoHistoricalDataClient (stock client never sees pairs, one client's failure doesn't blank the other); orders use GTC for crypto / DAY for equities; AV quotes+news never see slash pairs while Alpaca indicators do (price source)",
+      },
+      {
         file: "tests/test_allowed_emails.py",
         tests: 7,
         covers: "ALLOWED_EMAIL CSV parser: single/multi, whitespace, case-insensitive, empty segments, NFKC full-width normalization, Cyrillic homoglyph rejection",
@@ -328,7 +333,7 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (373 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (382 tests)" },
   { cmd: "npm run test:frontend", desc: "All frontend tests (129 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },

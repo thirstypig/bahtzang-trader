@@ -416,13 +416,14 @@ export default function DecisionEnginePage() {
             </h2>
             <p className="text-sm text-muted">
               Hand-pick extra symbols for Claude to consider, on top of this goal&apos;s
-              built-in watchlist. Comma-separated. Leave blank to use the default universe.
+              built-in watchlist. Comma-separated. Crypto uses Alpaca pair format
+              (BTC/USD, ETH/USD). Leave blank to use the default universe.
             </p>
             <input
               type="text"
               value={strategyParams["tickers"] ?? ""}
               onChange={(e) => handleParamChange("tickers", e.target.value)}
-              placeholder="e.g. PLTR, COIN, SHOP"
+              placeholder="e.g. PLTR, COIN, BTC/USD"
               className="w-full px-3 py-2 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent text-sm"
             />
           </div>

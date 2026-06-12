@@ -34,7 +34,7 @@ npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
-npm run test:backend     # pytest (373 tests, ~4s)
+npm run test:backend     # pytest (382 tests, ~4s)
 npm run test:frontend    # Vitest (129 tests, ~3s)
 npm run test:backend:cov # Backend with coverage report
 ```
@@ -91,6 +91,7 @@ Claude prompt includes a USAGE/HEADROOM block: total_invested vs max, orders_use
 Coerce-before-validate: qty<=0 or price<=0 → hold (with reason preserved in audit trail)
 Oversight trades: rules_recommendation (JSON) on Trade stores strategy's original signal before Claude review
 Screener feed: strategy_params["screener_top_n"] (0-40) folds the latest complete screener run's top-N into the plan's universe + a ranked SCREENER CSV into its Claude prompt (per-plan opt-in, gated in _execute_plan_cycle)
+Crypto: opt-in per portfolio via Additional Tickers using slash pairs ("BTC/USD"); bars/prices from CryptoHistoricalDataClient, orders use TIF=GTC, excluded from AV quotes/news + Finnhub earnings; built-in watchlists stay crypto-free (test_goal_prompts guard)
 ```
 
 ### Portfolios (plans/)
@@ -193,7 +194,8 @@ backend/
     notifier.py       # Slack webhook notifications (fire-and-forget)
     position_sizing.py # Quarter-Kelly with confidence^2 + earnings proximity reduction
     sector_rotation.py # 11 sector ETFs relative strength vs SPY
-    technical_analysis.py # pandas-ta indicators (RSI/MACD/BB/SMA/ATR) + Alpaca Data API
+    technical_analysis.py # pandas-ta indicators (RSI/MACD/BB/SMA/ATR) + Alpaca Data API; crypto pairs routed to CryptoHistoricalDataClient (never the stock client)
+    symbols.py        # is_crypto() + SUPPORTED_CRYPTO — slash-pair ('BTC/USD') classification shared across pipeline
     decision_coercion.py # Shared helpers — coerce_zero_qty_to_hold + coerce_bad_price_to_hold; called by plan executor
     market_data.py    # Alpha Vantage news (quotes moved to Alpaca Data API)
     scheduler.py      # Trading frequency (first slot 10:00 AM, off the open) + exit-only check (3:30 PM) + daily snapshot (4:05 PM) + summary (4:10 PM) + earnings refresh (7 AM) + screener refresh (7:30 AM) — DB calls via to_thread()
@@ -202,7 +204,7 @@ backend/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
   railway.toml        # Railway deploy config
   pytest.ini          # Test config (markers: unit, integration, e2e)
-  tests/              # Test suites (373 backend tests)
+  tests/              # Test suites (382 backend tests)
     conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
     plans/            # Portfolio model, executor, constraints, route, snapshot tests
     earnings/         # Earnings route integration tests
@@ -230,7 +232,7 @@ frontend/
       portfolios/     # /portfolios (list + /portfolios/[id] detail + /portfolios/new)
       screener/       # /screener (daily ranked S&P 500 candidates — advisory research view)
       forex/          # /forex (independent swing-zone backtest UI — for non-engineer collaborator)
-      testing/        # /testing (test inventory, execution cadence, 502 tests)
+      testing/        # /testing (test inventory, execution cadence, 511 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       settings/       # /settings (timezone selector, display prefs; home for future notification prefs)
@@ -290,7 +292,7 @@ frontend/
 ### Testing
 - Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
 - Frontend: Vitest + @testing-library/react + jsdom
-- 502 total tests (373 backend + 129 frontend), ~9s full suite
+- 511 total tests (382 backend + 129 frontend), ~9s full suite
 - Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
 - Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
 - Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)
@@ -366,7 +368,7 @@ When you notice a pattern, preference, decision, or piece of context that should
 - **No manual per-trade approval in Stage 1.** Bridge-gate review at end of each window is the human checkpoint.
 - **Portfolio-only execution model.** The global trader is gone. Every trade runs through a Portfolio. Do not re-introduce a global execution path.
 - **Forex tool is deliberately siloed.** It's a sandbox for a friend's strategy (Nick Shawn). Don't extend or integrate it into the main trading pipeline without a proven edge.
-- **502 tests are the baseline.** Don't ship features that drop the count or break CI.
+- **511 tests are the baseline.** Don't ship features that drop the count or break CI.
 
 (If a new fact or argument genuinely challenges one of these, say so directly. Otherwise, build on them.)
 

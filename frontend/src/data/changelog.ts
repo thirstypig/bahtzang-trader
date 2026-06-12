@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.29.0",
+    date: "2026-06-12",
+    changes: [
+      { type: "feat", title: "Crypto trading support (opt-in): add Alpaca pairs like BTC/USD or ETH/USD via Additional Tickers — prices/indicators come from Alpaca's dedicated crypto data client (fixing the root cause of the old $35-BTC phantom price), orders use GTC time-in-force as crypto requires" },
+      { type: "fix", title: "Crypto symbols are excluded from Alpha Vantage quote/news calls and Finnhub earnings lookups — those services don't speak crypto pair symbology and would waste shared API quota" },
+    ],
+  },
+  {
     version: "0.28.0",
     date: "2026-06-11",
     changes: [
