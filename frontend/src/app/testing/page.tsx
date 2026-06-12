@@ -191,6 +191,11 @@ const TESTS = {
         covers: "fetch_market_data folds strategy_params['tickers'] into the claude_decides universe; malformed (non-list) param ignored, not char-splatted; AV quotes scoped to held positions only (not fanned over the universe)",
       },
       {
+        file: "tests/test_backtest_data.py",
+        tests: 3,
+        covers: "fetch_and_cache_bars OHLCV pipeline (real SQLite cache, mocked Alpaca): gap-fill skips fully-cached tickers, all-cached never calls Alpaca, uncached tickers fetched in one multi-symbol batch",
+      },
+      {
         file: "tests/screener/test_run_screener.py",
         tests: 2,
         covers: "run_screener orchestration: success persists ranked candidates + status=complete; failing data fetch marks status=failed (not stuck running) + records error",
@@ -313,7 +318,7 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (349 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (352 tests)" },
   { cmd: "npm run test:frontend", desc: "All frontend tests (129 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },

@@ -593,10 +593,12 @@ async def fetch_market_data(
     all_tickers.discard("")
     held_tickers = sorted(all_tickers)
 
-    # Quote ONLY held positions via Alpha Vantage. Fanning AV out over the full
-    # ~100-name universe burns the free-tier daily quota and starves the shared
-    # get_news call. Candidate prices are filled from the Alpaca indicator batch
-    # (one request) in the price-patch step below.
+    # Quote ONLY held positions via Alpha Vantage. get_quotes makes one AV call
+    # PER ticker, so fanning it over the full ~100-name universe burned the
+    # free-tier daily quota every cycle. (get_news draws on the same quota but is
+    # itself a single batched call, so it's not the fan-out — the per-ticker quote
+    # storm was.) Candidate prices come from the Alpaca indicator batch (one
+    # request) in the price-patch step below.
     quote_syms = sorted(position_tickers)
     quotes_task = market_data.get_quotes(quote_syms) if quote_syms else asyncio.sleep(0, result=[])
     news_task = market_data.get_news(held_tickers if held_tickers else None)
@@ -607,8 +609,8 @@ async def fetch_market_data(
     )
 
     # Patch any price=0 quotes with Alpaca close prices from indicators.
-    # Alpha Vantage free tier (5 req/min) gets rate-limited when fetching
-    # many tickers simultaneously, returning price=0 and triggering coerce.
+    # Alpha Vantage free-tier rate limits cause some quotes to come back price=0
+    # (or empty) under load, which would otherwise trigger coerce-to-hold.
     if indicators:
         covered = {q["ticker"] for q in quotes}
         quotes = [
