@@ -19,6 +19,11 @@ logger = logging.getLogger(__name__)
 _W3, _W6, _W12 = 63, 126, 252
 MIN_BARS = 253          # need the full 12-month window so momentum is comparable across names
 MAX_VOLATILITY = 1.5    # hard-exclude annualized vol above this (broken/meme)
+# Liquidity floor: median daily dollar volume over the last 3 months. A small
+# account still needs tight spreads — thin names eat market-order fills. $20M/day
+# comfortably covers everything in the S&P 500/400 worth trading and quietly
+# drops anything in the mid-cap extension that has gone illiquid or stale.
+MIN_DOLLAR_VOLUME = 20_000_000
 DEFAULT_TOP_N = 40
 FETCH_CALENDAR_DAYS = 400  # ~280 trading days → enough for the 252d window
 
@@ -71,9 +76,19 @@ def _volatility(closes: pd.Series, window: int = _W3) -> float:
     return float(rets.std() * np.sqrt(252))
 
 
+def _median_dollar_volume(df: pd.DataFrame, window: int = _W3) -> float:
+    """Median of close × volume over the trailing window."""
+    if "volume" not in df or "close" not in df:
+        return 0.0
+    dollar = (df["close"].astype(float) * df["volume"].astype(float)).iloc[-window:]
+    return float(dollar.median()) if len(dollar) else 0.0
+
+
 def _compute_factors(df: pd.DataFrame, spy_closes: pd.Series | None) -> dict | None:
-    """Per-ticker factor dict, or None if there isn't enough history."""
+    """Per-ticker factor dict, or None if there isn't enough history or liquidity."""
     if df is None or len(df) < MIN_BARS or "close" not in df:
+        return None
+    if _median_dollar_volume(df) < MIN_DOLLAR_VOLUME:
         return None
     closes = df["close"].astype(float)
 
@@ -171,10 +186,10 @@ async def run_screener(
     backtest data pipeline (gap-fill, so repeat runs are cheap).
     """
     from app.screener.models import ScreenerRun, ScreenerCandidate
-    from app.screener.universe import SP500_UNIVERSE
+    from app.screener.universe import SCREENER_UNIVERSE
     from app.backtest.data import fetch_and_cache_bars, load_bars
 
-    tickers = list(dict.fromkeys((universe or SP500_UNIVERSE) + [BENCHMARK]))
+    tickers = list(dict.fromkeys((universe or SCREENER_UNIVERSE) + [BENCHMARK]))
 
     run = ScreenerRun(universe_size=len(tickers), status="running")
     db.add(run)
@@ -215,3 +230,67 @@ async def run_screener(
         db.commit()
 
     return run
+
+
+def latest_top_tickers(db: Session, top_n: int) -> list[str]:
+    """Top-N tickers from the most recent COMPLETE screener run, rank order.
+
+    This is the screener→portfolio feed: a portfolio opts in by setting
+    strategy_params["screener_top_n"] and these names join its candidate
+    universe each cycle. Empty list when no complete run exists (screener
+    failure must never block a trading cycle).
+    """
+    from app.screener.models import ScreenerRun, ScreenerCandidate
+
+    run = (
+        db.query(ScreenerRun)
+        .filter(ScreenerRun.status == "complete")
+        .order_by(ScreenerRun.run_at.desc())
+        .first()
+    )
+    if not run:
+        return []
+    rows = (
+        db.query(ScreenerCandidate.ticker)
+        .filter(ScreenerCandidate.run_id == run.id, ScreenerCandidate.rank <= top_n)
+        .order_by(ScreenerCandidate.rank)
+        .all()
+    )
+    return [r.ticker for r in rows]
+
+
+def format_screener_csv(db: Session, top_n: int) -> str:
+    """CSV block of the latest run's top-N for the Claude prompt.
+
+    The ranking context is the point — without the scores these names would
+    be indistinguishable from ordinary watchlist tickers in the prompt.
+    """
+    from app.screener.models import ScreenerRun, ScreenerCandidate
+
+    run = (
+        db.query(ScreenerRun)
+        .filter(ScreenerRun.status == "complete")
+        .order_by(ScreenerRun.run_at.desc())
+        .first()
+    )
+    if not run:
+        return ""
+    rows = (
+        db.query(ScreenerCandidate)
+        .filter(ScreenerCandidate.run_id == run.id, ScreenerCandidate.rank <= top_n)
+        .order_by(ScreenerCandidate.rank)
+        .all()
+    )
+    if not rows:
+        return ""
+    lines = [
+        "SCREENER TOP CANDIDATES (daily quantitative ranking of ~650 US large/mid-caps "
+        "by momentum + relative strength vs SPY + trend, volatility-penalized; "
+        "rank 1 = strongest) — rank,ticker,composite,momentum,vs_spy,trend,rsi,ann_vol:",
+    ]
+    for c in rows:
+        lines.append(
+            f"{c.rank},{c.ticker},{c.composite_score:.2f},{c.momentum:+.1%},"
+            f"{c.rel_strength:+.1%},{c.trend_score:.1f},{c.rsi:.0f},{c.volatility:.0%}"
+        )
+    return "\n".join(lines)

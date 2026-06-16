@@ -89,6 +89,16 @@ def compute_virtual_cost_basis(db: Session, plan_id: int) -> dict[str, float]:
     return {tk: a for tk, a in avg.items() if qty.get(tk, 0.0) > 0}
 
 
+def _screener_top_n(plan: Portfolio) -> int:
+    """Sanitized screener feed size for a plan (0 = not opted in, max 40)."""
+    raw = (plan.strategy_params or {}).get("screener_top_n", 0)
+    try:
+        n = int(raw)
+    except (TypeError, ValueError):
+        return 0
+    return max(0, min(n, 40))
+
+
 def _plan_to_guardrails_config(plan: Portfolio) -> dict:
     """Convert a Portfolio to a guardrails config dict for Claude.
 
@@ -260,6 +270,7 @@ async def run_plan_cycle(
     technicals_csv: str,
     sector_csv: str,
     earnings_csv: str,
+    screener_csv: str = "",
     exit_only: bool = False,
 ) -> list[CycleResult]:
     """Execute a trading cycle for a single portfolio using shared market data.
@@ -268,6 +279,7 @@ async def run_plan_cycle(
     061-fix: Per-plan lock prevents concurrent runs from double-spending.
     063-fix: Commits each trade individually right after Alpaca order.
     exit_only: afternoon risk check — buys are suppressed, sells/holds proceed.
+    screener_csv: ranked screener block; reaches Claude only for plans opted in.
     """
     async with _get_plan_lock(plan.id):
         # Re-read plan inside the lock to get the latest virtual_cash
@@ -275,6 +287,7 @@ async def run_plan_cycle(
         return await _execute_plan_cycle(
             db, plan, positions, balance,
             quotes, news, technicals_csv, sector_csv, earnings_csv,
+            screener_csv=screener_csv,
             exit_only=exit_only,
         )
 
@@ -289,8 +302,13 @@ async def _execute_plan_cycle(
     technicals_csv: str,
     sector_csv: str,
     earnings_csv: str,
+    screener_csv: str = "",
     exit_only: bool = False,
 ) -> list[CycleResult]:
+
+    # Screener block is opt-in per plan — a portfolio that didn't ask for the
+    # feed shouldn't have its prompt steered by it.
+    plan_screener_csv = screener_csv if _screener_top_n(plan) > 0 else ""
 
     # Build plan-specific context
     virtual_positions = compute_virtual_positions(db, plan.id)
@@ -383,6 +401,7 @@ async def _execute_plan_cycle(
             technicals_csv=technicals_csv,
             sector_csv=sector_csv,
             earnings_csv=earnings_csv,
+            screener_csv=plan_screener_csv,
             total_invested=plan_total_invested,
             orders_used_today=plan_orders_today,
             exit_only=exit_only,
@@ -620,15 +639,20 @@ async def fetch_market_data(
     db: Session,
     plan_ids: list[int],
     plans: list[Portfolio] | None = None,
-) -> tuple[list, dict, list, list, str, str, str]:
+) -> tuple[list, dict, list, list, str, str, str, str]:
     """Fetch shared market data for one or more plans.
 
     089-fix: Extracted from run_all_plans so run_plan route can reuse it.
     068-fix: Unions Alpaca account tickers with per-plan virtual position tickers.
     093-fix: Also seeds watchlist tickers from each plan's trading goal so
              empty portfolios get price quotes to evaluate before placing first buy.
+    Screener feed: plans with strategy_params["screener_top_n"] > 0 get the
+    latest screener run's top-N tickers folded into the candidate universe,
+    plus a ranked SCREENER CSV for the Claude prompt (gated per plan in
+    _execute_plan_cycle).
 
-    Returns (positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv).
+    Returns (positions, balance, quotes, news, technicals_csv, sector_csv,
+    earnings_csv, screener_csv).
     """
     from app.claude_brain import GOAL_WATCHLIST
 
@@ -655,6 +679,23 @@ async def fetch_market_data(
             extra = (plan.strategy_params or {}).get("tickers")
             if isinstance(extra, list):
                 all_tickers.update(t for t in extra if isinstance(t, str) and t)
+
+    # Screener feed — union the latest run's top-N into the universe for any
+    # plan that opted in, and render the ranked CSV once at the widest N.
+    # (Cross-feature import mirrors the existing app.backtest.data usage; the
+    # OHLCV/screener data layer is shared-infra-in-waiting — see the TODO in
+    # _get_strategy_decisions.)
+    screener_csv = ""
+    screener_n = max(
+        (_screener_top_n(plan) for plan in (plans or [])),
+        default=0,
+    )
+    if screener_n > 0:
+        from app.screener.engine import latest_top_tickers, format_screener_csv
+        screener_tickers = await asyncio.to_thread(latest_top_tickers, db, screener_n)
+        all_tickers.update(screener_tickers)
+        screener_csv = await asyncio.to_thread(format_screener_csv, db, screener_n)
+
     all_tickers.discard("")
     held_tickers = sorted(all_tickers)
 
@@ -692,7 +733,7 @@ async def fetch_market_data(
     sector_csv = format_sector_csv(sector_signals)
     earnings_csv = format_earnings_csv(db, held_tickers) if held_tickers else ""
 
-    return positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv
+    return positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv, screener_csv
 
 
 async def run_all_plans(db: Session, exit_only: bool = False) -> dict[int, list[CycleResult]]:
@@ -734,7 +775,7 @@ async def run_all_plans(db: Session, exit_only: bool = False) -> dict[int, list[
 
     # 089-fix: Use shared fetch_market_data for consistent ticker union
     # 093-fix: Pass plans so watchlist tickers are seeded for empty portfolios
-    positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv = (
+    positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv, screener_csv = (
         await fetch_market_data(db, [p.id for p in active_plans], plans=active_plans)
     )
 
@@ -747,6 +788,7 @@ async def run_all_plans(db: Session, exit_only: bool = False) -> dict[int, list[
             results = await run_plan_cycle(
                 db, plan, positions, balance,
                 quotes, news, technicals_csv, sector_csv, earnings_csv,
+                screener_csv=screener_csv,
                 exit_only=exit_only,
             )
             all_results[plan.id] = results
