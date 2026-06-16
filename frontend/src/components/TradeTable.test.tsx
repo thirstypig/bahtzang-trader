@@ -102,13 +102,41 @@ describe("TradeTable", () => {
     expect(cells.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows reasoning text", () => {
+  it("shows reasoning text for genuine Claude reasoning", () => {
     render(
       <TradeTable
         trades={[makeTrade({ claude_reasoning: "Strong earnings outlook" })]}
       />,
     );
     expect(screen.getByText("Strong earnings outlook")).toBeInTheDocument();
+  });
+
+  it('shows "Repeat guard" badge for no-repeat constraint holds', () => {
+    render(
+      <TradeTable
+        trades={[makeTrade({ action: "hold", claude_reasoning: "No repeats: AAPL last action was BUY, can't repeat" })]}
+      />,
+    );
+    expect(screen.getByText("Repeat guard")).toBeInTheDocument();
+    expect(screen.queryByText(/No repeats/)).not.toBeInTheDocument();
+  });
+
+  it('shows "Cooldown" badge for cooldown constraint holds', () => {
+    render(
+      <TradeTable
+        trades={[makeTrade({ action: "hold", claude_reasoning: "Cooldown: AAPL touched 24.0h ago, need 48h" })]}
+      />,
+    );
+    expect(screen.getByText("Cooldown")).toBeInTheDocument();
+  });
+
+  it('shows "Exit-only cycle" badge for exit-only suppressed buys', () => {
+    render(
+      <TradeTable
+        trades={[makeTrade({ action: "hold", claude_reasoning: "[Exit-only cycle: buy suppressed]" })]}
+      />,
+    );
+    expect(screen.getByText("Exit-only cycle")).toBeInTheDocument();
   });
 
   it("toggles sort direction on column click", async () => {

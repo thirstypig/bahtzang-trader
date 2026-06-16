@@ -116,7 +116,7 @@ export default function TradeTable({ trades }: TradeTableProps) {
                   />
                 </td>
                 <td className="max-w-2xl whitespace-normal px-4 py-3 text-secondary">
-                  {cleanReasoning(trade.claude_reasoning) || "—"}
+                  <ReasoningCell text={trade.claude_reasoning} />
                 </td>
               </tr>
             ))}
@@ -134,19 +134,56 @@ export default function TradeTable({ trades }: TradeTableProps) {
   );
 }
 
-function cleanReasoning(text: string | null): string {
-  if (!text) return "";
-  // Strip "Failed to parse Claude response: " prefix and JSON artifacts
+const CONSTRAINT_PATTERNS: { pattern: RegExp; label: string; title: (m: RegExpMatchArray) => string }[] = [
+  {
+    pattern: /^No repeats:\s*(.+)/i,
+    label: "Repeat guard",
+    title: (m) => m[1],
+  },
+  {
+    pattern: /^Cooldown:\s*(.+)/i,
+    label: "Cooldown",
+    title: (m) => m[1],
+  },
+  {
+    pattern: /^\[Exit-only cycle[:\s]*(.*)]/i,
+    label: "Exit-only cycle",
+    title: (m) => m[1] || "Buys suppressed — exit-only window",
+  },
+];
+
+function ReasoningCell({ text }: { text: string | null }) {
+  if (!text) return <span className="text-muted">—</span>;
+
+  for (const { pattern, label, title } of CONSTRAINT_PATTERNS) {
+    const m = text.match(pattern);
+    if (m) {
+      return (
+        <span
+          title={title(m)}
+          className="inline-flex items-center gap-1 rounded-full border border-border bg-card-alt px-2 py-0.5 text-xs text-muted"
+        >
+          <svg className="h-2.5 w-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          {label}
+        </span>
+      );
+    }
+  }
+
+  return <span>{extractReasoning(text)}</span>;
+}
+
+function extractReasoning(text: string): string {
   let cleaned = text.replace(/^Failed to parse Claude response:\s*/i, "");
   cleaned = cleaned.replace(/```json\s*/g, "").replace(/```/g, "");
-  // If it looks like raw JSON, try to extract the reasoning field
   if (cleaned.trimStart().startsWith("{") || cleaned.trimStart().startsWith("[")) {
     try {
       const parsed = JSON.parse(cleaned);
       const obj = Array.isArray(parsed) ? parsed[0] : parsed;
       if (obj?.reasoning) return obj.reasoning;
     } catch {
-      // Strip JSON syntax for readability
       cleaned = cleaned.replace(/[{}\[\]"]/g, "").replace(/\s+/g, " ").trim();
     }
   }
