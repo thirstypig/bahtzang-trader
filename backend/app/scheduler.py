@@ -22,20 +22,29 @@ ET = timezone("US/Eastern")
 
 scheduler = AsyncIOScheduler()
 
-# Schedule presets: (hour, minute) tuples for each frequency
+# Schedule presets: (hour, minute) tuples for each frequency.
+# First slot is 10:00, not 9:35 — the opening 30 minutes have the widest
+# spreads and most gap noise of the day, and every order we place is a
+# market order. Paper fills don't model that cost, live fills will.
 FREQUENCY_SCHEDULES = {
-    "1x": [(9, 35)],
-    "3x": [(9, 35), (13, 0), (15, 45)],
-    "5x": [(9, 35), (10, 30), (12, 0), (13, 30), (15, 0)],
+    "1x": [(10, 0)],
+    "3x": [(10, 0), (13, 0), (15, 45)],
+    "5x": [(10, 0), (11, 15), (12, 30), (13, 45), (15, 0)],
 }
 
 # Job IDs are prefixed so we can find and remove them
 JOB_PREFIX = "trading_cycle_"
 
 
-async def _scheduled_cycle():
-    """Run one trading cycle — iterate every active portfolio."""
-    logger.info("Scheduled trading cycle starting")
+async def _scheduled_cycle(exit_only: bool = False):
+    """Run one trading cycle — iterate every active portfolio.
+
+    exit_only=True is the afternoon risk check: sells and holds only, no
+    buys. It runs every market day regardless of trading_frequency because
+    it manages risk on positions that already exist, not trade cadence.
+    """
+    label = "exit-only check" if exit_only else "trading cycle"
+    logger.info("Scheduled %s starting", label)
     db = SessionLocal()
     try:
         from app.plans.models import Portfolio
@@ -44,12 +53,20 @@ async def _scheduled_cycle():
             logger.info("No active portfolios — skipping cycle")
             return
         from app.plans.executor import run_all_plans
-        results = await run_all_plans(db)
-        logger.info("Cycle complete: %d portfolios processed", len(results))
+        results = await run_all_plans(db, exit_only=exit_only)
+        logger.info("%s complete: %d portfolios processed", label, len(results))
     except Exception as e:
-        logger.exception("Scheduled cycle failed: %s", e)
+        logger.exception("Scheduled %s failed: %s", label, e)
     finally:
         db.close()
+
+
+async def _exit_check_cycle():
+    """3:30 PM ET exit-only pass — wrapper so APScheduler has a stable callable."""
+    await _scheduled_cycle(exit_only=True)
+
+
+EXIT_CHECK_JOB_ID = "daily_exit_check"
 
 
 def _remove_trading_jobs():
@@ -335,6 +352,20 @@ def start_scheduler():
     scheduler.add_job(
         _run_screener, screener_trigger,
         id=SCREENER_JOB_ID, replace_existing=True,
+    )
+
+    # Exit-only risk check at 3:30 PM ET — late enough that the day's move
+    # is mostly in, early enough to exit before the close. Positions are
+    # otherwise unmanaged between daily cycles (orders are plain market
+    # orders with no resting stops), so this is the intraday safety net.
+    exit_check_trigger = CronTrigger(
+        day_of_week="mon-fri",
+        hour=15, minute=30,
+        timezone=ET,
+    )
+    scheduler.add_job(
+        _exit_check_cycle, exit_check_trigger,
+        id=EXIT_CHECK_JOB_ID, replace_existing=True,
     )
 
     # Daily summary at 4:10 PM ET (after snapshot)

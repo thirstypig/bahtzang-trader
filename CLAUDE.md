@@ -34,7 +34,7 @@ npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
-npm run test:backend     # pytest (352 tests, ~4s)
+npm run test:backend     # pytest (363 tests, ~4s)
 npm run test:frontend    # Vitest (129 tests, ~3s)
 npm run test:backend:cov # Backend with coverage report
 ```
@@ -62,7 +62,7 @@ npm run test:backend:cov # Backend with coverage report
 - Python FastAPI
 - SQLAlchemy 2.0 (Mapped types, `get_db()` dependency injection)
 - Anthropic SDK (Claude Sonnet for trading decisions)
-- APScheduler (cron at 9:35 AM ET, Mon-Fri)
+- APScheduler (cron at 10:00 AM ET Mon-Fri + 3:30 PM exit-only risk check)
 - PyJWT + JWKS (`PyJWKClient` fetches Supabase's ES256 public key)
 - httpx for async HTTP (Schwab, Alpha Vantage)
 
@@ -82,6 +82,8 @@ Gather (Alpaca) → Earnings (Finnhub cache) → Branch on decision_mode → Coe
   rules_decide:                Strategy.generate_signals() only — Claude never called
   rules_with_claude_oversight: Strategy signals → per-decision Claude review → confirmed or overridden
 Every decision logged — even holds and blocked trades
+Exit-only cycle (3:30 PM ET daily): sells/holds only — buys suppressed in the executor for ALL decision modes; Claude prompt gets an EXIT-ONLY block with the stop-loss threshold
+Virtual positions carry real cost basis + unrealized P&L (average-cost method over executed trades) — compute_virtual_cost_basis()
 Alpaca SDK calls wrapped in asyncio.to_thread() to avoid blocking the event loop
 Earnings data: position sizing reduced 50% at 0-1 days, 70% at 2 days before earnings
 Pipeline types: Position, Quote, NewsItem, TradeDecision, CycleResult (pipeline_types.py)
@@ -193,13 +195,13 @@ backend/
     technical_analysis.py # pandas-ta indicators (RSI/MACD/BB/SMA/ATR) + Alpaca Data API
     decision_coercion.py # Shared helpers — coerce_zero_qty_to_hold + coerce_bad_price_to_hold; called by plan executor
     market_data.py    # Alpha Vantage news (quotes moved to Alpaca Data API)
-    scheduler.py      # Trading frequency + daily snapshot (4:05 PM) + summary (4:10 PM) + earnings refresh (7 AM) + screener refresh (7:30 AM) — DB calls via to_thread()
+    scheduler.py      # Trading frequency (first slot 10:00 AM, off the open) + exit-only check (3:30 PM) + daily snapshot (4:05 PM) + summary (4:10 PM) + earnings refresh (7 AM) + screener refresh (7:30 AM) — DB calls via to_thread()
     logger.py         # Trade logging to PostgreSQL
   data/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
   railway.toml        # Railway deploy config
   pytest.ini          # Test config (markers: unit, integration, e2e)
-  tests/              # Test suites (352 backend tests)
+  tests/              # Test suites (363 backend tests)
     conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
     plans/            # Portfolio model, executor, constraints, route, snapshot tests
     earnings/         # Earnings route integration tests
@@ -227,7 +229,7 @@ frontend/
       portfolios/     # /portfolios (list + /portfolios/[id] detail + /portfolios/new)
       screener/       # /screener (daily ranked S&P 500 candidates — advisory research view)
       forex/          # /forex (independent swing-zone backtest UI — for non-engineer collaborator)
-      testing/        # /testing (test inventory, execution cadence, 481 tests)
+      testing/        # /testing (test inventory, execution cadence, 492 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       settings/       # /settings (timezone selector, display prefs; home for future notification prefs)
@@ -287,7 +289,7 @@ frontend/
 ### Testing
 - Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
 - Frontend: Vitest + @testing-library/react + jsdom
-- 481 total tests (352 backend + 129 frontend), ~9s full suite
+- 492 total tests (363 backend + 129 frontend), ~9s full suite
 - Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
 - Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
 - Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)
@@ -363,7 +365,7 @@ When you notice a pattern, preference, decision, or piece of context that should
 - **No manual per-trade approval in Stage 1.** Bridge-gate review at end of each window is the human checkpoint.
 - **Portfolio-only execution model.** The global trader is gone. Every trade runs through a Portfolio. Do not re-introduce a global execution path.
 - **Forex tool is deliberately siloed.** It's a sandbox for a friend's strategy (Nick Shawn). Don't extend or integrate it into the main trading pipeline without a proven edge.
-- **481 tests are the baseline.** Don't ship features that drop the count or break CI.
+- **492 tests are the baseline.** Don't ship features that drop the count or break CI.
 
 (If a new fact or argument genuinely challenges one of these, say so directly. Otherwise, build on them.)
 

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "101"
 tags: [code-review, backend, performance, database]
@@ -37,3 +37,4 @@ This is exactly the documented lesson from `docs/solutions/performance-issues/un
 | Date | Action | Learnings |
 |------|--------|-----------|
 | 2026-06-11 | Created from performance-oracle finding during /ce:review of PR #27 | Third stacked N+1 in the same pipeline — the solution doc's "they nest" warning keeps paying out |
+| 2026-06-11 | Fixed: load_bars now one grouped query (ticker IN + ORDER BY ticker, bar_date), split per-ticker in Python. Guard test counts SELECTs via before_cursor_execute listener. | Shipped same-day in feat/exit-cycle-cost-basis-and-window |

@@ -123,31 +123,36 @@ def load_bars(
 
     Returns {ticker: DataFrame} with DatetimeIndex and
     columns: open, high, low, close, volume.
+
+    One grouped query, split per ticker in Python. This was the third
+    stacked N+1 on the OHLCV path (after the PR #26 network fetch and the
+    PR #27 coverage check): a SELECT per ticker, ~500 pooler round-trips
+    per screener run.
     """
-    result = {}
-    for ticker in tickers:
-        rows = (
-            db.query(OHLCVCache)
-            .filter(
-                OHLCVCache.ticker == ticker,
-                OHLCVCache.bar_date >= start,
-                OHLCVCache.bar_date <= end,
-            )
-            .order_by(OHLCVCache.bar_date)
-            .all()
+    rows = db.execute(
+        select(OHLCVCache)
+        .where(
+            OHLCVCache.ticker.in_(tickers),
+            OHLCVCache.bar_date >= start,
+            OHLCVCache.bar_date <= end,
         )
+        .order_by(OHLCVCache.ticker, OHLCVCache.bar_date)
+    ).scalars().all()
 
-        if not rows:
-            continue
+    by_ticker: dict[str, list[OHLCVCache]] = defaultdict(list)
+    for r in rows:
+        by_ticker[r.ticker].append(r)
 
+    result = {}
+    for ticker, trows in by_ticker.items():
         data = {
-            "open": [r.open for r in rows],
-            "high": [r.high for r in rows],
-            "low": [r.low for r in rows],
-            "close": [r.close for r in rows],
-            "volume": [r.volume for r in rows],
+            "open": [r.open for r in trows],
+            "high": [r.high for r in trows],
+            "low": [r.low for r in trows],
+            "close": [r.close for r in trows],
+            "volume": [r.volume for r in trows],
         }
-        dates = [pd.Timestamp(r.bar_date) for r in rows]
+        dates = [pd.Timestamp(r.bar_date) for r in trows]
         df = pd.DataFrame(data, index=dates)
         df.index.name = "timestamp"
         result[ticker] = df

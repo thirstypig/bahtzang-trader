@@ -86,3 +86,45 @@ class TestFetchAndCacheBars:
         assert set(calls[0]) == {"AAA", "BBB", "CCC"}
         for t in ("AAA", "BBB", "CCC"):
             assert _cached_count(db_session, t) == len(_DATES)
+
+
+@pytest.mark.integration
+class TestLoadBars:
+    """load_bars was the third stacked N+1 on the OHLCV path — one SELECT per
+    ticker. Pin the single-query rewrite and its output shape."""
+
+    def test_one_query_regardless_of_ticker_count(self, db_session):
+        from sqlalchemy import event
+        from app.backtest.data import load_bars
+
+        _seed_full_cache(db_session, "AAA")
+        _seed_full_cache(db_session, "BBB")
+
+        selects: list[str] = []
+
+        def _count(conn, cursor, statement, parameters, context, executemany):
+            if statement.lstrip().upper().startswith("SELECT"):
+                selects.append(statement)
+
+        engine = db_session.get_bind()
+        event.listen(engine, "before_cursor_execute", _count)
+        try:
+            bars = load_bars(["AAA", "BBB"], _START, _END, db_session)
+        finally:
+            event.remove(engine, "before_cursor_execute", _count)
+
+        assert len(selects) == 1                        # grouped query, not per-ticker
+        assert set(bars) == {"AAA", "BBB"}
+
+    def test_dataframe_shape_and_order(self, db_session):
+        from app.backtest.data import load_bars
+
+        _seed_full_cache(db_session, "AAA")
+        bars = load_bars(["AAA", "MISSING"], _START, _END, db_session)
+
+        assert "MISSING" not in bars                    # uncached ticker silently absent
+        df = bars["AAA"]
+        assert list(df.columns) == ["open", "high", "low", "close", "volume"]
+        assert len(df) == len(_DATES)
+        assert df.index.is_monotonic_increasing         # ordered by bar_date
+        assert df.index.name == "timestamp"

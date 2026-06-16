@@ -10,6 +10,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.27.0",
+    date: "2026-06-11",
+    changes: [
+      { type: "feat", title: "Exit-only afternoon cycle (3:30 PM ET): a daily risk check that can sell or hold but never buy — positions are no longer unmanaged between morning cycles; buys are suppressed in the executor for every decision mode" },
+      { type: "feat", title: "Virtual positions now carry real cost basis and unrealized P&L (average-cost over the strategy's own trade history) — previously Claude saw every position as ±$0, making 'cut the loser' decisions impossible" },
+      { type: "feat", title: "Morning trading cycle moved from 9:35 to 10:00 AM ET — the first half-hour after the open has the widest spreads and most gap noise, the worst window for market orders" },
+      { type: "perf", title: "load_bars collapsed to one grouped query (was one SELECT per ticker — the third stacked N+1 found on the OHLCV path), cutting ~500 DB round-trips from the daily screener run" },
+    ],
+  },
+  {
     version: "0.26.0",
     date: "2026-05-21",
     changes: [
