@@ -10,11 +10,12 @@ from datetime import date, timedelta
 
 import pandas as pd
 import pandas_ta as ta
-from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest
+from alpaca.data.historical import CryptoHistoricalDataClient, StockHistoricalDataClient
+from alpaca.data.requests import CryptoBarsRequest, StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
 
 from app.config import settings
+from app.symbols import is_crypto
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,11 @@ logger = logging.getLogger(__name__)
 _indicator_cache: dict[str, dict] = {}
 _cache_date: date | None = None
 
-# Lazy-init data client (same credentials as trading client)
+# Lazy-init data clients (same credentials as trading client). Crypto bars
+# MUST come from the crypto client — the stock client resolves "BTC" to a
+# wrong equities instrument (the ~$35 phantom price bug).
 _data_client: StockHistoricalDataClient | None = None
+_crypto_client: CryptoHistoricalDataClient | None = None
 
 
 def _get_data_client() -> StockHistoricalDataClient:
@@ -33,6 +37,15 @@ def _get_data_client() -> StockHistoricalDataClient:
             settings.ALPACA_API_KEY, settings.ALPACA_SECRET_KEY
         )
     return _data_client
+
+
+def _get_crypto_client() -> CryptoHistoricalDataClient:
+    global _crypto_client
+    if _crypto_client is None:
+        _crypto_client = CryptoHistoricalDataClient(
+            settings.ALPACA_API_KEY, settings.ALPACA_SECRET_KEY
+        )
+    return _crypto_client
 
 
 async def _fetch_daily_bars(
@@ -50,6 +63,24 @@ async def _fetch_daily_bars(
         end=end,
     )
     bars = await asyncio.to_thread(client.get_stock_bars, request)
+    return bars.df
+
+
+async def _fetch_daily_crypto_bars(
+    tickers: list[str], lookback_days: int = 365
+) -> pd.DataFrame:
+    """Fetch daily OHLCV bars for crypto pairs via the crypto data client."""
+    client = _get_crypto_client()
+    end = date.today()
+    start = end - timedelta(days=lookback_days)
+
+    request = CryptoBarsRequest(
+        symbol_or_symbols=tickers,
+        timeframe=TimeFrame.Day,
+        start=start,
+        end=end,
+    )
+    bars = await asyncio.to_thread(client.get_crypto_bars, request)
     return bars.df
 
 
@@ -125,24 +156,42 @@ async def get_indicators(tickers: list[str]) -> dict[str, dict]:
 
     logger.info("Computing technical indicators for %d tickers", len(tickers))
 
-    try:
-        bars_df = await _fetch_daily_bars(tickers, lookback_days=365)
-    except Exception as e:
-        logger.warning("Failed to fetch OHLCV data: %s", e)
+    # Stocks and crypto come from different Alpaca data clients. Fetch each
+    # group independently so a failure in one can't blank the other's
+    # indicators for the cycle.
+    stock_tickers = [t for t in tickers if not is_crypto(t)]
+    crypto_tickers = [t for t in tickers if is_crypto(t)]
+
+    groups: list[tuple[list[str], pd.DataFrame]] = []
+    if stock_tickers:
+        try:
+            groups.append((stock_tickers, await _fetch_daily_bars(stock_tickers, lookback_days=365)))
+        except Exception as e:
+            logger.warning("Failed to fetch stock OHLCV data: %s", e)
+    if crypto_tickers:
+        try:
+            groups.append((crypto_tickers, await _fetch_daily_crypto_bars(crypto_tickers, lookback_days=365)))
+        except Exception as e:
+            logger.warning("Failed to fetch crypto OHLCV data: %s", e)
+
+    if not groups:
         return {}
 
     results = {}
-    for ticker in tickers:
-        try:
-            if ticker in bars_df.index.get_level_values(0):
-                ticker_df = bars_df.loc[ticker].copy()
-                ticker_df = _validate_ohlcv(ticker_df)
-                indicators = _compute_indicators(ticker_df)
-                if indicators:
-                    results[ticker] = indicators
-                    _indicator_cache[ticker] = indicators
-        except Exception as e:
-            logger.warning("Failed to compute indicators for %s: %s", ticker, e)
+    for group, bars_df in groups:
+        if bars_df is None or bars_df.empty:
+            continue
+        for ticker in group:
+            try:
+                if ticker in bars_df.index.get_level_values(0):
+                    ticker_df = bars_df.loc[ticker].copy()
+                    ticker_df = _validate_ohlcv(ticker_df)
+                    indicators = _compute_indicators(ticker_df)
+                    if indicators:
+                        results[ticker] = indicators
+                        _indicator_cache[ticker] = indicators
+            except Exception as e:
+                logger.warning("Failed to compute indicators for %s: %s", ticker, e)
 
     _cache_date = today
     return results

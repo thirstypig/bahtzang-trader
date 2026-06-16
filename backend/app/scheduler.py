@@ -248,10 +248,13 @@ async def _refresh_earnings():
         from app.brokers.alpaca import AlpacaBroker
         from app.earnings.client import refresh_earnings
 
+        from app.symbols import is_crypto
+
         b = AlpacaBroker()
         positions = await b.get_positions("default")
         symbols = [p.get("instrument", {}).get("symbol", "") for p in positions]
-        symbols = [s for s in symbols if s]
+        # Crypto has no earnings; Finnhub doesn't speak slash pairs.
+        symbols = [s for s in symbols if s and not is_crypto(s)]
 
         if symbols:
             count = await refresh_earnings(db, symbols)

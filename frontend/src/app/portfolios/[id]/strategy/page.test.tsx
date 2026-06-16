@@ -166,7 +166,7 @@ describe("DecisionEnginePage — edit flow", () => {
 
     await waitFor(() => screen.getByText("Claude decides"));
 
-    await user.type(screen.getByPlaceholderText(/PLTR, COIN, SHOP/), "pltr, coin");
+    await user.type(screen.getByPlaceholderText(/PLTR, COIN/), "pltr, coin");
     await user.click(screen.getByText("Save"));
 
     await waitFor(() =>
@@ -186,7 +186,7 @@ describe("DecisionEnginePage — edit flow", () => {
     render(<DecisionEnginePage />);
 
     await waitFor(() =>
-      expect(screen.getByPlaceholderText(/PLTR, COIN, SHOP/)).toHaveValue("NVDA, AMD"),
+      expect(screen.getByPlaceholderText(/PLTR, COIN/)).toHaveValue("NVDA, AMD"),
     );
   });
 

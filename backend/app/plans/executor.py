@@ -705,9 +705,14 @@ async def fetch_market_data(
     # itself a single batched call, so it's not the fan-out — the per-ticker quote
     # storm was.) Candidate prices come from the Alpaca indicator batch (one
     # request) in the price-patch step below.
-    quote_syms = sorted(position_tickers)
+    # Crypto pairs are excluded from BOTH Alpha Vantage calls — AV doesn't speak
+    # slash symbology and would just burn quota. Crypto prices come from the
+    # Alpaca crypto-bar indicators in the same patch step as candidate prices.
+    from app.symbols import is_crypto
+    quote_syms = sorted(t for t in position_tickers if not is_crypto(t))
+    news_syms = [t for t in held_tickers if not is_crypto(t)]
     quotes_task = market_data.get_quotes(quote_syms) if quote_syms else asyncio.sleep(0, result=[])
-    news_task = market_data.get_news(held_tickers if held_tickers else None)
+    news_task = market_data.get_news(news_syms if news_syms else None)
     indicators_task = get_indicators(held_tickers) if held_tickers else asyncio.sleep(0, result={})
     sector_task = get_sector_signals()
     quotes, news, indicators, sector_signals = await asyncio.gather(
