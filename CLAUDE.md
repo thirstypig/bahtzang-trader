@@ -3,7 +3,7 @@
 ## Current status
 
 <!-- now-tldr -->
-An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). 24/30 paper trades executed (as of 2026-05-14); 6 more needed to gate the Phase G live switch. Only Test 4 ($10k portfolio) is active; three $100 test portfolios deactivated (spent). Fixed: BTC/ETH removed from Claude prompts (StockHistoricalDataClient returned wrong $35 price for crypto tickers). Decision modes, oversight activity, pause/resume UI, sign-out all shipped.
+An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). Phase G gate reset (2026-06-16): Test 4 accumulated 34 trades but logged 3 losing weeks (gate requires zero) — deactivated and preserved as a historical record. Test 5 (id=6, $10k, maximize_returns) is the new active portfolio; Phase G clock restarts fresh. Root cause of Test 4 losses shipped as PRs #28–#30: exit-only 3:30 PM cycle, real cost basis visibility, wider universe, screener feed, crypto support, no-repeat constraint removed.
 <!-- /now-tldr -->
 
 ## Project Overview
@@ -34,8 +34,8 @@ npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
-npm run test:backend     # pytest (382 tests, ~4s)
-npm run test:frontend    # Vitest (129 tests, ~3s)
+npm run test:backend     # pytest (388 tests, ~4s)
+npm run test:frontend    # Vitest (132 tests, ~3s)
 npm run test:backend:cov # Backend with coverage report
 ```
 
@@ -167,7 +167,7 @@ backend/
       routes.py       # GET /earnings, POST /earnings/refresh
     plans/            # Feature module: portfolios (virtual sub-accounts)
       models.py       # Portfolio, Trade (plan_snapshots FK portfolio_id) tables
-      constraints.py  # Per-portfolio trading constraints (cooldown, frequency cap, repeat-action guard)
+      constraints.py  # Per-portfolio trading constraints (cooldown, frequency cap — no-repeat-action guard removed 2026-06-16)
       executor.py     # Per-portfolio trading cycle; asyncio locks; coerces qty<=0/price<=0 to hold; threads usage to Claude prompt; circuit breaker RED deactivates all portfolios
       routes.py       # CRUD + run + export at /portfolios/* (advisory lock budget validation, rate-limited)
       snapshots.py    # Daily snapshot capture for equity curves
@@ -204,7 +204,7 @@ backend/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
   railway.toml        # Railway deploy config
   pytest.ini          # Test config (markers: unit, integration, e2e)
-  tests/              # Test suites (382 backend tests)
+  tests/              # Test suites (388 backend tests)
     conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
     plans/            # Portfolio model, executor, constraints, route, snapshot tests
     earnings/         # Earnings route integration tests
@@ -232,7 +232,7 @@ frontend/
       portfolios/     # /portfolios (list + /portfolios/[id] detail + /portfolios/new)
       screener/       # /screener (daily ranked S&P 500 candidates — advisory research view)
       forex/          # /forex (independent swing-zone backtest UI — for non-engineer collaborator)
-      testing/        # /testing (test inventory, execution cadence, 511 tests)
+      testing/        # /testing (test inventory, execution cadence, 520 tests)
       audit-log/      # /audit-log
       todos/          # /todos (API-backed CRUD, category grouping)
       settings/       # /settings (timezone selector, display prefs; home for future notification prefs)
@@ -292,7 +292,7 @@ frontend/
 ### Testing
 - Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
 - Frontend: Vitest + @testing-library/react + jsdom
-- 511 total tests (382 backend + 129 frontend), ~9s full suite
+- 520 total tests (388 backend + 132 frontend), ~9s full suite
 - Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
 - Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
 - Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)
@@ -368,7 +368,7 @@ When you notice a pattern, preference, decision, or piece of context that should
 - **No manual per-trade approval in Stage 1.** Bridge-gate review at end of each window is the human checkpoint.
 - **Portfolio-only execution model.** The global trader is gone. Every trade runs through a Portfolio. Do not re-introduce a global execution path.
 - **Forex tool is deliberately siloed.** It's a sandbox for a friend's strategy (Nick Shawn). Don't extend or integrate it into the main trading pipeline without a proven edge.
-- **511 tests are the baseline.** Don't ship features that drop the count or break CI.
+- **520 tests are the baseline.** Don't ship features that drop the count or break CI.
 
 (If a new fact or argument genuinely challenges one of these, say so directly. Otherwise, build on them.)
 

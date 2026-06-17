@@ -10,6 +10,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.30.0",
+    date: "2026-06-16",
+    changes: [
+      { type: "fix", title: "Trades page: constraint-coercion holds (repeat guard, cooldown, exit-only) now render as compact badges instead of repetitive prose — genuine Claude reasoning is visually distinct" },
+      { type: "fix", title: "No-repeat-action constraint removed — Claude can now add to a position it has previously bought (DCA, adding to winners); 48h cooldown and 5x/week frequency cap remain as sufficient safeguards" },
+      { type: "feat", title: "Test 5 created (id=6, $10k, maximize_returns + screener_top_n=25): Phase G paper-trading gate restarted after Test 4 accumulated 3 losing weeks — Test 4 preserved as historical record" },
+    ],
+  },
+  {
     version: "0.29.0",
     date: "2026-06-12",
     changes: [
