@@ -71,24 +71,25 @@ class AlpacaBroker(BrokerInterface):
 
         Sends ``quantity`` as a float; Alpaca fills it fractionally for
         fractionable equities and ETFs (which is every name in the trading
-        universe). There is NO whole-share fallback here: a fractional qty on
-        a non-fractionable symbol (most crypto/options, a few illiquid
-        equities) is rejected by Alpaca, so callers must size whole-share qty
-        for those. Fractional orders also require TIF=DAY, which is set below
-        for all orders.
+        universe) and for crypto pairs (which are natively fractional).
+        There is NO whole-share fallback here: a fractional qty on a
+        non-fractionable symbol (a few illiquid equities) is rejected by
+        Alpaca, so callers must size whole-share qty for those.
+
+        Time in force: equities use DAY (required for fractional orders);
+        crypto pairs use GTC — Alpaca rejects DAY on crypto.
         """
         if action not in ("buy", "sell"):
             raise ValueError(f"Invalid action: {action}. Must be 'buy' or 'sell'.")
 
         client = _get_client()
 
-        # Fractional shares use DAY time_in_force; whole shares use DAY as well.
-        # Alpaca SDK accepts float qty for eligible tickers.
+        from app.symbols import is_crypto
         order_data = MarketOrderRequest(
             symbol=ticker,
             qty=quantity,
             side=OrderSide.BUY if action == "buy" else OrderSide.SELL,
-            time_in_force=TimeInForce.DAY,
+            time_in_force=TimeInForce.GTC if is_crypto(ticker) else TimeInForce.DAY,
         )
 
         # 069-fix: Shared lock prevents concurrent orders across plan + legacy executors

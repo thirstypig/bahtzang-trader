@@ -174,9 +174,8 @@ async def test_constraint_check_frequency_allows_under_cap(db_session, portfolio
 
 
 @pytest.mark.asyncio
-async def test_constraint_check_no_repeat_action(db_session, portfolio):
-	"""Should block same action twice in a row on same ticker."""
-	# Create touch history with last action = BUY
+async def test_constraint_allows_repeat_action(db_session, portfolio):
+	"""Repeating the same action on a ticker is allowed — cooldown + frequency cap are the safeguards."""
 	touch = PortfolioTouchHistory(
 		portfolio_id=portfolio.id,
 		ticker="AAPL",
@@ -189,31 +188,6 @@ async def test_constraint_check_no_repeat_action(db_session, portfolio):
 	decision = {"ticker": "AAPL", "action": "BUY", "quantity": 10}
 	now = datetime.now()
 
-	# Should fail — last action was BUY, can't repeat
-	allowed, reason = await check_trading_constraints(db_session, portfolio, decision, now)
-
-	assert allowed is False
-	assert "No repeats" in reason
-	assert "BUY" in reason
-
-
-@pytest.mark.asyncio
-async def test_constraint_check_allows_action_switch(db_session, portfolio):
-	"""Should allow alternating actions on the same ticker."""
-	# Create touch history with last action = BUY
-	touch = PortfolioTouchHistory(
-		portfolio_id=portfolio.id,
-		ticker="AAPL",
-		last_decision_timestamp=datetime.now() - timedelta(hours=50),
-		last_action="BUY",
-	)
-	db_session.add(touch)
-	db_session.commit()
-
-	decision = {"ticker": "AAPL", "action": "SELL", "quantity": 10}
-	now = datetime.now()
-
-	# Should pass — switching from BUY to SELL is allowed
 	allowed, reason = await check_trading_constraints(db_session, portfolio, decision, now)
 
 	assert allowed is True

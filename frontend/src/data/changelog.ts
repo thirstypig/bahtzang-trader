@@ -10,6 +10,23 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.29.0",
+    date: "2026-06-12",
+    changes: [
+      { type: "feat", title: "Crypto trading support (opt-in): add Alpaca pairs like BTC/USD or ETH/USD via Additional Tickers — prices/indicators come from Alpaca's dedicated crypto data client (fixing the root cause of the old $35-BTC phantom price), orders use GTC time-in-force as crypto requires" },
+      { type: "fix", title: "Crypto symbols are excluded from Alpha Vantage quote/news calls and Finnhub earnings lookups — those services don't speak crypto pair symbology and would waste shared API quota" },
+    ],
+  },
+  {
+    version: "0.28.0",
+    date: "2026-06-11",
+    changes: [
+      { type: "feat", title: "Screener now feeds trading: a strategy can opt in (Screener Feed on the Decision Engine page) to have the daily top-N ranked candidates folded into Claude's universe, with their momentum/trend rankings shown in the decision prompt" },
+      { type: "feat", title: "Screener pond widened from ~486 S&P 500 names to ~650 (S&P 400 mid-cap extension) with a $20M median dollar-volume liquidity floor — thin names that would eat market-order fills are excluded at ranking time" },
+      { type: "feat", title: "maximize_returns built-in watchlist widened ~100 → ~185 liquid large-caps (next tier across all 11 sectors)" },
+    ],
+  },
+  {
     version: "0.27.0",
     date: "2026-06-11",
     changes: [

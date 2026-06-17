@@ -239,13 +239,19 @@ export default function DecisionEnginePage() {
 
   function buildStrategyParams(): Record<string, unknown> {
     if (!selectedStrategy) {
-      // claude_decides has no strategy schema — the only param it honors is an
-      // optional manual ticker override that widens Claude's candidate universe.
+      // claude_decides has no strategy schema — it honors an optional manual
+      // ticker override plus the daily screener feed (top-N ranked candidates
+      // folded into Claude's universe each cycle).
+      const result: Record<string, unknown> = {};
       const raw = (strategyParams["tickers"] ?? "").trim();
-      if (!raw) return {};
-      return {
-        tickers: raw.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
-      };
+      if (raw) {
+        result.tickers = raw.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+      }
+      const topN = parseInt(strategyParams["screener_top_n"] ?? "", 10);
+      if (!isNaN(topN) && topN > 0) {
+        result.screener_top_n = Math.min(topN, 40);
+      }
+      return result;
     }
     const result: Record<string, unknown> = {};
     for (const p of selectedStrategy.params) {
@@ -410,14 +416,38 @@ export default function DecisionEnginePage() {
             </h2>
             <p className="text-sm text-muted">
               Hand-pick extra symbols for Claude to consider, on top of this goal&apos;s
-              built-in watchlist. Comma-separated. Leave blank to use the default universe.
+              built-in watchlist. Comma-separated. Crypto uses Alpaca pair format
+              (BTC/USD, ETH/USD). Leave blank to use the default universe.
             </p>
             <input
               type="text"
               value={strategyParams["tickers"] ?? ""}
               onChange={(e) => handleParamChange("tickers", e.target.value)}
-              placeholder="e.g. PLTR, COIN, SHOP"
+              placeholder="e.g. PLTR, COIN, BTC/USD"
               className="w-full px-3 py-2 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent text-sm"
+            />
+          </div>
+        )}
+
+        {/* Screener feed — fold the daily ranked candidates into Claude's universe */}
+        {decisionMode === "claude_decides" && (
+          <div className="bz-glass rounded-xl p-6 space-y-3">
+            <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">
+              Screener Feed
+            </h2>
+            <p className="text-sm text-muted">
+              Feed the daily screener&apos;s top-ranked candidates (momentum, relative
+              strength vs SPY, trend) into Claude&apos;s candidate universe, with their
+              rankings shown in the decision prompt. 0 = off. Typical: 20&ndash;30. Max 40.
+            </p>
+            <input
+              type="number"
+              min={0}
+              max={40}
+              value={strategyParams["screener_top_n"] ?? ""}
+              onChange={(e) => handleParamChange("screener_top_n", e.target.value)}
+              placeholder="0 (off)"
+              className="w-32 px-3 py-2 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-accent text-sm"
             />
           </div>
         )}

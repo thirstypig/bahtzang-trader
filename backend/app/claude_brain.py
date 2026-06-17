@@ -55,38 +55,56 @@ RISK_PROMPTS = {
     ),
 }
 
-# Broad ~100-name candidate universe for maximize_returns. Liquid US large-caps
+# Broad ~185-name candidate universe for maximize_returns. Liquid US large-caps
 # spanning all 11 GICS sectors + a few broad/sector ETFs, so Claude can hunt for
 # setups beyond mega-cap tech instead of rotating the same handful of names.
 # Constraints: no crypto (StockHistoricalDataClient returns wrong prices — see
 # test_goal_prompts.py), no dotted/class-share tickers (e.g. BRK.B) that the
 # Alpaca bar fetch chokes on. Edit this list to reshape the universe.
+# Note: portfolios opted into the screener feed (strategy_params.screener_top_n)
+# additionally get the daily top-N from a ~650-name large+mid-cap pond.
 MAXIMIZE_RETURNS_UNIVERSE: list[str] = [
     # Information technology
     "AAPL", "MSFT", "NVDA", "AVGO", "ORCL", "CRM", "ADBE", "AMD", "CSCO",
     "ACN", "QCOM", "TXN", "IBM", "NOW", "INTU", "AMAT", "MU", "INTC",
+    "PANW", "SNPS", "CDNS", "KLAC", "LRCX", "ADI", "ANET", "MRVL", "CRWD",
+    "FTNT", "PLTR",
     # Communication services
     "GOOGL", "META", "NFLX", "DIS", "CMCSA", "TMUS", "VZ", "T",
+    "EA", "TTWO", "CHTR",
     # Consumer discretionary
     "AMZN", "TSLA", "HD", "MCD", "NKE", "LOW", "SBUX", "BKNG", "TJX",
+    "UBER", "ABNB", "ORLY", "AZO", "CMG", "MAR", "HLT", "GM", "F",
+    "ROST", "YUM", "LEN", "DHI",
     # Consumer staples
     "PG", "KO", "PEP", "COST", "WMT", "PM", "MO", "CL",
+    "MDLZ", "KMB", "GIS", "TGT", "STZ", "SYY", "KR",
     # Health care
     "UNH", "JNJ", "LLY", "ABBV", "MRK", "PFE", "TMO", "ABT", "DHR",
     "BMY", "AMGN", "MDT",
+    "ISRG", "GILD", "VRTX", "REGN", "ZTS", "BSX", "SYK", "ELV", "CI",
+    "CVS", "HCA", "MCK",
     # Financials
     "JPM", "V", "MA", "BAC", "WFC", "GS", "MS", "AXP", "SPGI", "BLK",
     "C", "SCHW",
+    "PGR", "CB", "MMC", "AON", "ICE", "CME", "COF", "USB", "PNC",
+    "PYPL", "KKR",
     # Industrials
     "CAT", "BA", "HON", "UPS", "GE", "RTX", "LMT", "DE", "UNP", "MMM",
+    "ETN", "EMR", "ITW", "PH", "GD", "NOC", "NSC", "CSX", "FDX", "WM",
+    "RSG", "URI", "PWR", "TT", "OTIS", "LHX",
     # Energy
     "XOM", "CVX", "COP", "SLB", "EOG",
+    "PSX", "MPC", "VLO", "OXY", "WMB", "KMI",
     # Materials
     "LIN", "SHW", "FCX", "NEM",
+    "APD", "ECL", "NUE", "CTVA",
     # Utilities
     "NEE", "DUK", "SO",
+    "SRE", "AEP", "D", "EXC", "XEL",
     # Real estate
     "AMT", "PLD", "EQIX",
+    "O", "SPG", "PSA", "WELL", "DLR", "CCI",
     # Broad / sector ETFs
     "SPY", "QQQ", "IWM", "XLK", "XLF", "XLE", "XLV",
 ]
@@ -185,6 +203,7 @@ async def get_trade_decision(
     technicals_csv: str = "",
     sector_csv: str = "",
     earnings_csv: str = "",
+    screener_csv: str = "",
     total_invested: float = 0.0,
     orders_used_today: int = 0,
     exit_only: bool = False,
@@ -290,6 +309,18 @@ async def get_trade_decision(
     if sector_csv:
         prompt_parts.append("")
         prompt_parts.append(sector_csv)
+
+    # Add the screener feed if this portfolio opted in. The block carries its
+    # own header explaining the ranking; weight it as a candidate-quality
+    # signal, not an order.
+    if screener_csv:
+        prompt_parts.append("")
+        prompt_parts.append(screener_csv)
+        prompt_parts.append(
+            "Screener ranks are a quantitative momentum signal — prefer "
+            "higher-ranked names when technicals agree, but you are not "
+            "required to trade them."
+        )
 
     # Add earnings calendar if available
     if earnings_csv:

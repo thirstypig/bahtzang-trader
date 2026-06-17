@@ -13,8 +13,8 @@ const TESTS = {
       },
       {
         file: "tests/plans/test_constraints.py",
-        tests: 11,
-        covers: "Cooldown enforcement, frequency cap (buy/sell), repeat-action guard, cross-portfolio isolation, touch history upsert",
+        tests: 10,
+        covers: "Cooldown enforcement, frequency cap (buy/sell), repeat-action allowed (no hard block), cross-portfolio isolation, touch history upsert",
       },
       {
         file: "tests/plans/test_executor.py",
@@ -68,8 +68,8 @@ const TESTS = {
       },
       {
         file: "tests/test_claude_brain_prompt.py",
-        tests: 13,
-        covers: "Headroom block (invested, orders, position slots, effective buy ceiling, sizing, backward-compat) + timeline-goal sanitization (valid render, malformed date suppressed, uncoercible amount suppressed, zero/negative suppressed, string-numeric coerced) + exit-only block (present when flagged with stop-loss %, absent by default)",
+        tests: 15,
+        covers: "Headroom block (invested, orders, position slots, effective buy ceiling, sizing, backward-compat) + timeline-goal sanitization (valid render, malformed date suppressed, uncoercible amount suppressed, zero/negative suppressed, string-numeric coerced) + exit-only block (present when flagged with stop-loss %, absent by default) + screener CSV block (rendered with weighting note when fed, absent by default)",
       },
       {
         file: "tests/test_claude_brain_review.py",
@@ -93,13 +93,18 @@ const TESTS = {
       },
       {
         file: "tests/screener/test_engine.py",
-        tests: 7,
-        covers: "Screener rank_universe (pure): uptrend outranks downtrend, insufficient-history excluded, extreme-volatility excluded, top_n cap + rank numbering, empty universe; _compute_factors None below min bars + trend score",
+        tests: 9,
+        covers: "Screener rank_universe (pure): uptrend outranks downtrend, insufficient-history excluded, extreme-volatility excluded, top_n cap + rank numbering, empty universe; _compute_factors None below min bars + trend score; $20M liquidity floor (thin names excluded, liquid pass)",
       },
       {
         file: "tests/test_zero_qty_coercion.py",
         tests: 13,
         covers: "Coerce buy/sell with qty<=0 or price<=0 to hold before validation; plan executor passes total_invested + orders_today to Claude prompt",
+      },
+      {
+        file: "tests/test_crypto_support.py",
+        tests: 9,
+        covers: "Crypto routing: is_crypto slash-pair classification; indicators route crypto to CryptoHistoricalDataClient (stock client never sees pairs, one client's failure doesn't blank the other); orders use GTC for crypto / DAY for equities; AV quotes+news never see slash pairs while Alpaca indicators do (price source)",
       },
       {
         file: "tests/test_allowed_emails.py",
@@ -196,9 +201,19 @@ const TESTS = {
         covers: "fetch_and_cache_bars OHLCV pipeline (real SQLite cache, mocked Alpaca): gap-fill skips fully-cached tickers, all-cached never calls Alpaca, uncached tickers fetched in one multi-symbol batch; load_bars issues ONE grouped query regardless of ticker count + DataFrame shape/order",
       },
       {
+        file: "tests/plans/test_screener_feed.py",
+        tests: 6,
+        covers: "Screener→portfolio feed: opted-in plan gets top-N tickers + ranked CSV, non-opted plan gets neither, failed runs ignored, latest complete run wins, screener_top_n sanitized (cap 40, junk→0), CSV gated per plan in run_plan_cycle",
+      },
+      {
         file: "tests/plans/test_exit_only_cycle.py",
         tests: 7,
         covers: "3:30 PM exit-only cycle: buys suppressed to holds for claude_decides AND rules modes (single executor enforcement point), sells still execute, normal cycles unaffected; virtual positions carry real cost basis + unrealized P&L (average-cost method: buys re-average, sells don't, closed positions drop out)",
+      },
+      {
+        file: "tests/test_scheduler.py",
+        tests: 7,
+        covers: "FREQUENCY_SCHEDULES: all presets start at 10:00 ET (not 9:35), slot counts match frequency names, no pre-market slots; EXIT_CHECK_JOB_ID stable constant; _scheduled_cycle propagates exit_only flag to run_all_plans; skips gracefully when no active portfolios",
       },
       {
         file: "tests/screener/test_run_screener.py",
@@ -323,8 +338,8 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (363 tests)" },
-  { cmd: "npm run test:frontend", desc: "All frontend tests (129 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (388 tests)" },
+  { cmd: "npm run test:frontend", desc: "All frontend tests (132 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
   { cmd: "npm run test:backend:cov", desc: "Backend tests with coverage report" },

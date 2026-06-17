@@ -518,13 +518,14 @@ async def run_portfolio(
     # missing tickers held only in the portfolio's virtual positions.
     from app.plans.executor import fetch_market_data, run_plan_cycle
 
-    positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv = (
+    positions, balance, quotes, news, technicals_csv, sector_csv, earnings_csv, screener_csv = (
         await fetch_market_data(db, [portfolio_id], plans=[portfolio])
     )
 
     results = await run_plan_cycle(
         db, portfolio, positions, balance, quotes, news,
         technicals_csv, sector_csv, earnings_csv,
+        screener_csv=screener_csv,
     )
     return results[0] if results else {"action": "hold", "ticker": "", "quantity": 0}
 
