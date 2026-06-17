@@ -24,7 +24,6 @@ async def check_trading_constraints(
     Enforces:
     1. Cooldown window — min hours between touches on same ticker
     2. Frequency cap — max 5 buys and 5 sells per ticker per week
-    3. No-repeat action — can't buy then buy again (or sell then sell)
 
     Returns: (allowed, reason_if_blocked)
     """
@@ -65,11 +64,6 @@ async def check_trading_constraints(
 
     if action == "SELL" and sells_this_week >= 5:
         reason = f"Frequency cap: {ticker} max 5 sells/week, already at 5"
-        return False, reason
-
-    # 3. Check no same action twice in a row
-    if touch and touch.last_action.upper() == action:
-        reason = f"No repeats: {ticker} last action was {touch.last_action}, can't repeat"
         return False, reason
 
     return True, None
