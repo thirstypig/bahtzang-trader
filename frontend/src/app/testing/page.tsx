@@ -13,8 +13,8 @@ const TESTS = {
       },
       {
         file: "tests/plans/test_constraints.py",
-        tests: 11,
-        covers: "Cooldown enforcement, frequency cap (buy/sell), repeat-action guard, cross-portfolio isolation, touch history upsert",
+        tests: 10,
+        covers: "Cooldown enforcement, frequency cap (buy/sell), repeat-action allowed (no hard block), cross-portfolio isolation, touch history upsert",
       },
       {
         file: "tests/plans/test_executor.py",
@@ -211,6 +211,11 @@ const TESTS = {
         covers: "3:30 PM exit-only cycle: buys suppressed to holds for claude_decides AND rules modes (single executor enforcement point), sells still execute, normal cycles unaffected; virtual positions carry real cost basis + unrealized P&L (average-cost method: buys re-average, sells don't, closed positions drop out)",
       },
       {
+        file: "tests/test_scheduler.py",
+        tests: 7,
+        covers: "FREQUENCY_SCHEDULES: all presets start at 10:00 ET (not 9:35), slot counts match frequency names, no pre-market slots; EXIT_CHECK_JOB_ID stable constant; _scheduled_cycle propagates exit_only flag to run_all_plans; skips gracefully when no active portfolios",
+      },
+      {
         file: "tests/screener/test_run_screener.py",
         tests: 2,
         covers: "run_screener orchestration: success persists ranked candidates + status=complete; failing data fetch marks status=failed (not stuck running) + records error",
@@ -333,8 +338,8 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (382 tests)" },
-  { cmd: "npm run test:frontend", desc: "All frontend tests (129 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (388 tests)" },
+  { cmd: "npm run test:frontend", desc: "All frontend tests (132 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
   { cmd: "npm run test:backend:cov", desc: "Backend tests with coverage report" },
