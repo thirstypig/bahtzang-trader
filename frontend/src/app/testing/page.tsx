@@ -93,8 +93,8 @@ const TESTS = {
       },
       {
         file: "tests/screener/test_engine.py",
-        tests: 9,
-        covers: "Screener rank_universe (pure): uptrend outranks downtrend, insufficient-history excluded, extreme-volatility excluded, top_n cap + rank numbering, empty universe; _compute_factors None below min bars + trend score; $20M liquidity floor (thin names excluded, liquid pass)",
+        tests: 10,
+        covers: "Screener rank_universe (pure): uptrend outranks downtrend, insufficient-history excluded, extreme-volatility excluded, top_n cap + rank numbering, empty universe; _compute_factors None below min bars + trend score; $20M liquidity floor (thin names excluded, liquid pass); all candidate numeric fields are native Python floats (no np.float64 — regression guard for the Postgres 'schema np' crash)",
       },
       {
         file: "tests/test_zero_qty_coercion.py",
@@ -105,6 +105,11 @@ const TESTS = {
         file: "tests/test_crypto_support.py",
         tests: 9,
         covers: "Crypto routing: is_crypto slash-pair classification; indicators route crypto to CryptoHistoricalDataClient (stock client never sees pairs, one client's failure doesn't blank the other); orders use GTC for crypto / DAY for equities; AV quotes+news never see slash pairs while Alpaca indicators do (price source)",
+      },
+      {
+        file: "tests/test_company.py",
+        tests: 5,
+        covers: "Company-profile lookup: Finnhub /stock/profile2 fields normalized, per-ticker cache (one fetch), crypto pairs skip Finnhub + use Yahoo dash URL (BTC-USD), Finnhub failure returns Yahoo-only profile (not cached), GET /company?symbol= endpoint",
       },
       {
         file: "tests/test_allowed_emails.py",
@@ -212,8 +217,8 @@ const TESTS = {
       },
       {
         file: "tests/test_scheduler.py",
-        tests: 7,
-        covers: "FREQUENCY_SCHEDULES: all presets start at 10:00 ET (not 9:35), slot counts match frequency names, no pre-market slots; EXIT_CHECK_JOB_ID stable constant; _scheduled_cycle propagates exit_only flag to run_all_plans; skips gracefully when no active portfolios",
+        tests: 11,
+        covers: "FREQUENCY_SCHEDULES: all presets start at 10:00 ET (not 9:35), slot counts match frequency names, no pre-market slots; EXIT_CHECK_JOB_ID stable constant; _scheduled_cycle propagates exit_only flag to run_all_plans; skips gracefully when no active portfolios; _extract_latest_close reads SPY from an Alpaca BarSet via .data (BarSet has no .get() — regression for the SPY=$0.00 snapshot bug)",
       },
       {
         file: "tests/screener/test_run_screener.py",
@@ -271,8 +276,13 @@ const TESTS = {
       },
       {
         file: "src/components/TradeTable.test.tsx",
-        tests: 12,
-        covers: "Table rendering, Passed/Blocked badges, BUY/SELL/HOLD colors, confidence %, sorting, reasoning column",
+        tests: 15,
+        covers: "Table rendering, Passed/Blocked badges, BUY/SELL/HOLD colors, confidence %, sorting, reasoning column, ticker hover cell",
+      },
+      {
+        file: "src/components/Ticker.test.tsx",
+        tests: 5,
+        covers: "Ticker hover card: renders symbol, em-dash for empty, fetches profile on hover and shows company info + Yahoo link, fetches only once across repeated hovers, crypto with no metadata still shows the Yahoo (dash-form) link",
       },
       {
         file: "src/components/ConfirmModal.test.tsx",
@@ -338,8 +348,8 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (388 tests)" },
-  { cmd: "npm run test:frontend", desc: "All frontend tests (132 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (398 tests)" },
+  { cmd: "npm run test:frontend", desc: "All frontend tests (137 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
   { cmd: "npm run test:backend:cov", desc: "Backend tests with coverage report" },

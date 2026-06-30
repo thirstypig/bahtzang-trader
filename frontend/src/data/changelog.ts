@@ -10,6 +10,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.30.0",
+    date: "2026-06-30",
+    changes: [
+      { type: "fix", title: "Trading restored: the bot had silently stopped trading for 13 days because it was calling a Claude model Anthropic had retired (every decision cycle 404'd before it could act). Pointed it at the current model — the active portfolio resumed trading the same day" },
+      { type: "feat", title: "Ticker hover cards on the Trades page: hover (or keyboard-focus) any symbol to see the company name, industry, exchange, and market cap, plus a one-click link to its Yahoo Finance page. Crypto pairs link straight to Yahoo" },
+      { type: "fix", title: "Daily screener crash fixed: a numpy 2.x type quirk made every screener run fail against PostgreSQL, so opted-in portfolios were getting no fresh rankings. Rankings are produced again" },
+      { type: "fix", title: "Benchmark fix: daily snapshots were logging the S&P 500 (SPY) close as $0.00, breaking the portfolio-vs-market comparison line — now recorded correctly" },
+    ],
+  },
+  {
     version: "0.29.0",
     date: "2026-06-12",
     changes: [
