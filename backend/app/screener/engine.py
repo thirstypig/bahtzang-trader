@@ -120,7 +120,10 @@ def _zscores(values: list[float]) -> list[float]:
     std = arr.std()
     if std == 0:
         return [0.0] * len(arr)
-    return list((arr - arr.mean()) / std)
+    # Coerce to native floats: np.float64 is a float subclass that SQLite
+    # accepts but PostgreSQL rejects (numpy 2.x repr 'np.float64(...)' lands in
+    # the SQL as a `np.` schema reference). composite_score is built from these.
+    return [float(x) for x in (arr - arr.mean()) / std]
 
 
 def rank_universe(

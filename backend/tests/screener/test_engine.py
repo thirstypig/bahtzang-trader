@@ -63,6 +63,30 @@ class TestRankUniverse:
     def test_empty_universe_returns_empty(self):
         assert rank_universe({}, top_n=10) == []
 
+    def test_candidate_fields_are_native_python_floats(self):
+        """Every numeric field must be a native float, not np.float64.
+
+        np.float64 is a float subclass so it slips past isinstance checks and
+        SQLite tolerates it — but under numpy 2.x its repr is 'np.float64(...)',
+        which PostgreSQL renders into SQL as `np.float64(...)` and rejects with
+        InvalidSchemaName: schema "np" does not exist. composite_score was the
+        one field not coerced to float.
+        """
+        bars = {
+            "UP": _bars(daily=0.002),
+            "DOWN": _bars(daily=-0.001),
+            "SPY": _bars(daily=0.0003),
+        }
+        ranked = rank_universe(bars, top_n=10)
+        assert ranked
+        numeric = ("composite_score", "momentum", "rel_strength",
+                   "trend_score", "rsi", "volatility", "price")
+        for row in ranked:
+            for key in numeric:
+                assert type(row[key]) is float, (
+                    f"{key} is {type(row[key]).__name__}, expected native float"
+                )
+
 
 @pytest.mark.unit
 class TestComputeFactors:
