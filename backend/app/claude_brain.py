@@ -383,7 +383,7 @@ async def get_trade_decision(
 
     try:
         message = await client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-6",
             max_tokens=1024,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],
@@ -510,7 +510,7 @@ async def review_trade_decision(
 
     try:
         message = await client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-6",
             max_tokens=512,
             system=_REVIEW_SYSTEM_PROMPT,
             messages=[{"role": "user", "content": "\n".join(prompt_parts)}],
