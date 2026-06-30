@@ -1,6 +1,7 @@
 import {
   BacktestDetail,
   BacktestItem,
+  CompanyProfile,
   CycleResult,
   EarningsEvent,
   ForexBacktestCreate,
@@ -64,6 +65,14 @@ export async function getPortfolio(): Promise<Portfolio> {
 
 export async function getTrades(limit = 50): Promise<Trade[]> {
   return fetchAPI<Trade[]>(`/trades?limit=${limit}`);
+}
+
+export async function getCompanyProfile(
+  symbol: string,
+): Promise<CompanyProfile> {
+  return fetchAPI<CompanyProfile>(
+    `/company?symbol=${encodeURIComponent(symbol)}`,
+  );
 }
 
 export async function getTradesSummary(limit = 500): Promise<Trade[]> {
