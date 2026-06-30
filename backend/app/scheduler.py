@@ -169,6 +169,18 @@ async def _take_plan_snapshots():
 SNAPSHOT_JOB_ID = "daily_snapshot"
 
 
+def _extract_latest_close(bars, symbol: str) -> float | None:
+    """Latest close for ``symbol`` from an Alpaca BarSet.
+
+    BarSet has no ``.get()`` — its per-symbol lists live on ``.data`` (a dict).
+    Returns None when the symbol is absent or has no bars.
+    """
+    series = getattr(bars, "data", {}).get(symbol, [])
+    if not series:
+        return None
+    return float(series[-1].close)
+
+
 async def _take_snapshot():
     """Capture end-of-day portfolio state and SPY close."""
     from datetime import date as date_type
@@ -209,9 +221,7 @@ async def _take_snapshot():
                     end=today,
                 ),
             )
-            spy_bars = bars.get("SPY", bars.data.get("SPY", []))
-            if spy_bars:
-                spy_close = float(spy_bars[-1].close)
+            spy_close = _extract_latest_close(bars, "SPY")
         except Exception as e:
             logger.warning("Failed to fetch SPY close: %s", e)
 

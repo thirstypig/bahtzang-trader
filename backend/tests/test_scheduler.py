@@ -10,7 +10,39 @@ Guards:
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.scheduler import FREQUENCY_SCHEDULES, EXIT_CHECK_JOB_ID
+from app.scheduler import FREQUENCY_SCHEDULES, EXIT_CHECK_JOB_ID, _extract_latest_close
+
+
+class _FakeBar:
+    def __init__(self, close):
+        self.close = close
+
+
+class _FakeBarSet:
+    """Mimics Alpaca's BarSet: per-symbol lists on .data, and crucially NO .get()."""
+
+    def __init__(self, data):
+        self.data = data
+
+
+@pytest.mark.unit
+class TestExtractLatestClose:
+    def test_returns_latest_close_from_barset_data(self):
+        bars = _FakeBarSet({"SPY": [_FakeBar(500.0), _FakeBar(512.34)]})
+        assert _extract_latest_close(bars, "SPY") == 512.34
+
+    def test_returns_none_when_symbol_absent(self):
+        assert _extract_latest_close(_FakeBarSet({}), "SPY") is None
+
+    def test_returns_none_when_no_bars(self):
+        assert _extract_latest_close(_FakeBarSet({"SPY": []}), "SPY") is None
+
+    def test_does_not_call_get_on_the_barset(self):
+        # Regression: old code did bars.get("SPY", ...) — BarSet has no .get(),
+        # which raised 'BarSet object has no attribute get' and logged SPY=$0.00.
+        bars = _FakeBarSet({"SPY": [_FakeBar(123.45)]})
+        assert not hasattr(bars, "get")  # our fake matches the real BarSet
+        assert _extract_latest_close(bars, "SPY") == 123.45
 
 
 @pytest.mark.unit

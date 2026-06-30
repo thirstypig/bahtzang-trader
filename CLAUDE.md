@@ -3,7 +3,7 @@
 ## Current status
 
 <!-- now-tldr -->
-An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). 24/30 paper trades executed (as of 2026-05-14); 6 more needed to gate the Phase G live switch. Only Test 4 ($10k portfolio) is active; three $100 test portfolios deactivated (spent). Fixed: BTC/ETH removed from Claude prompts (StockHistoricalDataClient returned wrong $35 price for crypto tickers). Decision modes, oversight activity, pause/resume UI, sign-out all shipped.
+An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). Phase G gate reset 2026-06-16: Test 4 hit 34 trades but logged 3 losing weeks (gate requires zero) — deactivated, preserved as a historical record. Test 5 (id=6, $10k, maximize_returns) is the active portfolio. **2026-06-30:** found Test 5 had made zero trades for 13 days — every cycle was 404ing on a retired Claude model id (`claude-sonnet-4-20250514`); fixed to `claude-sonnet-4-6` and trading resumed (Phase G clock 0→3/30). Same pass shipped ticker hover cards (company profile + Yahoo link), fixed the daily screener's numpy-2.x `np.float64` Postgres crash, and fixed the SPY benchmark snapshot fetch.
 <!-- /now-tldr -->
 
 ## Project Overview
@@ -34,8 +34,8 @@ npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
-npm run test:backend     # pytest (382 tests, ~4s)
-npm run test:frontend    # Vitest (129 tests, ~3s)
+npm run test:backend     # pytest (398 tests, ~4s)
+npm run test:frontend    # Vitest (137 tests, ~3s)
 npm run test:backend:cov # Backend with coverage report
 ```
 
@@ -187,7 +187,8 @@ backend/
     analytics.py      # Portfolio metrics: Sharpe, Sortino, drawdown, win rate, profit factor
     # strategies/ — see above; lives at app level, not inside a feature module
     pipeline_types.py # TypedDict definitions for pipeline data (Position, Quote, TradeDecision, etc.)
-    claude_brain.py   # AsyncAnthropic → Claude Sonnet → CSV prompt (30s timeout) + earnings context
+    claude_brain.py   # AsyncAnthropic → Claude Sonnet (model: claude-sonnet-4-6) → CSV prompt (30s timeout) + earnings context
+    company.py        # Cached company-profile lookup (Finnhub /stock/profile2) + GET /company?symbol= — backs the ticker hover card; crypto pairs skip Finnhub (Yahoo link only)
     circuit_breaker.py # 3-tier staged halts (YELLOW/ORANGE/RED) on portfolio P&L
     compliance.py     # PDT day trade tracking + wash sale 30-day cooling detection
     guardrails.py     # RISK_PRESETS, TRADING_GOALS, apply_risk_preset() — no DB state, no policy gate
@@ -204,7 +205,7 @@ backend/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
   railway.toml        # Railway deploy config
   pytest.ini          # Test config (markers: unit, integration, e2e)
-  tests/              # Test suites (382 backend tests)
+  tests/              # Test suites (398 backend tests)
     conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
     plans/            # Portfolio model, executor, constraints, route, snapshot tests
     earnings/         # Earnings route integration tests
