@@ -319,3 +319,16 @@ export interface ScreenerResult {
   refreshing?: boolean;
   candidates: ScreenerCandidate[];
 }
+
+export interface CompanyProfile {
+  ticker: string;
+  name: string | null;
+  industry: string | null;
+  exchange: string | null;
+  market_cap: number | null; // millions USD
+  logo: string | null;
+  currency: string | null;
+  website: string | null;
+  yahoo_url: string;
+  source: "finnhub" | "none";
+}
