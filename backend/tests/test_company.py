@@ -90,6 +90,27 @@ async def test_finnhub_failure_returns_yahoo_only_and_is_not_cached(monkeypatch)
     assert "AAPL" not in company._cache  # failures are not cached (retry next time)
 
 
+@pytest.mark.asyncio
+async def test_missing_finnhub_key_returns_yahoo_only(monkeypatch):
+    """No FINNHUB key configured → degrade to a Yahoo-only profile, never call Finnhub.
+
+    This is the prod-degradation path: if the key is unset/invalid on Railway the
+    hover card must still give a working Yahoo link instead of erroring.
+    """
+    async def boom(symbol):
+        raise AssertionError("Finnhub must not be called without a key")
+
+    monkeypatch.setattr(company, "_fetch_finnhub_profile", boom)
+    monkeypatch.setattr(company.settings, "FINNHUB_API_KEY", "")
+
+    profile = await company.get_company_profile("AAPL")
+
+    assert profile["name"] is None
+    assert profile["source"] == "none"
+    assert profile["yahoo_url"] == "https://finance.yahoo.com/quote/AAPL"
+    assert "AAPL" not in company._cache  # not cached — a key may arrive via env later
+
+
 def test_company_endpoint_returns_profile(client, monkeypatch):
     async def fake_fetch(symbol):
         return dict(FINNHUB_AAPL)

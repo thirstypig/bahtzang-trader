@@ -34,8 +34,8 @@ npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
-npm run test:backend     # pytest (398 tests, ~4s)
-npm run test:frontend    # Vitest (137 tests, ~3s)
+npm run test:backend     # pytest (400 tests, ~4s)
+npm run test:frontend    # Vitest (138 tests, ~3s)
 npm run test:backend:cov # Backend with coverage report
 ```
 
@@ -205,7 +205,7 @@ backend/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
   railway.toml        # Railway deploy config
   pytest.ini          # Test config (markers: unit, integration, e2e)
-  tests/              # Test suites (398 backend tests)
+  tests/              # Test suites (400 backend tests)
     conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
     plans/            # Portfolio model, executor, constraints, route, snapshot tests
     earnings/         # Earnings route integration tests
