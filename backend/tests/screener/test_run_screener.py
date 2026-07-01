@@ -65,3 +65,31 @@ class TestRunScreener:
             db_session.query(ScreenerCandidate).filter(ScreenerCandidate.run_id == run.id).count()
             == 0
         )
+
+    async def test_marks_failed_when_candidate_flush_poisons_session(self, db_session):
+        """Regression for the prod 'schema np' crash aftermath.
+
+        When the exception happens DURING the candidate flush (not before it),
+        the session is left needing a rollback. The failure handler must
+        db.rollback() before writing status="failed" — otherwise its own commit
+        raises PendingRollbackError and the run is stranded as "running" forever.
+
+        Reproduced by feeding a candidate with composite_score=None, which
+        violates the NOT NULL column and errors mid-flush.
+        """
+        bad_row = {
+            "rank": 1, "ticker": "AAA", "composite_score": None,  # NOT NULL → flush fails
+            "momentum": 0.0, "rel_strength": 0.0, "trend_score": 0.0,
+            "rsi": 50.0, "volatility": 0.1, "price": 100.0,
+        }
+        with patch("app.backtest.data.fetch_and_cache_bars", new=AsyncMock(return_value=None)), \
+             patch("app.backtest.data.load_bars", return_value={"AAA": _bars(0.001)}), \
+             patch("app.screener.engine.rank_universe", return_value=[bad_row]):
+            run = await run_screener(db_session, universe=["AAA"], top_n=10)
+
+        assert run.status == "failed"          # NOT stranded as "running"
+        assert run.error
+        assert (
+            db_session.query(ScreenerCandidate).filter(ScreenerCandidate.run_id == run.id).count()
+            == 0
+        )

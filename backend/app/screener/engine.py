@@ -227,10 +227,20 @@ async def run_screener(
         logger.info("Screener run %d complete: %d candidates from %d names",
                     run.id, len(ranked), len(tickers))
     except Exception as e:
+        # A failure during flush poisons the session: any further DB touch —
+        # including logging run.id (which reloads the now-expired object) or the
+        # status commit — raises PendingRollbackError and strands the run as
+        # "running" forever. Roll back FIRST, before anything reads the session.
+        error = str(e)[:500]  # safe: doesn't touch the DB
+        db.rollback()
         logger.exception("Screener run %d failed: %s", run.id, e)
-        run.status = "failed"
-        run.error = str(e)[:500]
-        db.commit()
+        try:
+            run.status = "failed"
+            run.error = error
+            db.commit()
+        except Exception:
+            logger.exception("Screener could not record failure status")
+            db.rollback()
 
     return run
 
