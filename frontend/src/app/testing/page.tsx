@@ -108,8 +108,8 @@ const TESTS = {
       },
       {
         file: "tests/test_company.py",
-        tests: 5,
-        covers: "Company-profile lookup: Finnhub /stock/profile2 fields normalized, per-ticker cache (one fetch), crypto pairs skip Finnhub + use Yahoo dash URL (BTC-USD), Finnhub failure returns Yahoo-only profile (not cached), GET /company?symbol= endpoint",
+        tests: 6,
+        covers: "Company-profile lookup: Finnhub /stock/profile2 fields normalized, per-ticker cache (one fetch), crypto pairs skip Finnhub + use Yahoo dash URL (BTC-USD), Finnhub failure returns Yahoo-only profile (not cached), missing FINNHUB key degrades to Yahoo-only (never calls Finnhub), GET /company?symbol= endpoint",
       },
       {
         file: "tests/test_allowed_emails.py",
@@ -222,8 +222,8 @@ const TESTS = {
       },
       {
         file: "tests/screener/test_run_screener.py",
-        tests: 2,
-        covers: "run_screener orchestration: success persists ranked candidates + status=complete; failing data fetch marks status=failed (not stuck running) + records error",
+        tests: 3,
+        covers: "run_screener orchestration: success persists ranked candidates + status=complete; failing data fetch marks status=failed (not stuck running) + records error; a mid-flush exception (poisoned session) still lands status=failed instead of stranded 'running' (rollback-before-record regression)",
       },
       {
         file: "tests/screener/test_routes.py",
@@ -281,8 +281,8 @@ const TESTS = {
       },
       {
         file: "src/components/Ticker.test.tsx",
-        tests: 5,
-        covers: "Ticker hover card: renders symbol, em-dash for empty, fetches profile on hover and shows company info + Yahoo link, fetches only once across repeated hovers, crypto with no metadata still shows the Yahoo (dash-form) link",
+        tests: 6,
+        covers: "Ticker hover card: renders symbol, em-dash for empty, fetches profile on hover and shows company info + Yahoo link, market cap formatted in B/M, fetches only once across repeated hovers, crypto with no metadata still shows the Yahoo (dash-form) link",
       },
       {
         file: "src/components/ConfirmModal.test.tsx",
@@ -348,8 +348,8 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (398 tests)" },
-  { cmd: "npm run test:frontend", desc: "All frontend tests (137 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (400 tests)" },
+  { cmd: "npm run test:frontend", desc: "All frontend tests (138 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
   { cmd: "npm run test:backend:cov", desc: "Backend tests with coverage report" },

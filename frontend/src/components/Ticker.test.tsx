@@ -56,6 +56,33 @@ describe("Ticker", () => {
     expect(link).toHaveAttribute("target", "_blank");
   });
 
+  it("formats market cap in billions and in millions", async () => {
+    // market_cap arrives in millions: 250_000 → $250.0B, 800 → $800M.
+    // Only the trillions branch was covered before.
+    getCompanyProfile.mockImplementation(async (s: string) =>
+      s === "BIG"
+        ? profile({ ticker: "BIG", market_cap: 250_000 })
+        : profile({ ticker: "SML", market_cap: 800 }),
+    );
+    const user = userEvent.setup();
+    render(
+      <>
+        <Ticker symbol="BIG" />
+        <Ticker symbol="SML" />
+      </>,
+    );
+
+    await user.hover(screen.getByText("BIG"));
+    await waitFor(() =>
+      expect(screen.getByText(/Market cap \$250\.0B/)).toBeInTheDocument(),
+    );
+
+    await user.hover(screen.getByText("SML"));
+    await waitFor(() =>
+      expect(screen.getByText(/Market cap \$800M/)).toBeInTheDocument(),
+    );
+  });
+
   it("fetches only once across repeated hovers", async () => {
     getCompanyProfile.mockResolvedValue(profile());
     const user = userEvent.setup();
