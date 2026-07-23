@@ -23,8 +23,18 @@ const TESTS = {
       },
       {
         file: "tests/plans/test_snapshots.py",
-        tests: 5,
-        covers: "Daily snapshot capture, upsert behavior, inactive plan skip, position valuation",
+        tests: 10,
+        covers: "Daily snapshot capture, upsert, inactive-plan skip, position valuation; $0-price regression — a missing quote must value from Alpaca / carry forward (bounded 7d) / skip the row, never fall through to $0",
+      },
+      {
+        file: "tests/test_risk.py",
+        tests: 9,
+        covers: "Risk engine (PRD-002): ATR-based stop price, risk-based position sizing (size falls out of the stop), whole-share flooring, over-budget → 0, missing ATR / stop-not-below-entry raise RiskError",
+      },
+      {
+        file: "tests/test_broker_bracket.py",
+        tests: 4,
+        covers: "Broker-held stop as an OTO order on a buy (no take-profit); sells, crypto, and no-stop calls stay simple orders",
       },
       {
         file: "tests/plans/test_unified_trade.py",
@@ -348,7 +358,7 @@ const TESTS = {
 
 const COMMANDS = [
   { cmd: "npm test", desc: "Run all tests (backend + frontend)" },
-  { cmd: "npm run test:backend", desc: "All backend tests (400 tests)" },
+  { cmd: "npm run test:backend", desc: "All backend tests (418 tests)" },
   { cmd: "npm run test:frontend", desc: "All frontend tests (138 tests)" },
   { cmd: "npm run test:unit", desc: "Backend unit tests only (fastest)" },
   { cmd: "npm run test:integration", desc: "Backend API integration tests" },
@@ -445,7 +455,7 @@ export default function TestingPage() {
             <tbody className="divide-y divide-border/50">
               <tr>
                 <td className="px-3 py-2 font-mono text-accent">Pre-commit hook</td>
-                <td className="px-3 py-2 text-secondary">tsc + eslint + pytest (328) + vitest (120)</td>
+                <td className="px-3 py-2 text-secondary">tsc + eslint + pytest (418) + vitest (138)</td>
                 <td className="px-3 py-2 text-muted">Every git commit (~5s)</td>
               </tr>
               <tr>
