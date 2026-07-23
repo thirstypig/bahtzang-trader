@@ -106,6 +106,21 @@ class PlanSnapshot(Base):
     )
 
 
+class TickerPrice(Base):
+    """Last known good price per ticker — carry-forward source for snapshots.
+
+    Snapshots must never value a held position at $0 just because a price
+    lookup failed. When the live price source returns nothing for a ticker,
+    the snapshot carries forward the most recent price recorded here.
+    """
+
+    __tablename__ = "ticker_prices"
+
+    ticker: Mapped[str] = mapped_column(String(20), primary_key=True)
+    price: Mapped[Decimal] = mapped_column(Numeric(14, 4), nullable=False)
+    as_of: Mapped[date] = mapped_column(Date, nullable=False)
+
+
 class PortfolioTouchHistory(Base):
     """Tracks per-ticker trading history to enforce cooldown and frequency rules.
 
