@@ -249,11 +249,36 @@ export const roadmapItems: RoadmapItem[] = [
     priority: "medium",
     phase: "Phase UI",
   },
+  {
+    id: "snapshot-pricing-fix",
+    title: "Honest snapshot pricing",
+    description: "Daily snapshots valued any position with a missing quote at $0 (Alpha Vantage returns HTTP 200 with a rate-limit notice, so failures were invisible). Test 5 read -40.8% when it was actually -7.5%. Now prices from Alpaca with bounded carry-forward, and refuses to write a snapshot it can't fully price. Prod history backfilled.",
+    status: "done",
+    priority: "high",
+    phase: "Phase G",
+  },
+  {
+    id: "docs-knowledge-base",
+    title: "Internal docs knowledge base",
+    description: "Frontmatter-driven /docs system the admin board indexes: controlled tag vocabulary, PRD/ADR/risk/experiment records, a comment-inbox loop, and generated living docs (stats/costs/status) so figures can't drift. 31 legacy docs retrofitted.",
+    status: "done",
+    priority: "medium",
+    phase: "Phase G",
+  },
+  // In progress
+  {
+    id: "risk-defined-trading",
+    title: "Risk-defined trading engine",
+    description: "Broker-held ATR stops attached at entry, risk-based position sizing (size falls out of the stop), a daily trailing ratchet, and portfolio heat + per-sector caps. Fixes the core problem found 2026-07-22: the stop-loss was never enforced (prompt text only), so positions exited at -10% to -24% against a nominal 5% stop, for a -$58/trade expectancy. Core sizing/stop math shipped + tested; executor wiring next. Spec: PRD-002.",
+    status: "in-progress",
+    priority: "high",
+    phase: "Phase G",
+  },
   // Planned
   {
     id: "paper-to-live",
     title: "Paper-to-live transition",
-    description: "Graduated scale-up: 10% → 25% → 50% → 100% of capital over 3 months. Gated on completing 30+ paper trades (todo #1).",
+    description: "Graduated scale-up: 10% → 25% → 50% → 100% of capital over 3 months. NOT gated on trade count alone — Test 5 reached 31 trades but FAILED the zero-losing-weeks gate. Real blocker: the risk-defined trading engine must land and produce a clean winning run on a fresh portfolio (Test 6) before live capital. $200 first live allocation.",
     status: "planned",
     priority: "high",
     phase: "Phase G",

@@ -6,7 +6,7 @@ phase: null
 owner: james
 tags: [foundations]
 links: [DOC-010]
-updated: 2026-07-22
+updated: 2026-07-23
 ---
 
 # Repo stats
@@ -17,23 +17,23 @@ updated: 2026-07-22
 > Real progress is features and phases shipped, not lines written. A refactor that
 > deletes 2,000 lines is usually progress, and this number will call it a regression.
 
-Generated 2026-07-22 from 417 git-tracked files.
+Generated 2026-07-23 from 420 git-tracked files.
 
 ## Code
 
 | Type | Files | Lines |
 |---|---:|---:|
-| `.py` | 118 | 16,610 |
-| `.md` | 173 | 15,926 |
+| `.py` | 120 | 16,727 |
+| `.md` | 174 | 16,068 |
 | `.tsx` | 73 | 11,326 |
 | `.json` | 9 | 8,681 |
-| `.ts` | 17 | 2,576 |
+| `.ts` | 17 | 2,601 |
 | `.mjs` | 4 | 595 |
 | `.sql` | 8 | 347 |
 | `.css` | 1 | 210 |
 | `.yml` | 1 | 48 |
 | `.toml` | 2 | 25 |
-| **Total** | **406** | **56,344** |
+| **Total** | **409** | **56,628** |
 
 ## Surface area
 
@@ -41,7 +41,7 @@ Generated 2026-07-22 from 417 git-tracked files.
 |---|---:|
 | Backend routes | 46 |
 | Frontend pages | 25 |
-| Docs (excluding templates) | 53 |
+| Docs (excluding templates) | 54 |
 
 ## Docs by type
 
@@ -51,6 +51,7 @@ Generated 2026-07-22 from 417 git-tracked files.
 | plan | 6 |
 | guide | 3 |
 | brainstorm | 2 |
+| prd | 2 |
 | inbox | 1 |
 | adr | 1 |
 | api-docs | 1 |
@@ -61,7 +62,6 @@ Generated 2026-07-22 from 417 git-tracked files.
 | intake-rules | 1 |
 | glossary | 1 |
 | launch-spec | 1 |
-| prd | 1 |
 | roadmap | 1 |
 | todos | 1 |
 | changelog | 1 |
@@ -77,11 +77,11 @@ Generated 2026-07-22 from 417 git-tracked files.
 
 | Status | Count |
 |---|---:|
-| active | 39 |
+| active | 40 |
 | done | 7 |
 | draft | 5 |
 | locked | 2 |
 
 ## Roadmap and to-dos
 
-_No roadmap items or to-dos defined yet — both tables still hold placeholder rows._
+**6 roadmap items · 8 to-dos**
