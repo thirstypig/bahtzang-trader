@@ -17,14 +17,14 @@ updated: 2026-07-23
 > Real progress is features and phases shipped, not lines written. A refactor that
 > deletes 2,000 lines is usually progress, and this number will call it a regression.
 
-Generated 2026-07-23 from 420 git-tracked files.
+Generated 2026-07-23 from 422 git-tracked files.
 
 ## Code
 
 | Type | Files | Lines |
 |---|---:|---:|
-| `.py` | 120 | 16,727 |
-| `.md` | 174 | 16,068 |
+| `.py` | 121 | 16,821 |
+| `.md` | 175 | 16,220 |
 | `.tsx` | 73 | 11,326 |
 | `.json` | 9 | 8,681 |
 | `.ts` | 17 | 2,601 |
@@ -33,7 +33,7 @@ Generated 2026-07-23 from 420 git-tracked files.
 | `.css` | 1 | 210 |
 | `.yml` | 1 | 48 |
 | `.toml` | 2 | 25 |
-| **Total** | **409** | **56,628** |
+| **Total** | **411** | **56,874** |
 
 ## Surface area
 
@@ -41,13 +41,13 @@ Generated 2026-07-23 from 420 git-tracked files.
 |---|---:|
 | Backend routes | 46 |
 | Frontend pages | 25 |
-| Docs (excluding templates) | 54 |
+| Docs (excluding templates) | 55 |
 
 ## Docs by type
 
 | Type | Count |
 |---|---:|
-| solution | 21 |
+| solution | 22 |
 | plan | 6 |
 | guide | 3 |
 | brainstorm | 2 |
@@ -77,7 +77,7 @@ Generated 2026-07-23 from 420 git-tracked files.
 
 | Status | Count |
 |---|---:|
-| active | 40 |
+| active | 41 |
 | done | 7 |
 | draft | 5 |
 | locked | 2 |
