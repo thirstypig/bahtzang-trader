@@ -22,7 +22,7 @@ from app.backtest.models import BacktestConfig, BacktestResult, OHLCVCache  # no
 from app.earnings.models import EarningsEvent  # noqa: F401
 from app.forex.models import ForexBacktestRun, ForexBar  # noqa: F401
 from app.plans.models import (  # noqa: F401
-    Portfolio, PlanSnapshot, PortfolioTouchHistory, PortfolioStrategyAudit
+    Portfolio, PlanSnapshot, PortfolioTouchHistory, PortfolioStrategyAudit, TickerPrice
 )
 from app.screener.models import ScreenerRun, ScreenerCandidate  # noqa: F401
 
