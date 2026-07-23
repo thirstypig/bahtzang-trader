@@ -39,9 +39,12 @@ how long things actually took.
 
 | id | Item | Phase | Status | PRD / links | Notes |
 |---|---|---|---|---|---|
-| RM-001 | TODO | | draft | | |
-| RM-002 | TODO | | draft | | |
-| RM-003 | TODO | | draft | | |
+| RM-001 | Risk-defined trading engine | G | active | PRD-002, EXP-002, RISK-001 | Core math shipped + tested; executor wiring next. THE current priority. |
+| RM-002 | Launch Test 6 with risk engine active | G | draft | PRD-002 | Fresh $10k; clean Phase G window. Test 5 preserved. |
+| RM-003 | Paper-to-live transition | G | draft | DOC-002 | Blocked on RM-001 + a clean winning run, NOT on trade count. $200 first live. |
+| RM-004 | Feature-module archaeology (retroactive PRDs) | — | draft | PRD-001 | Reconstruct the "why" behind shipped features. Its own session. |
+| RM-005 | Time-series trend-following strategy | H | draft | | Periphery — below the risk engine. |
+| RM-006 | Per-user data isolation | H | draft | | Parked; forex-edge-gated. |
 
 <!-- Items that failed the intake gate belong here too, annotated with WHICH question
      they failed (see DOC-003). That stops the same idea being re-argued from scratch

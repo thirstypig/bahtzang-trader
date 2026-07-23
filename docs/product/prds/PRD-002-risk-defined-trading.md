@@ -83,6 +83,13 @@ stored field — it is computed from the ledger. This is the EXP-002 experiment.
 | Create Test 6 portfolio | one-off / seed | $10k, risk engine active |
 
 ### Failure modes (accepted / guarded)
+- **Risk-based size must be capital-capped at wiring time.** [review finding, 2026-07-22]
+  `compute_position_size` returns the *risk-based* quantity only. With a tight stop this
+  can exceed what the portfolio can afford — e.g. $10k equity, 1% risk, entry $100, stop
+  $99.50 → 200 shares = $20k = 2× leverage. The executor MUST place
+  `min(risk_qty, floor(available_cash / entry), max_position_qty, invest_headroom_qty)`.
+  Forgetting this ships over-leveraged orders. Add a test that a tight stop is capped by
+  cash, not just by risk.
 - **No ATR → no trade.** Missing/zero ATR means no computable stop or size → skip + log.
   Same principle as the snapshot fix: missing data never becomes a number.
 - **Whole-share flooring.** Bracket legs require whole shares; if size rounds to 0, no trade.

@@ -10,6 +10,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.31.0",
+    date: "2026-07-22",
+    changes: [
+      { type: "fix", title: "Portfolio P&L was wildly wrong: daily snapshots valued any position whose price didn't load as $0, so the dashboard showed the active portfolio down 40.8% when it was actually down 7.5%. Prices now come from the same reliable source the trader uses, with a last-known-price fallback; corrupted history was rebuilt from real market closes" },
+      { type: "docs", title: "New internal knowledge base at /docs: every doc is now indexed and searchable, with generated 'living' pages (repo stats, running costs, service status) that regenerate from source so they can't go stale. Existing troubleshooting write-ups were folded in" },
+      { type: "docs", title: "Roadmap corrected: the paper-to-live gate was described as 'reach 30 trades', but the real blocker is a working stop-loss and a clean winning run — the trade count alone was never the bar" },
+    ],
+  },
+  {
     version: "0.30.0",
     date: "2026-06-30",
     changes: [

@@ -4,8 +4,8 @@ import asyncio
 import logging
 
 from alpaca.trading.client import TradingClient
-from alpaca.trading.enums import OrderSide, TimeInForce
-from alpaca.trading.requests import MarketOrderRequest
+from alpaca.trading.enums import OrderClass, OrderSide, TimeInForce
+from alpaca.trading.requests import MarketOrderRequest, StopLossRequest
 
 from app.brokers.base import BrokerInterface
 from app.config import settings
@@ -65,7 +65,8 @@ class AlpacaBroker(BrokerInterface):
         }
 
     async def place_order(
-        self, account_id: str, ticker: str, action: str, quantity: float
+        self, account_id: str, ticker: str, action: str, quantity: float,
+        stop_price: float | None = None,
     ) -> dict:
         """Place a market buy or sell order on Alpaca.
 
@@ -78,6 +79,16 @@ class AlpacaBroker(BrokerInterface):
 
         Time in force: equities use DAY (required for fractional orders);
         crypto pairs use GTC — Alpaca rejects DAY on crypto.
+
+        ``stop_price`` attaches a broker-held stop to a BUY entry via an OTO
+        order (entry triggers ONE stop leg — no take-profit, matching the
+        trailing-stop design). Ignored on sells and on crypto (Alpaca crypto is
+        simple-order only). OTO requires whole shares — the risk engine sizes
+        whole shares, so callers passing a stop must pass an integer qty.
+
+        NOTE: OTO-with-a-lone-stop is verified to CONSTRUCT; acceptance by the
+        Alpaca paper API must be confirmed with a live paper order before this
+        path is trusted in the executor.
         """
         if action not in ("buy", "sell"):
             raise ValueError(f"Invalid action: {action}. Must be 'buy' or 'sell'.")
@@ -85,12 +96,19 @@ class AlpacaBroker(BrokerInterface):
         client = _get_client()
 
         from app.symbols import is_crypto
-        order_data = MarketOrderRequest(
+        crypto = is_crypto(ticker)
+        attach_stop = stop_price is not None and action == "buy" and not crypto
+
+        fields = dict(
             symbol=ticker,
             qty=quantity,
             side=OrderSide.BUY if action == "buy" else OrderSide.SELL,
-            time_in_force=TimeInForce.GTC if is_crypto(ticker) else TimeInForce.DAY,
+            time_in_force=TimeInForce.GTC if crypto else TimeInForce.DAY,
         )
+        if attach_stop:
+            fields["order_class"] = OrderClass.OTO
+            fields["stop_loss"] = StopLossRequest(stop_price=stop_price)
+        order_data = MarketOrderRequest(**fields)
 
         # 069-fix: Shared lock prevents concurrent orders across plan + legacy executors
         async with order_lock:
