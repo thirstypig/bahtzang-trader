@@ -68,3 +68,18 @@ async def test_sell_ignores_stop_price():
 
     data = captured["data"]
     assert getattr(data, "stop_loss", None) is None
+
+
+@pytest.mark.asyncio
+async def test_crypto_buy_ignores_stop_price():
+    # Alpaca crypto is simple-order only — an OTO stop leg would be REJECTED by the
+    # API. PRD-002 failure mode: crypto can't carry a broker stop. Guards against a
+    # future removal of the `not crypto` condition silently breaking crypto orders.
+    client, captured = _capture_submit()
+    with patch("app.brokers.alpaca._get_client", return_value=client):
+        await AlpacaBroker().place_order("default", "BTC/USD", "buy", 1, stop_price=90000.0)
+
+    data = captured["data"]
+    assert getattr(data, "order_class", None) in (None, OrderClass.SIMPLE)
+    assert getattr(data, "stop_loss", None) is None
+    assert data.time_in_force == TimeInForce.GTC  # crypto path stays GTC, not DAY
