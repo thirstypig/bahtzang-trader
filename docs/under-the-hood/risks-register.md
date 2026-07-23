@@ -118,6 +118,28 @@ and drew down together.
 
 | id | Question | Owner | Status |
 |---|---|---|---|
-| RISK-006 | Is the circuit breaker deactivating **every** portfolio at RED the intended blast radius, or a leftover from the global kill switch? | james | open |
+| RISK-006 | *Answered — see RISK-008.* Circuit-breaker blast radius is intended (documented in code), but wide. | james | closed |
 | RISK-007 | Is decision quality instrumented at all? Nothing appears to measure whether Claude's calls were good. | james | open |
-| TODO | | | |
+
+### RISK-008 — Circuit breaker RED deactivates all portfolios, not just the offender
+
+| | |
+|---|---|
+| **Status** | accepted (for now) |
+| **Owner** | james |
+| **Severity** | low today · medium under multi-portfolio |
+| **Likelihood** | latent |
+
+When the account-wide breaker hits RED, `executor.py:770` deactivates **every** active
+portfolio and requires a manual reset. This is **intended** — the code documents it as a
+deliberate "halt everything fast in a panic" choice — but the breaker measures the
+**pooled** Alpaca account, so one portfolio's drawdown can freeze healthy, uncorrelated
+portfolios until a human re-enables them.
+
+**Why it is accepted, not fixed:** only one portfolio (Test 5) is active today, so the
+blast radius is moot. Halting too much is also the safe failure direction. Narrowing it
+now would be speculative.
+
+**Trigger to revisit:** the first time 2+ portfolios run simultaneously (e.g. Test 6
+alongside Test 5, or a separate crypto sleeve). At that point, decide whether RED should
+scope to the portfolio(s) actually causing the drawdown.

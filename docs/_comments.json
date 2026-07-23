@@ -12,12 +12,12 @@
       "id": "C-001",
       "doc": "ADR-001",
       "kind": "question",
-      "status": "open",
+      "status": "resolved",
       "author": "claude",
       "created": "2026-07-22T18:40:00Z",
       "body": "Circuit breaker RED deactivates EVERY portfolio at once. Is that the intended blast radius, or behaviour carried over from the old global kill switch that the portfolio-only refactor missed? This is the one place global behaviour survived.",
-      "resolution": null,
-      "resolutionLink": null
+      "resolution": "Intended (documented in executor.py:750), but wide: RED measures the pooled account and freezes all portfolios, not just the offender. Accepted for now - only one portfolio is active. Logged as RISK-008 to revisit before multi-portfolio ops.",
+      "resolutionLink": "DOC-017"
     },
     {
       "id": "C-002",
