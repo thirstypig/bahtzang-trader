@@ -1,14 +1,13 @@
 ---
-title: "Railway backend serving stale code after silent build failures from removed PyPI package"
-category: deployment-issues
-tags: [railway, pypi, silent-failure, schema-drift, pandas-ta, deployment]
-module: backend (bahtzang-trader)
-symptom: "Backend was serving code from weeks ago despite Railway dashboard reporting successful deploys, missing /plans, /backtest, /earnings, and /admin/errors routes."
-root_cause: "pandas-ta==0.3.14b0 was yanked from PyPI causing pip install to fail; Railway silently retained the last successful build while marking new deploys as successful in the dashboard, compounded by a pandas version conflict and Phase D schema drift (missing kelly_fraction, circuit_breaker_daily_pct columns)."
+id: DOC-040
+type: solution
+status: active
+phase: null
+owner: james
+tags: [deployment, database]
+links: []
+updated: 2026-07-22
 severity: high
-date_solved: 2026-04-16
-time_to_resolve: "~1 hour of investigation once CLI access confirmed"
-diagnosis_tools: [railway CLI, psql]
 ---
 
 # Railway silent deploy failure — pandas-ta yanked from PyPI + schema drift

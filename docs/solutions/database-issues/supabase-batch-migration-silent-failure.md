@@ -1,25 +1,13 @@
 ---
-title: "Migration Silently Fails When Run as Batch in Supabase SQL Editor"
-date_solved: "2026-04-22"
+id: DOC-038
+type: solution
+status: active
+phase: null
+owner: james
+tags: [database]
+links: []
+updated: 2026-07-22
 severity: critical
-affected_components:
-  - database-migrations
-  - production-deployment
-  - backend-api
-symptoms:
-  - "CORS policy errors in browser on all API requests"
-  - "Failed to fetch on every authenticated page"
-  - "Backend crash: column trades.plan_id does not exist"
-  - "4-5 days of no automated trading (scheduler crash)"
-root_cause_category: database-issues
-tags:
-  - supabase
-  - migrations
-  - cors-masking
-  - batch-execution
-  - postgresql
-related:
-  - ../deployment-issues/railway-silent-deploy-failure-pandas-ta.md
 ---
 
 # Migration Silently Fails When Run as Batch in Supabase SQL Editor

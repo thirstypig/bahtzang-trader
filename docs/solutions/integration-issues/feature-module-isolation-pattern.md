@@ -1,20 +1,14 @@
 ---
-title: Feature Module Isolation Pattern for FastAPI + Next.js Monorepo
-date: 2026-04-13
-category: integration-issues
-tags:
-  - architecture
-  - feature-modules
-  - fastapi
-  - monorepo
-  - separation-of-concerns
-  - scalability
-component: Backend architecture (FastAPI application structure)
-symptom: Prevents architectural tangling when adding multiple complex features to shared codebase
-root_cause: Without isolated feature modules, new business logic couples with core app, creating circular dependencies and making features difficult to test, maintain, and remove independently
+id: DOC-041
+type: solution
+status: active
+phase: null
+owner: james
+tags: [backend]
+links: []
+updated: 2026-04-13
 severity: medium
-time_to_fix: Pattern established during Phase F planning, applied to both backtesting and earnings features
-verified: true
+component: Backend architecture (FastAPI application structure)
 ---
 
 # Feature Module Isolation Pattern

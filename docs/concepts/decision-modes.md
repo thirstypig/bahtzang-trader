@@ -1,3 +1,14 @@
+---
+id: DOC-028
+type: guide
+status: active
+phase: null
+owner: james
+tags: [trading-pipeline]
+links: []
+updated: 2026-07-22
+---
+
 # Decision Modes
 
 Each portfolio independently controls which system makes its trade decisions. The `decision_mode` field on a Portfolio can be set from the Decision Engine page (`/portfolios/[id]/strategy`).

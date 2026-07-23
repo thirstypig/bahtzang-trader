@@ -1,3 +1,14 @@
+---
+id: DOC-022
+type: plan
+status: done
+phase: null
+owner: james
+tags: [trading-pipeline]
+links: []
+updated: 2026-07-22
+---
+
 # Trading Frequency & Goals — Deepened Plan
 
 > **Created:** 2026-04-11

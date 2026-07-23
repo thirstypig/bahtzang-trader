@@ -1,35 +1,13 @@
 ---
-title: "Comprehensive Web Audit: Accessibility, Performance & UX Fixes"
-date: 2026-04-17
-category: performance-issues
-tags:
-  - accessibility
-  - performance
-  - wcag
-  - next-js
-  - code-splitting
-  - server-components
-  - caching
-  - n-plus-one
-  - mobile-responsive
+id: DOC-048
+type: solution
+status: active
+phase: null
+owner: james
+tags: [frontend]
+links: []
+updated: 2026-04-17
 severity: high
-components:
-  - frontend (Next.js 14)
-  - backend (FastAPI)
-  - database (SQLAlchemy)
-symptoms:
-  - Recharts 312KB loaded on every page
-  - All 19 pages were client components
-  - Analytics fetched 500 trades with reasoning text (~5MB)
-  - Backtest list N+1 query
-  - Muted text contrast 2.46:1 (WCAG AA requires 4.5:1)
-  - Horizontal overflow on mobile viewports
-  - No error boundary, no custom 404, no loading states
-  - No HTTP caching headers, no fetch timeout
-root_cause_summary: >
-  No performance or accessibility review had been performed. All pages
-  defaulted to client components, heavy libraries loaded globally, no
-  caching strategy, and no WCAG compliance checks.
 ---
 
 ## Problem

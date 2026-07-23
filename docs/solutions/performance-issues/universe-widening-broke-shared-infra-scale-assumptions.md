@@ -1,16 +1,15 @@
 ---
-name: universe-widening-broke-shared-infra-scale-assumptions
+id: DOC-047
+type: solution
+status: active
+phase: null
+owner: james
+tags: [strategies, backend]
+links: []
+updated: 2026-05-21
 description: Widening the maximize_returns universe from 9 to ~100 tickers (and adding a ~500-name screener) silently broke two pieces of shared infra that were written for a handful of symbols — fetch_and_cache_bars did one Alpaca request per ticker (500 sequential calls), and get_quotes fanned ~100 parallel Alpha Vantage calls per cycle that burned the free-tier daily quota shared with the get_news call, risking Claude trading on empty news. No errors; tests passed; only a multi-agent review caught it.
-type: performance-issue
 severity: high
-component:
-  - backend/app/backtest/data.py
-  - backend/app/plans/executor.py
-  - backend/app/market_data.py
-  - backend/app/claude_brain.py
-tags: [scale, rate-limiting, alpaca, alpha-vantage, shared-dependency, n-plus-one, silent-failure, universe, screener, code-review]
-date: 2026-05-21
-status: resolved
+legacy_type: performance-issue
 ---
 
 # Widening the Universe Silently Broke Two Scale Assumptions in Shared Infra

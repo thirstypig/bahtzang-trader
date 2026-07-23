@@ -1,3 +1,14 @@
+---
+id: DOC-025
+type: brainstorm
+status: done
+phase: null
+owner: james
+tags: [portfolios]
+links: []
+updated: 2026-07-22
+---
+
 # Portfolio + Strategy Consolidation
 
 **Date:** 2026-05-07  

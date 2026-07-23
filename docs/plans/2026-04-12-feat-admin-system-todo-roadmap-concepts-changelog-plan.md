@@ -1,9 +1,13 @@
 ---
-title: "Admin System: Interconnected Todo + Roadmap + Concepts + Changelog"
-type: feat
-status: active
-date: 2026-04-12
-deepened: 2026-04-12
+id: DOC-033
+type: plan
+status: done
+phase: null
+owner: james
+tags: [frontend]
+links: []
+updated: 2026-04-12
+legacy_type: feat
 ---
 
 # Admin System: Interconnected Todo + Roadmap + Concepts + Changelog

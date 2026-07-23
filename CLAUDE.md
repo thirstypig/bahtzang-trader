@@ -34,7 +34,7 @@ npm run dev:backend      # FastAPI on localhost:4070
 npm run install:frontend # npm install in /frontend
 npm run install:backend  # pip install in /backend
 npm test                 # Run all tests (backend + frontend)
-npm run test:backend     # pytest (400 tests, ~4s)
+npm run test:backend     # pytest (~4s; live count in docs/under-the-hood/stats.md)
 npm run test:frontend    # Vitest (138 tests, ~3s)
 npm run test:backend:cov # Backend with coverage report
 ```
@@ -205,7 +205,7 @@ backend/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
   railway.toml        # Railway deploy config
   pytest.ini          # Test config (markers: unit, integration, e2e)
-  tests/              # Test suites (400 backend tests)
+  tests/              # Backend test suites (count: docs/under-the-hood/stats.md)
     conftest.py       # SQLite in-memory + StaticPool, auth bypass, mock broker, test helpers
     plans/            # Portfolio model, executor, constraints, route, snapshot tests
     earnings/         # Earnings route integration tests
@@ -293,7 +293,7 @@ frontend/
 ### Testing
 - Backend: pytest + SQLite in-memory (StaticPool) + FastAPI TestClient
 - Frontend: Vitest + @testing-library/react + jsdom
-- 511 total tests (382 backend + 129 frontend), ~9s full suite
+- Full suite ~9s (backend + frontend). Canonical counts are generated — see `docs/under-the-hood/stats.md`; do not hand-write test counts here (they drift and disagree)
 - Test helpers: `make_plan()`, `make_trade()` in `tests/conftest.py`
 - Budget validation stubbed in integration tests (pg_advisory_xact_lock is PostgreSQL-only)
 - Scheduler patched out in TestClient fixture (prevents SchedulerAlreadyRunningError)
@@ -369,8 +369,73 @@ When you notice a pattern, preference, decision, or piece of context that should
 - **No manual per-trade approval in Stage 1.** Bridge-gate review at end of each window is the human checkpoint.
 - **Portfolio-only execution model.** The global trader is gone. Every trade runs through a Portfolio. Do not re-introduce a global execution path.
 - **Forex tool is deliberately siloed.** It's a sandbox for a friend's strategy (Nick Shawn). Don't extend or integrate it into the main trading pipeline without a proven edge.
-- **511 tests are the baseline.** Don't ship features that drop the count or break CI.
+- **Don't ship features that drop the test count or break CI.** The baseline count is generated (`docs/under-the-hood/stats.md`), not a number memorized here.
 
 (If a new fact or argument genuinely challenges one of these, say so directly. Otherwise, build on them.)
 
 **TONE:** Direct and decision-oriented. Short responses by default — expand only when the complexity warrants it. No summaries of what you just did. No unsolicited cleanup or refactoring. When something is uncertain, say so and name the uncertainty precisely.
+
+---
+
+## Docs system
+
+The `/docs` folder is an internal knowledge base rendered by the `/docs` admin board.
+The board reads **frontmatter**, not filenames. Full spec: `docs/README-DOCS.md` (DOC-001).
+
+**Frontmatter** — every authored doc opens with this block. No frontmatter → invisible to the board:
+
+```yaml
+---
+id: PRD-001        # PRD-### | ADR-### | DOC-### | RISK-### | EXP-### ; also RM-###/TD-### for table rows
+type: prd          # see README-DOCS.md for the full type list
+status: draft      # draft | active | locked | done | deprecated
+phase: null        # e.g. F, G, or null
+owner: james
+tags: []           # controlled vocabulary ONLY — no freeform tags
+links: []          # related doc ids — this is the traceability
+updated: 2026-07-22
+---
+```
+
+**Controlled tags (13):** `trading-pipeline` `risk` `portfolios` `strategies` `market-data`
+`phase-g` `frontend` `backend` `database` `deployment` `testing` `forex` `foundations`.
+Adding a tag requires: 3+ docs would use it, not already a fold-in, added to README-DOCS.md
+in the same commit. Fold-ins: auth→`backend`, broker/execution→`trading-pipeline`,
+PDT/wash-sale→`risk`, crypto→`market-data`.
+
+**"Done" is a status, not a folder.** Finished items keep their id and stay put with
+`status: done`, surfaced via a saved filter. Never move or archive — it breaks links.
+
+**Comment-inbox ritual — do this at the START of every session:**
+1. Read `docs/INBOX.md` (regenerate first: `npm run docs:inbox`).
+2. Act on `change_request` items, answer `question` items.
+3. Write a resolution for each — set status `resolved` with a note **and a link** (commit
+   SHA or doc id) in `docs/_comments.json`, then re-run the sync so it clears. A comment
+   cannot be resolved without a note + link; the script enforces this.
+
+**Generated ("living") docs — never hand-edit:** `stats.md`, `costs.md`, `system-status.md`,
+and the `<!-- DOCS:STATUS -->` block in README/CLAUDE are all written by
+`npm run docs:refresh`. Edit the inputs (the repo, or `docs/costs.config.json`), not the
+outputs. **Run `npm run docs:refresh` before every push** so the numbers don't drift —
+this is also where the canonical test count comes from (hand-written counts elsewhere are
+known to disagree; trust the generated one).
+
+**Templates** live in `docs/_templates/` and are excluded from the board. Copy one, then
+uncomment its frontmatter block.
+
+---
+
+<!-- DOCS:STATUS:START -->
+<!-- Generated by npm run docs:refresh on 2026-07-22. Do not edit by hand. -->
+
+### Project status
+
+**Current phase:** not set in roadmap.md
+
+**Next 3 to-dos:**
+
+_None defined yet — `docs/product/todos.md` still holds placeholder rows._
+
+Full roadmap: [`docs/product/roadmap.md`](docs/product/roadmap.md)
+
+<!-- DOCS:STATUS:END -->

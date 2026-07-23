@@ -1,14 +1,15 @@
 ---
-name: crypto-symbols-in-stock-pipeline
+id: DOC-046
+type: solution
+status: active
+phase: null
+owner: james
+tags: [trading-pipeline, market-data]
+links: []
+updated: 2026-05-14
 description: BTC and ETH were included in GOAL_PROMPTS for maximize_returns and swing_trading goals, but the price pipeline uses Alpaca's StockHistoricalDataClient (stocks only). BTC resolved to a ~$35 stock instrument, causing Claude to recommend sub-$1 micro-trades that were blocked every scheduler run by the minimum trade value guardrail.
-type: logic-error
 severity: high
-component:
-  - backend/app/claude_brain.py
-  - backend/app/technical_analysis.py
-tags: [alpaca, crypto, guardrails, goal-prompts, scheduler, paper-trading, data-pipeline, silent-failure]
-date: 2026-05-14
-status: resolved
+legacy_type: logic-error
 ---
 
 # Crypto Tickers in Stock Data Client — Silent Wrong Price, Guardrail Block Every Cycle

@@ -1,14 +1,13 @@
 ---
-title: "CORS errors masked real issue — Supabase batch SQL silently failed on migration, backend crashed before sending CORS headers"
-category: integration-issues
-tags: [supabase, sql-migrations, schema-drift, CORS, silent-failure, batch-sql, database]
-module: backend + database (bahtzang-trader)
-symptom: "All frontend pages showed 'Failed to fetch' errors with CORS policy blocking API requests; browser DevTools showed CORS Origin header rejection despite CORS_ORIGINS environment variable correctly set"
-root_cause: "Supabase SQL Editor silently skipped some statements when executing a large batch of migration SQL. The plan_id column (from Trade model unification and PlanTrade merge) never created. Backend crashed on every request with `sqlalchemy.exc.ProgrammingError: column trades.plan_id does not exist`, preventing it from sending any HTTP response including CORS headers. Browser saw 0 response headers and blamed CORS."
+id: DOC-043
+type: solution
+status: active
+phase: null
+owner: james
+tags: [database, backend]
+links: []
+updated: 2026-07-22
 severity: critical
-date_solved: 2026-04-22
-time_to_resolve: "~4 hours from first CORS report to diagnosis; 4-5 days of zero trading activity (4/16-4/22) while investigating misdiagnosis"
-diagnosis_tools: [railway CLI, supabase dashboard, browser devtools, psql]
 ---
 
 # CORS masquerade — Backend crash before CORS headers, silently failed Supabase migration

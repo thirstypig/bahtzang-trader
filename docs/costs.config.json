@@ -1,0 +1,42 @@
+{
+  "_README": [
+    "INPUT FILE for scripts/refresh-docs.mjs → docs/under-the-hood/costs.md",
+    "",
+    "Edit the numbers here, then run: npm run docs:refresh",
+    "",
+    "Any entry with \"verify\": true renders as VERIFY in the output instead of being",
+    "presented as fact. Every figure ships as verify:true until a human confirms it",
+    "against a real invoice. A guessed number in a cost doc is worse than no number.",
+    "",
+    "NOTE: this project has no customers, no plan price, and no revenue. The tier /",
+    "margin model from the generic template does not apply and was deliberately",
+    "removed. This tracks what the experiment COSTS TO RUN."
+  ],
+
+  "assumptions": {
+    "tradingDaysPerMonth": 21,
+    "cyclesPerTradingDay": 2,
+    "activePortfolios": 1,
+    "notes": "Two scheduled cycles per trading day: 10:00 AM ET decisions and 3:30 PM ET exit-only. Cycle count scales with active portfolios sharing one market-data fetch."
+  },
+
+  "variableCosts": [
+    {
+      "service": "Anthropic — Claude Sonnet",
+      "unit": "trading cycle",
+      "costPerUnitUsd": 0,
+      "verify": true,
+      "notes": "Depends on prompt size (positions + quotes + news + indicators + screener CSV) and output length. Measure from the Anthropic console rather than estimating."
+    }
+  ],
+
+  "fixedCosts": [
+    { "service": "Railway — backend service",  "monthlyUsd": 0, "verify": true, "notes": "" },
+    { "service": "Railway — frontend service", "monthlyUsd": 0, "verify": true, "notes": "" },
+    { "service": "Supabase — Postgres + Auth", "monthlyUsd": 0, "verify": true, "notes": "Confirm which tier." },
+    { "service": "Alpha Vantage — news",       "monthlyUsd": 0, "verify": true, "notes": "Believed free tier; rate-limit behaviour observed 2026-07-22 is consistent with that. Confirm." },
+    { "service": "Finnhub — earnings, profiles", "monthlyUsd": 0, "verify": true, "notes": "Confirm tier." },
+    { "service": "Alpaca — paper trading",     "monthlyUsd": 0, "verify": true, "notes": "Paper account; market data tier may carry a cost." },
+    { "service": "Domain — bahtzang.com",      "monthlyUsd": 0, "verify": true, "notes": "Annual registration, divided by 12." }
+  ]
+}

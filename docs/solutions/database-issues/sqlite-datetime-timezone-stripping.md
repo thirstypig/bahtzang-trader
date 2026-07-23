@@ -1,12 +1,16 @@
 ---
-name: SQLite DateTime timezone stripping in test environment
+id: DOC-037
+type: solution
+status: active
+phase: null
+owner: james
+tags: [database, testing]
+links: []
+updated: 2026-05-07
 description: SQLite in-memory database silently strips timezone metadata from DateTime columns, causing naive/aware datetime mismatch errors in constraint validation tests
-type: database-issue
 severity: medium
 component: constraints, models, testing
-tags: [sqlite, timezone, testing, asyncio, sqlalchemy]
-date: 2026-05-07
-status: resolved
+legacy_type: database-issue
 ---
 
 # SQLite DateTime Timezone Stripping in Test Environment

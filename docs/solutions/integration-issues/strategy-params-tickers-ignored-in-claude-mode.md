@@ -1,14 +1,15 @@
 ---
-name: strategy-params-tickers-ignored-in-claude-mode
+id: DOC-042
+type: solution
+status: active
+phase: null
+owner: james
+tags: [strategies, trading-pipeline]
+links: []
+updated: 2026-05-21
 description: A portfolio's strategy_params["tickers"] override was honored by the rules-strategy execution path but silently ignored by the claude_decides path. Setting the param on a Claude-mode portfolio had no effect — the extra tickers never reached the market-data fetch, so Claude never saw them. No error; the config was simply dead.
-type: integration-issue
 severity: medium
-component:
-  - backend/app/plans/executor.py
-  - backend/app/claude_brain.py
-tags: [decision-modes, claude_decides, strategy_params, executor, dual-code-path, silent-failure, universe, screener]
-date: 2026-05-21
-status: resolved
+legacy_type: integration-issue
 ---
 
 # strategy_params["tickers"] Honored in Rules Mode, Silently Ignored in Claude Mode
