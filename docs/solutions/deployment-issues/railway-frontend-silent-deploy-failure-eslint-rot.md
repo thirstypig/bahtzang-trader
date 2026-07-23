@@ -1,16 +1,13 @@
 ---
-title: "Railway frontend serving stale build for 2 weeks because ESLint errors in untouched files blocked every redeploy attempt; CI was always green because CI doesn't run ESLint"
-category: deployment-issues
-tags: [railway, eslint, silent-failure, ci-drift, next-build, deployment, frontend, monorepo]
-module: frontend (bahtzang-trader)
-symptom: "First frontend deploy in 2 weeks (forex feature push) failed at 'next build' with 3 ESLint no-unused-vars errors in plans/ files that the push did not touch. The frontend service had been silently failing to redeploy since the errors were introduced — no banner, no alert, just an old build still serving traffic. CI showed green throughout the rot window."
-root_cause: "Two-bug interaction: (1) Pre-existing dead-code lint errors had been merged earlier without notice because GitHub Actions CI runs only `npx tsc --noEmit && npx vitest run` — neither invokes ESLint. (2) `next build` (which Railway runs for production) DOES invoke ESLint with 'fail on error' semantics. Result: CI green, prod build red. Whenever frontend redeployed it failed; whenever CI ran it passed; the gap was invisible until something forced a fresh frontend redeploy."
+id: DOC-039
+type: solution
+status: active
+phase: null
+owner: james
+tags: [deployment, frontend]
+links: []
+updated: 2026-07-22
 severity: high
-date_solved: 2026-05-06
-time_to_resolve: "~10 minutes once Railway build log was inspected"
-diagnosis_tools: [railway dashboard build logs, gh CLI, curl HTML chunk inspection, local 'next build' verification]
-related_solutions:
-  - deployment-issues/railway-silent-deploy-failure-pandas-ta.md
 ---
 
 # Railway frontend silent deploy failure — ESLint rot, CI didn't catch it

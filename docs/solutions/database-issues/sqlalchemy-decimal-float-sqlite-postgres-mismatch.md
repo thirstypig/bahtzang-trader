@@ -1,12 +1,16 @@
 ---
-name: SQLAlchemy Decimal/float type mismatch between SQLite and PostgreSQL
+id: DOC-035
+type: solution
+status: active
+phase: null
+owner: james
+tags: [database, testing]
+links: []
+updated: 2026-05-08
 description: SQLAlchemy func.sum() on Numeric columns returns Decimal in PostgreSQL but float in SQLite, causing TypeError in production while tests pass silently
-type: database-issue
 severity: critical
 component: plans/routes.py, plans/executor.py, database
-tags: [sqlite, postgresql, type-coercion, sqlalchemy, numeric-decimal, production-only, test-environment-mismatch]
-date: 2026-05-08
-status: resolved
+legacy_type: database-issue
 ---
 
 # SQLAlchemy Decimal/float Mismatch: SQLite Tests Pass, PostgreSQL Production Crashes

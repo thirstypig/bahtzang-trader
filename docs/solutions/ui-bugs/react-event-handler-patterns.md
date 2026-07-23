@@ -1,24 +1,14 @@
 ---
-title: "Stale closure + inconsistent click-outside patterns in React handlers"
-problem_type: "react-state-bug"
-component: "frontend/src/app/portfolios/page.tsx, frontend/src/components/TopNav.tsx"
-symptoms:
-  - "Portfolio active/paused state reverts to stale value when toggled rapidly or during concurrent updates"
-  - "Optimistic state update uses captured array from before await, not current state"
-  - "Profile dropdown mousedown listener fires on every click in the app even when dropdown is closed"
-  - "Two different click-outside detection patterns in the same codebase create inconsistent maintenance surface"
-tags:
-  - stale-closure
-  - react
-  - useEffect
-  - optimistic-update
-  - click-outside
-  - event-listener
-  - typescript
-  - next-js
+id: DOC-051
+type: solution
+status: active
+phase: null
+owner: james
+tags: [frontend]
+links: []
+updated: 2026-05-15
 severity: medium
-date: 2026-05-15
-found_in_review: "Pause/resume + sign-out PR (commits bc62a4b–435f01a)"
+component: "frontend/src/app/portfolios/page.tsx, frontend/src/components/TopNav.tsx"
 ---
 
 # React Event Handler Patterns — Three Related Bugs

@@ -1,3 +1,14 @@
+---
+id: DOC-024
+type: plan
+status: active
+phase: G
+owner: james
+tags: [phase-g, risk]
+links: []
+updated: 2026-07-22
+---
+
 # Phase G — Paper-to-Live Transition Plan
 
 **Date:** 2026-05-06

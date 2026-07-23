@@ -1,12 +1,16 @@
 ---
-name: Unapplied database migrations blocked authentication after deployment
+id: DOC-036
+type: solution
+status: active
+phase: null
+owner: james
+tags: [database, deployment]
+links: []
+updated: 2026-05-12
 description: Railway auto-deployed new SQLAlchemy model columns but the live Supabase DB was not migrated, causing "column does not exist" 500s that made login and logout appear broken
-type: database-issue
 severity: critical
 component: plans/models.py, database migrations, deployment pipeline
-tags: [database-migration, schema-drift, deployment-sync, authentication-regression, railway-deployment, supabase, sqlalchemy]
-date: 2026-05-12
-status: resolved
+legacy_type: database-issue
 ---
 
 # Unapplied Migrations Broke Authentication After Deployment

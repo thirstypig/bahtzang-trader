@@ -1,3 +1,14 @@
+---
+id: DOC-026
+type: brainstorm
+status: done
+phase: null
+owner: james
+tags: [strategies]
+links: []
+updated: 2026-07-22
+---
+
 # Dual Momentum — Backtest Findings
 
 **Date:** 2026-05-12

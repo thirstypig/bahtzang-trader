@@ -1,16 +1,13 @@
 ---
-title: "Dark-mode liquid-glass surfaces became invisible because the white tint at 10% alpha couldn't blend over a dark backdrop — fix is a navy tint, not more alpha"
-category: ui-bugs
-tags: [liquid-glass, dark-mode, css, backdrop-filter, theming, glassmorphism, design-system, alpha-compositing]
-module: frontend (bahtzang-trader) — src/app/globals.css, src/components/TopNav.tsx
-symptom: "After shipping the Liquid Glass redesign, the mega-menu dropdown and other glass surfaces in dark mode looked like ghostly outlines — body radial-gradient bled through to the foreground, menu items lacked a clear surface, content was hard to read. Light mode was correct. User reported: 'the liquid glass is transparent and not clear'."
-root_cause: "Dark-mode glass tokens used a white tint (rgb(255 255 255)) at 10%/4% alpha — same recipe as light mode but with low alphas to 'let the backdrop show through more.' That math is wrong over a dark backdrop: 10% white over a vivid dark gradient doesn't blend into a frost — it just disappears, because the average luminance of the surface ends up indistinguishable from what's behind it. Apple's Liquid Glass design language was built around BRIGHT photographs and wallpapers, where low-alpha white CREATES the frost. Inverted-luminance backdrops require an inverted-luminance tint."
+id: DOC-050
+type: solution
+status: active
+phase: null
+owner: james
+tags: [frontend]
+links: []
+updated: 2026-07-22
 severity: medium
-date_solved: 2026-05-06
-time_to_resolve: "~15 minutes from user report to fix shipped (5 min to diagnose, 10 min to verify visually)"
-diagnosis_tools: [chrome devtools, playwright screenshot, visual inspection over backdrop]
-related_solutions:
-  - performance-issues/web-audit-accessibility-performance-ux-fixes.md
 ---
 
 # Liquid-glass dark mode invisible — white tint over a dark backdrop disappears, not frosts

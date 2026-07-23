@@ -1,16 +1,13 @@
 ---
-title: "82% of audit-log blocks were data noise: Claude returning quantity:0 (semantically a hold) flagged as 'Trade value $0.00 below $1 minimum'"
-category: integration-issues
-tags: [claude-prompt, audit-log, plans, zero-value-trades, data-hygiene, validation, false-positives]
-module: backend/app/plans/executor.py + backend/app/trade_executor.py
-symptom: "Production audit log dominated by 'Trade value $0.00 below $1 minimum' (156 of 190 blocks over 14 days). Looked like a guardrail tuning problem; was actually a Claude/parser interaction sending zero-quantity buys to validation. The real strategy/cash blocks were buried under data noise."
-root_cause: "Claude occasionally returns {action:'buy', quantity:0} (semantically a hold but structurally a buy). The JSON parser default in claude_brain.py also fills quantity=0 when Claude omits the field. The plan executor and main trade executor sent these straight to validation, which produced 'Trade value $0.00 below $1 minimum' (price × 0 = 0 < 1). The audit log filled with these false-positive blocks, hiding the real strategy/cash issues that needed attention."
+id: DOC-045
+type: solution
+status: active
+phase: null
+owner: james
+tags: [trading-pipeline]
+links: []
+updated: 2026-07-22
 severity: medium
-date_solved: 2026-05-06
-time_to_resolve: "~30 minutes from first audit-log query to fix shipped"
-diagnosis_tools: [supabase SQL editor, grep on guardrail messages, code trace through executor pipelines]
-related_solutions:
-  - integration-issues/feature-module-isolation-pattern.md
 ---
 
 # Zero-quantity trades pollute audit log — coerce-before-validate fix

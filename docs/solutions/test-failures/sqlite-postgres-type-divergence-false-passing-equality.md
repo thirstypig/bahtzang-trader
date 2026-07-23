@@ -1,23 +1,16 @@
 ---
-name: sqlite-decimal-float-type-divergence
+id: DOC-049
+type: solution
+status: active
+phase: null
+owner: james
+tags: [testing, database]
+links: []
+updated: 2026-05-08
 description: SQLite returns float from func.sum() on Numeric columns while PostgreSQL returns Decimal, making Decimal+float TypeErrors invisible in CI unless isinstance assertions are added alongside value equality checks
-type: test-failure
 severity: medium
 component: testing, plans/executor, plans/routes
-tags:
-  - sqlite
-  - postgresql
-  - sqlalchemy
-  - numeric-types
-  - decimal
-  - float
-  - type-coercion
-  - meta-testing
-  - ci-gap
-  - isinstance
-  - func.sum
-date: 2026-05-08
-status: resolved
+legacy_type: test-failure
 ---
 
 # False-Passing Equality Tests: SQLite/PostgreSQL Numeric Type Divergence

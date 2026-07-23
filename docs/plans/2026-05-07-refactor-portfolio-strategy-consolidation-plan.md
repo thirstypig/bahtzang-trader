@@ -1,9 +1,13 @@
 ---
-title: "Consolidate Settings + Plans → Unified Portfolio System"
-type: refactor
-status: active
-date: 2026-05-07
-origin: docs/brainstorms/2026-05-07-portfolio-strategy-consolidation-brainstorm.md
+id: DOC-034
+type: plan
+status: done
+phase: null
+owner: james
+tags: [portfolios, backend]
+links: []
+updated: 2026-05-07
+legacy_type: refactor
 ---
 
 # Consolidate Settings + Plans → Unified Portfolio System

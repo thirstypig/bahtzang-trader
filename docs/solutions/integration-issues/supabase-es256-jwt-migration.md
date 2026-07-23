@@ -1,25 +1,13 @@
 ---
-title: "Supabase JWT 401 on all protected endpoints after silent HS256-to-ES256 migration"
-date: 2026-04-10
-tags:
-  - supabase
-  - jwt
-  - es256
-  - hs256
-  - jwks
-  - authentication
-  - pyjwt
-  - 401-unauthorized
+id: DOC-044
+type: solution
+status: active
+phase: null
+owner: james
+tags: [backend]
+links: []
+updated: 2026-04-10
 component: backend/app/auth.py
-symptom: "401 Unauthorized on all protected API endpoints despite valid Google sign-in and visible dashboard"
-root_cause: "Supabase silently migrated JWT signing from HS256 (symmetric HMAC) to ES256 (elliptic curve). The legacy JWT secret displayed in the Supabase dashboard was no longer used to sign tokens, so backend HS256 verification always failed."
-fix: "Replaced HS256 secret-based verification with PyJWKClient fetching Supabase public ES256 key from JWKS endpoint"
-difficulty: hard
-investigation_signals:
-  - "401 (not 403) proved token WAS being sent — HTTPBearer returns 403 when no Authorization header"
-  - "getSession() stale-cache fix did not resolve the issue"
-  - "/auth/debug endpoint revealed token header alg: ES256 vs backend expecting HS256"
-  - "Supabase dashboard still displayed legacy JWT secret that was no longer active"
 ---
 
 # Supabase ES256 JWT Migration — Silent Algorithm Change Breaks Auth

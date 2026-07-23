@@ -1,3 +1,14 @@
+---
+id: DOC-027
+type: guide
+status: active
+phase: null
+owner: james
+tags: [strategies]
+links: []
+updated: 2026-07-22
+---
+
 # Adding a New Strategy
 
 Strategies live in `backend/app/strategies/` — a shared infrastructure package, not a feature module. Adding a new one is a 3-step process.

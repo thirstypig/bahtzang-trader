@@ -1,3 +1,14 @@
+---
+id: DOC-023
+type: plan
+status: done
+phase: null
+owner: james
+tags: [portfolios]
+links: []
+updated: 2026-07-22
+---
+
 # Investment Plans (Pie-Style Portfolio Slices)
 
 **Date:** 2026-04-15
