@@ -18,6 +18,11 @@ class BrokerInterface(ABC):
 
     @abstractmethod
     async def place_order(
-        self, account_id: str, ticker: str, action: str, quantity: int
+        self, account_id: str, ticker: str, action: str, quantity: int,
+        stop_price: float | None = None,
     ) -> dict:
-        """Place a buy or sell order. Returns execution result."""
+        """Place a buy or sell order. Returns execution result.
+
+        stop_price optionally attaches a broker-held stop to a buy entry; brokers
+        that cannot honor it (or for sells/crypto) ignore it.
+        """
