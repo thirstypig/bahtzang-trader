@@ -58,7 +58,7 @@ export default function DashboardPage() {
           <p className="text-neg">{error}</p>
           <p className="mt-2 text-sm text-muted">
             Make sure the backend is running at{" "}
-            {process.env.NEXT_PUBLIC_API_URL || "http://localhost:4060"}
+            {process.env.NEXT_PUBLIC_API_URL || "http://localhost:4070"}
           </p>
         </div>
       </div>

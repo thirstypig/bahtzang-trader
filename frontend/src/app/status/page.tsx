@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4060";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4070";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 
 interface ServiceCheck {
