@@ -17,7 +17,7 @@ import {
   Trade,
 } from "./types";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4060";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4070";
 
 // Token is set by the AuthProvider via setApiToken() whenever the
 // Supabase session changes. This avoids calling getSession() which

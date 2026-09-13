@@ -16,7 +16,7 @@ Run these in sequence. Stop at the first failure — don't mask errors by contin
    - Report: `<passed> passed, <failed> failed` with timing
 
 4. **E2E (optional — only if `$ARGUMENTS` contains `e2e`):**
-   - Verify dev servers: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3060` and `http://localhost:4060/health`. Both must be 200.
+   - Verify dev servers: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3070` and `http://localhost:4070/health`. Both must be 200.
    - If either is down: tell the user which one, don't try to start it yourself.
    - If both up: run E2E tests. Report time per spec + total.
 

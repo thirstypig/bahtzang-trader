@@ -124,20 +124,20 @@ cp frontend/.env.example frontend/.env.local
 
 ```bash
 npm run dev              # Both services concurrently
-npm run dev:frontend     # http://localhost:3060
-npm run dev:backend      # http://localhost:4060
+npm run dev:frontend     # http://localhost:3070
+npm run dev:backend      # http://localhost:4070
 ```
 
 ### Ports
 
 | Service | Port |
 |---------|------|
-| Frontend | 3060 |
-| Backend API | 4060 |
+| Frontend | 3070 |
+| Backend API | 4070 |
 
 ## API Documentation
 
-- **Local:** [http://localhost:4060/docs](http://localhost:4060/docs)
+- **Local:** [http://localhost:4070/docs](http://localhost:4070/docs)
 - Production Swagger is disabled for security (096-fix)
 
 ## Testing
@@ -182,8 +182,8 @@ Both services deploy from the same GitHub repo to Railway:
 
 | Service | Root Directory | Port |
 |---------|---------------|------|
-| bahtzang-frontend | `/frontend` | 3060 |
-| bahtzang-backend | `/backend` | 4060 |
+| bahtzang-frontend | `/frontend` | 3070 |
+| bahtzang-backend | `/backend` | 4070 |
 
 Database and auth hosted on Supabase. DNS via Squarespace (CNAME → Railway).
 

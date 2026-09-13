@@ -24,7 +24,7 @@ class Settings(BaseSettings):
             for e in self.ALLOWED_EMAIL.split(",")
             if e.strip()
         ]
-    CORS_ORIGINS: str = "http://localhost:3060"  # comma-separated
+    CORS_ORIGINS: str = "http://localhost:3070"  # comma-separated
     ALPACA_API_KEY: str = ""
     ALPACA_SECRET_KEY: str = ""
     ALPACA_PAPER: bool = True

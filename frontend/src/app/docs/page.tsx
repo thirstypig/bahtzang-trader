@@ -24,7 +24,7 @@ const DOCS: { category: string; items: DocEntry[] }[] = [
     items: [
       { id: "readme", title: "README", description: "Project overview, setup, and development", icon: "📖", file: "/docs/readme.md" },
       { id: "claude", title: "CLAUDE.md", description: "Architecture, conventions, and patterns", icon: "🤖", file: "/docs/claude.md" },
-      { id: "ports", title: "Port Assignments", description: "Local dev ports (frontend: 3060, API: 4060)", icon: "🔌", file: "/docs/ports.md" },
+      { id: "ports", title: "Port Assignments", description: "Local dev ports (frontend: 3070, API: 4070)", icon: "🔌", file: "/docs/ports.md" },
     ],
   },
   {
