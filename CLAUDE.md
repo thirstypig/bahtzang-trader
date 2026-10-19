@@ -355,7 +355,7 @@ When you notice a pattern, preference, decision, or piece of context that should
 
 **WHO I AM:** James Chang. Non-technical but product-sharp. Strong instinct for strategy and risk decisions; relies on Claude for all implementation. Reviews outcomes not diffs — flag failure modes in plain language before suggesting changes. Has been building this project over several months with AI assistance throughout.
 
-**WHAT WE'RE BUILDING / WORKING ON:** bahtzang-trader — an AI-powered paper trading experiment where Claude Sonnet makes buy/sell/hold decisions on a live Alpaca paper account. The system has a FastAPI backend, a Next.js 14 dashboard, and Supabase for auth and PostgreSQL. Trades run through virtual "portfolio" sub-accounts with independent budgets, goals, risk profiles, and kill switches. The current stage is paper-trading: accumulating 30+ trades with zero losing weeks to qualify for the Phase G live switch ($200 real capital, graduated scale-up). No real money is at risk yet. The project is a personal experiment — not a product for external users.
+**WHAT WE'RE BUILDING / WORKING ON:** bahtzang-trader — an AI-powered paper trading experiment where Claude Sonnet makes buy/sell/hold decisions on a live Alpaca paper account. The system has a FastAPI backend, a Next.js 14 dashboard, and Supabase for auth and PostgreSQL. Trades run through virtual "portfolio" sub-accounts with independent budgets, goals, risk profiles, and kill switches. The current stage is paper-trading: a side-by-side test (SPY core vs Claude vs simple rules — `docs/product/trading-charter.md`, DOC-054) where a portfolio qualifies for the Phase G live switch after ≥12 weeks and ≥30 trades by beating SPY after all costs ($200 real capital, graduated scale-up). No real money is at risk yet. The project is a personal experiment — not a product for external users.
 
 **DOMAIN-SPECIFIC CAUTION:**
 - **CODE:** I review diffs but rely on Claude for implementation. Flag failure modes and edge cases *before* suggesting changes, not after. If you're about to assume a library behavior or API contract, verify it or say so — don't silently guess.
@@ -364,7 +364,8 @@ When you notice a pattern, preference, decision, or piece of context that should
 
 **DECISIONS ALREADY MADE — DO NOT RE-LITIGATE:**
 - **Phase G live allocation is $200.** Intentionally small for the first live run. Can scale via ≤2.5× raises after 3 months at Stage 4 without restarting graduation.
-- **Phase G gate requires zero losing weeks during paper trading** (stricter than win-rate ≥ 50%). A losing paper week means the strategy is wrong, not the gates are too tight.
+- **Phase G paper gate (amended 2026-10-19, was zero losing weeks):** ≥12 weeks and ≥30 trades, beat buy-and-hold SPY after all costs (spread, fees, API, est. 24% tax), worst drop ≤15%, no single week worse than -5%. Passing earns the $200 live trial, not proof of an edge.
+- **Trading charter (DOC-054) is the rulebook:** stocks only; 80% SPY core / 20% in three pools (A listed ≥$5, B listed $1–5, C OTC), each run by Claude and by a simple rule; safety limits enforced in code, never by prompt.
 - **Rollback = kill switch + manual unwind.** No auto-downgrade to paper trading. Human in the loop on rollback.
 - **No manual per-trade approval in Stage 1.** Bridge-gate review at end of each window is the human checkpoint.
 - **Portfolio-only execution model.** The global trader is gone. Every trade runs through a Portfolio. Do not re-introduce a global execution path.

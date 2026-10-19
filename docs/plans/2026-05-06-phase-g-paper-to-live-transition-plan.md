@@ -24,7 +24,7 @@ implementation; the rest of the doc is updated to reflect them.
 | # | Decision | Rationale |
 |---|---|---|
 | 1 | **Final live allocation: $200** | Deliberately small for a first live run. Strategy and infra are unproven at any scale; $200 limits damage on a bad surprise while still providing real-money signal. Can be raised later by adjusting `target_live_allocation` once Stage 4 has run for several months without incident. |
-| 2 | **Losing weeks during paper trading ARE a graduation blocker** | Stricter than the v1 draft. Aligns with "guardrails preventing progress" being a *bug* (the system shouldn't lose money in low-stakes paper) rather than a virtue. A losing paper week means the strategy is wrong, not that the gates are too tight. |
+| 2 | ~~**Losing weeks during paper trading ARE a graduation blocker**~~ **Amended 2026-10-19 (DOC-054):** paper gate is now ≥ 12 weeks and ≥ 30 trades: beat buy-and-hold SPY after all costs, worst drop from peak ≤ 15%, no single week worse than -5%. Original rationale kept below for history. | Stricter than the v1 draft. Aligns with "guardrails preventing progress" being a *bug* (the system shouldn't lose money in low-stakes paper) rather than a virtue. A losing paper week means the strategy is wrong, not that the gates are too tight. |
 | 3 | **Rollback = kill switch + manual unwind** (as designed) | Human-in-the-loop on rollback is correct. Auto-downgrade adds another autonomous decision surface during a stressful event; we'd rather fail conservative. |
 | 4 | **No manual per-trade approval in Stage 1** | The point of automation is automation. Adding a human checkpoint per trade defeats the purpose and isn't sustainable. Stage 1's *bridge gate review* (after each stage's window) is the human-decision surface. |
 
@@ -51,7 +51,7 @@ These are *blocking* — Phase G doesn't begin until all are green.
 | 1 | **30+ executed paper trades** completed | `SELECT COUNT(*) FROM trades WHERE executed = TRUE AND timestamp > '2026-04-22';` ≥ 30 |
 | 2 | **Win rate** of paper trades is ≥ 50% on a 1:1+ RR strategy, OR profit factor > 1.0 if RR varies | `/trades/summary` page → win rate column |
 | 3 | **Max drawdown** in paper portfolio ≤ 15% | `/analytics` page → max DD card |
-| 4 | **Zero losing weeks** in the paper-trade graduation window (decision #2 — stricter than the draft) | Compute weekly equity series from `/portfolio/snapshots`; any week with weekly P&L < 0 fails this gate |
+| 4 | **Amended 2026-10-19:** beat SPY after costs, no week worse than -5% (was: zero losing weeks) | Weekly equity series from snapshots vs SPY closes, net of recorded costs; any week < -5% fails |
 | 5 | **No critical guardrail blocks** dominating the audit log | `/trades/block-stats` → no reason >20% of total |
 | 6 | **30 consecutive cycles without backend errors** in `/errors` page | observation |
 | 7 | **Live Alpaca account approved** (currently in review) | Alpaca dashboard shows "Live Trading" tab unlocked |
@@ -220,7 +220,7 @@ Estimated: 3–5 days of focused work once prerequisites are met.
 | # | Question | Decision |
 |---|---|---|
 | 1 | Final target allocation? | **$200** |
-| 2 | Are losing weeks during paper trading a graduation blocker? | **Yes** — losing weeks indicate the strategy is wrong, not that gates are too tight |
+| 2 | Are losing weeks during paper trading a graduation blocker? | ~~Yes~~ **Amended 2026-10-19:** no — only a week worse than -5% is; the bar is beating SPY after costs (DOC-054) |
 | 3 | Rollback procedure (kill switch + manual unwind vs. auto-downgrade)? | **Kill switch + manual unwind** (human in loop on rollback) |
 | 4 | Manual per-trade approval in Stage 1? | **No** — defeats the point of automation; bridge-gate review at end of each window is the human checkpoint |
 

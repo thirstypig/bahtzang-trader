@@ -11,7 +11,7 @@ updated: 2026-10-19
 
 # Trading charter
 
-The rules every portfolio runs under. **Approved 2026-10-19 except the graduation gate.** Nothing here is built yet;
+The rules every portfolio runs under. **Approved 2026-10-19.** Nothing here is built yet;
 ✅ = decided, ❓ = still open.
 
 ## 1. Goal
@@ -80,12 +80,10 @@ For each portfolio, and the account overall:
 
 ## 7. Pass / fail
 
-- ❓ **Graduation gate.** The locked Phase G gate is "30+ trades, zero losing weeks". SPY itself
-  has a losing week roughly 4 weeks in 10, so a market-tracking portfolio would pass about 2%
-  of the time over 8 weeks.
-  Recommended replacement: **after ≥ 12 weeks and ≥ 30 trades, beat SPY after costs, with the
-  worst drop from peak ≤ 15% and no single week worse than -5%.** Passing earns the $200
-  live trial, not proof of an edge. Awaiting James's yes; until then the locked gate stands.
+- ✅ **Graduation gate (replaces "zero losing weeks", approved 2026-10-19):** after ≥ 12 weeks
+  and ≥ 30 trades, **beat SPY after costs**, worst drop from peak ≤ 15%, and no single week
+  worse than -5%. Passing earns the $200 live trial, not proof of an edge. (Why: SPY itself
+  loses roughly 4 weeks in 10, so "zero losing weeks" mostly measured luck.)
 - **Cut rule:** a pool that trails SPY by more than 10 points after 12 weeks is switched off.
 
 ## 8. Build order (before any portfolio is switched on)
@@ -100,4 +98,4 @@ For each portfolio, and the account overall:
 
 ## Open decisions for James
 
-1. Graduation gate: keep zero losing weeks, or switch to the recommended replacement in section 7?
+None. All decided 2026-10-19.
