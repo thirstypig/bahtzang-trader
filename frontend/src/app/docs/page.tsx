@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Spinner from "@/components/Spinner";
+import { renderMarkdown } from "@/lib/renderMarkdown";
 
 interface DocEntry {
   id: string;
@@ -17,6 +18,7 @@ const DOCS: { category: string; items: DocEntry[] }[] = [
     category: "Getting Started",
     items: [
       { id: "daily-ops", title: "Daily Operations Guide", description: "What to check daily, how to use each page, getting started checklist", icon: "📋", file: "/docs/daily-operations.md" },
+      { id: "feature-inventory", title: "Feature Inventory", description: "Every feature in plain English — and whether it actually affects trades today", icon: "🔎", file: "/docs/feature-inventory.md" },
     ],
   },
   {
@@ -45,37 +47,6 @@ const DOCS: { category: string; items: DocEntry[] }[] = [
     ],
   },
 ];
-
-function renderMarkdown(md: string): string {
-  let html = md
-    // Code blocks
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="rounded-lg bg-card-alt p-4 overflow-x-auto text-xs font-mono text-secondary my-3"><code>$2</code></pre>')
-    // Inline code
-    .replace(/`([^`]+)`/g, '<code class="rounded bg-card-alt px-1.5 py-0.5 text-xs font-mono text-accent">$1</code>')
-    // Headers
-    .replace(/^### (.+)$/gm, '<h3 class="mt-6 mb-2 text-base font-semibold text-primary">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="mt-8 mb-3 text-lg font-bold text-primary border-b border-border pb-2">$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="mt-8 mb-4 text-xl font-bold text-primary">$1</h1>')
-    // Bold and italic
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-primary">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Links — strip javascript: URIs before injecting into href
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
-      const safe = /^(https?:\/\/|\/|#)/.test(url) ? url : "#";
-      return `<a href="${safe}" target="_blank" rel="noopener noreferrer" class="text-accent underline hover:text-accent-text">${text}</a>`;
-    })
-    // Unordered lists
-    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-secondary">$1</li>')
-    // Horizontal rules
-    .replace(/^---$/gm, '<hr class="my-6 border-border" />')
-    // Paragraphs (lines not already wrapped)
-    .replace(/^(?!<[hluop]|<li|<hr|<pre|<code)(.+)$/gm, '<p class="my-2 text-secondary leading-relaxed">$1</p>');
-
-  // Wrap consecutive <li> in <ul>
-  html = html.replace(/((?:<li[^>]*>.*<\/li>\n?)+)/g, '<ul class="my-3 space-y-1">$1</ul>');
-
-  return html;
-}
 
 export default function DocsPage() {
   const [activeDoc, setActiveDoc] = useState<DocEntry>(DOCS[0].items[0]); // Daily Operations Guide
