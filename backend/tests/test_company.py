@@ -6,7 +6,10 @@ from app import company
 
 
 @pytest.fixture(autouse=True)
-def _clear_cache():
+def _clear_cache(monkeypatch):
+    # get_company_profile skips Finnhub when no key is set; CI has none, so
+    # without this the fake fetch is never reached there.
+    monkeypatch.setattr(company.settings, "FINNHUB_API_KEY", "test-key")
     company._cache.clear()
     yield
     company._cache.clear()
