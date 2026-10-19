@@ -78,7 +78,8 @@ class AlpacaBroker(BrokerInterface):
         Alpaca, so callers must size whole-share qty for those.
 
         Time in force: equities use DAY (required for fractional orders);
-        crypto pairs use GTC — Alpaca rejects DAY on crypto.
+        crypto pairs use GTC — Alpaca rejects DAY on crypto. A buy with a stop
+        uses GTC so the inherited stop leg survives past the first close.
 
         ``stop_price`` attaches a broker-held stop to a BUY entry via an OTO
         order (entry triggers ONE stop leg — no take-profit, matching the
@@ -86,9 +87,10 @@ class AlpacaBroker(BrokerInterface):
         simple-order only). OTO requires whole shares — the risk engine sizes
         whole shares, so callers passing a stop must pass an integer qty.
 
-        NOTE: OTO-with-a-lone-stop is verified to CONSTRUCT; acceptance by the
-        Alpaca paper API must be confirmed with a live paper order before this
-        path is trusted in the executor.
+        Verified 2026-10-19 on the paper API: the OTO is accepted and its stop
+        leg sits HELD (GTC) until the entry fills. Selling a position whose stop
+        leg is still open needs that leg cancelled first — Alpaca reserves the
+        shares for it.
         """
         if action not in ("buy", "sell"):
             raise ValueError(f"Invalid action: {action}. Must be 'buy' or 'sell'.")
@@ -99,11 +101,13 @@ class AlpacaBroker(BrokerInterface):
         crypto = is_crypto(ticker)
         attach_stop = stop_price is not None and action == "buy" and not crypto
 
+        # The stop leg inherits the parent's TIF, and a DAY stop is cancelled at the
+        # first close. OTO entries are whole shares, so GTC is allowed for them.
         fields = dict(
             symbol=ticker,
             qty=quantity,
             side=OrderSide.BUY if action == "buy" else OrderSide.SELL,
-            time_in_force=TimeInForce.GTC if crypto else TimeInForce.DAY,
+            time_in_force=TimeInForce.GTC if (crypto or attach_stop) else TimeInForce.DAY,
         )
         if attach_stop:
             fields["order_class"] = OrderClass.OTO
