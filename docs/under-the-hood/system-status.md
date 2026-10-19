@@ -6,7 +6,7 @@ phase: null
 owner: james
 tags: [deployment, backend]
 links: [DOC-007]
-updated: 2026-07-23
+updated: 2026-10-19
 ---
 
 # System status
@@ -18,7 +18,7 @@ updated: 2026-07-23
 > the service is reachable, the key is valid, or the quota is intact. The 13-day
 > silent outage in June had every key configured the whole time.
 
-Last commit: **2026-07-22**
+Last commit: **2026-09-12**
 
 <!-- TODO: deploy timestamp requires the Railway API; commit date is a proxy. -->
 
