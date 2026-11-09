@@ -86,3 +86,89 @@ async def test_crypto_buy_ignores_stop_price():
     assert getattr(data, "order_class", None) in (None, OrderClass.SIMPLE)
     assert getattr(data, "stop_loss", None) is None
     assert data.time_in_force == TimeInForce.GTC  # crypto path stays GTC, not DAY
+
+
+# --- Stop lifecycle (risk-engine wiring) -----------------------------------
+
+from alpaca.common.exceptions import APIError  # noqa: E402
+from alpaca.trading.enums import OrderStatus, OrderSide  # noqa: E402
+
+
+def _order(status, filled_qty="0", filled_avg_price=None, legs=None, oid="ord-1"):
+    o = MagicMock()
+    o.id = oid
+    o.status = status
+    o.filled_qty = filled_qty
+    o.filled_avg_price = filled_avg_price
+    o.legs = legs
+    return o
+
+
+@pytest.mark.asyncio
+async def test_oto_result_includes_stop_leg_id():
+    client = MagicMock()
+    client.submit_order.return_value = _order(
+        OrderStatus.ACCEPTED, legs=[_order(OrderStatus.HELD, oid="leg-9")]
+    )
+    with patch("app.brokers.alpaca._get_client", return_value=client):
+        res = await AlpacaBroker().place_order("default", "F", "buy", 1, stop_price=11.57)
+    assert res["stop_order_id"] == "leg-9"
+
+
+@pytest.mark.asyncio
+async def test_plain_order_has_no_stop_leg_id():
+    client = MagicMock()
+    client.submit_order.return_value = _order(OrderStatus.ACCEPTED, legs=None)
+    with patch("app.brokers.alpaca._get_client", return_value=client):
+        res = await AlpacaBroker().place_order("default", "F", "sell", 1)
+    assert res["stop_order_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_get_order_normalizes_status():
+    client = MagicMock()
+    client.get_order_by_id.return_value = _order(OrderStatus.FILLED, "10", "46.0")
+    with patch("app.brokers.alpaca._get_client", return_value=client):
+        res = await AlpacaBroker().get_order("leg-1")
+    assert res == {"status": "filled", "filled_qty": 10.0, "filled_avg_price": 46.0}
+
+
+@pytest.mark.asyncio
+async def test_cancel_order_waits_out_pending_cancel():
+    client = MagicMock()
+    client.get_order_by_id.side_effect = [
+        _order(OrderStatus.PENDING_CANCEL), _order(OrderStatus.CANCELED),
+    ]
+    with patch("app.brokers.alpaca._get_client", return_value=client), \
+         patch("app.brokers.alpaca.asyncio.sleep", new=_no_sleep):
+        status = await AlpacaBroker().cancel_order("leg-1")
+    client.cancel_order_by_id.assert_called_once_with("leg-1")
+    assert status == "canceled"
+
+
+@pytest.mark.asyncio
+async def test_cancel_order_reports_filled_when_raced():
+    client = MagicMock()
+    client.cancel_order_by_id.side_effect = APIError('{"code":42210000,"message":"order is not cancelable"}')
+    client.get_order_by_id.return_value = _order(OrderStatus.FILLED, "10", "46.0")
+    with patch("app.brokers.alpaca._get_client", return_value=client), \
+         patch("app.brokers.alpaca.asyncio.sleep", new=_no_sleep):
+        status = await AlpacaBroker().cancel_order("leg-1")
+    assert status == "filled"
+
+
+@pytest.mark.asyncio
+async def test_place_stop_order_is_gtc_sell_stop():
+    client, captured = _capture_submit()
+    with patch("app.brokers.alpaca._get_client", return_value=client):
+        res = await AlpacaBroker().place_stop_order("AAPL", 7, 46.0)
+    data = captured["data"]
+    assert data.side == OrderSide.SELL
+    assert data.qty == 7
+    assert data.stop_price == 46.0
+    assert data.time_in_force == TimeInForce.GTC
+    assert res["order_id"] == "ord-1"
+
+
+async def _no_sleep(_):
+    return None

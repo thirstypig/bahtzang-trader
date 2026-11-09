@@ -5,7 +5,8 @@ import logging
 
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderClass, OrderSide, TimeInForce
-from alpaca.trading.requests import MarketOrderRequest, StopLossRequest
+from alpaca.common.exceptions import APIError
+from alpaca.trading.requests import MarketOrderRequest, StopLossRequest, StopOrderRequest
 
 from app.brokers.base import BrokerInterface
 from app.config import settings
@@ -122,8 +123,66 @@ class AlpacaBroker(BrokerInterface):
             action, quantity, ticker, order.id, order.status,
         )
 
+        legs = getattr(order, "legs", None) or []
         return {
             "status": str(order.status),
             "order_id": str(order.id),
             "filled_qty": float(order.filled_qty) if order.filled_qty else 0,
+            # OTO entries carry exactly one stop leg; its id is how we later find,
+            # cancel, or reconcile THIS portfolio's stop in a shared account.
+            "stop_order_id": str(legs[0].id) if attach_stop and legs else None,
         }
+
+    async def get_order(self, order_id: str) -> dict:
+        """Current status + fill of one order. Status is the lower-case Alpaca value."""
+        client = _get_client()
+        order = await asyncio.to_thread(client.get_order_by_id, order_id)
+        return {
+            "status": _status(order.status),
+            "filled_qty": float(order.filled_qty) if order.filled_qty else 0.0,
+            "filled_avg_price": (
+                float(order.filled_avg_price) if order.filled_avg_price else None
+            ),
+        }
+
+    async def cancel_order(self, order_id: str) -> str:
+        """Cancel an order and return its settled status.
+
+        Cancels are asynchronous at Alpaca (pending_cancel → canceled), and a sell
+        sent while the stop is still pending_cancel is rejected for reserved shares,
+        so poll until it settles. If the order already filled (the stop fired a moment
+        ago) Alpaca refuses the cancel — return "filled" so the caller records the
+        fill instead of selling shares that are gone.
+        """
+        client = _get_client()
+        try:
+            await asyncio.to_thread(client.cancel_order_by_id, order_id)
+        except APIError as e:
+            logger.warning("Cancel of %s refused: %s", order_id, e)
+        status = "unknown"
+        for _ in range(5):
+            status = (await self.get_order(order_id))["status"]
+            if status != "pending_cancel":
+                break
+            await asyncio.sleep(0.5)
+        return status
+
+    async def place_stop_order(self, ticker: str, quantity: int, stop_price: float) -> dict:
+        """Standalone GTC sell-stop — re-protects shares left after a partial sell."""
+        client = _get_client()
+        order_data = StopOrderRequest(
+            symbol=ticker,
+            qty=quantity,
+            side=OrderSide.SELL,
+            time_in_force=TimeInForce.GTC,
+            stop_price=stop_price,
+        )
+        async with order_lock:
+            order = await asyncio.to_thread(client.submit_order, order_data=order_data)
+        logger.info("Alpaca stop placed: %s %s @ %s — ID: %s", ticker, quantity, stop_price, order.id)
+        return {"order_id": str(order.id), "status": str(order.status)}
+
+
+def _status(status) -> str:
+    """OrderStatus enum (or raw string) → 'filled' / 'held' / 'canceled' ..."""
+    return str(getattr(status, "value", status)).lower()

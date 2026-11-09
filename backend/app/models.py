@@ -67,6 +67,14 @@ class Trade(Base):
     virtual_cash_after: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
     # rules_with_claude_oversight: stores the strategy's original signal before Claude review
     rules_recommendation: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Risk engine: the broker-held stop attached to this row (a buy's OTO leg, or a
+    # standalone stop re-protecting a partial-sell remainder). stop_state is
+    # "open" until reconciled to "filled" or "cancelled".
+    stop_price: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
+    stop_order_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Shares the stop covers — so re-protection never stacks two stops on one share.
+    stop_qty: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stop_state: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
     __table_args__ = (
         Index("ix_trades_timestamp_executed", "timestamp", "executed"),

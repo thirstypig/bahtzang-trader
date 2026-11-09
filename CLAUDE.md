@@ -3,7 +3,7 @@
 ## Current status
 
 <!-- now-tldr -->
-An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). **2026-10-19 — experiment reset.** Test 5 (id=6) was switched off at 130 trades / -9.3% while SPY gained 3.0% over the same window; its 11 positions were sold at the 10/20 open (fills recorded in `trades` 2026-11-09; final -9.28% on $10k, 0 positions). **No portfolio is active.** The rulebook is now the trading charter (`docs/product/trading-charter.md`, DOC-054): beat buy-and-hold SPY after all costs, stocks only, 80% SPY core + three higher-risk stock pools each run by Claude and by a simple rule, safety limits enforced in code. The Phase G paper gate was changed from zero losing weeks to beat-SPY-after-costs (see Decisions below). The feature inventory (`docs/under-the-hood/feature-inventory.md`, DOC-053) is the map of what is actually live: no stop-loss is enforced, the 48h cooldown blocks sells, and several safety settings are saved but never read. Broker-held stop (OTO) verified live on paper — stop leg must be GTC, not DAY (PR #44); the 1-share F test's GTC stop fired at $11.57 on 10/20, proving it end to end. Next: build order in charter section 8, starting with wiring the risk engine into the executor. About 16 positions from pre-portfolio tests (~$17.6k, QQQ largest) sit in the Alpaca account owned by no portfolio — undecided.
+An AI trading experiment — Claude makes the buy / sell / hold calls, a small web app handles the data and execution, and a paper-trading account at Alpaca is the live target (no real money yet). **2026-10-19 — experiment reset.** Test 5 (id=6) was switched off at 130 trades / -9.3% while SPY gained 3.0% over the same window; its 11 positions were sold at the 10/20 open (fills recorded in `trades` 2026-11-09; final -9.28% on $10k, 0 positions). **No portfolio is active.** The rulebook is now the trading charter (`docs/product/trading-charter.md`, DOC-054): beat buy-and-hold SPY after all costs, stocks only, 80% SPY core + three higher-risk stock pools each run by Claude and by a simple rule, safety limits enforced in code. The Phase G paper gate was changed from zero losing weeks to beat-SPY-after-costs (see Decisions below). The feature inventory (`docs/under-the-hood/feature-inventory.md`, DOC-053) is the map of what is actually live: the 48h cooldown blocks sells, and several safety settings are saved but never read. Broker-held stop (OTO) verified live on paper — stop leg must be GTC, not DAY (PR #44); the 1-share F test's GTC stop fired at $11.57 on 10/20, proving it end to end. **Risk engine wired in (2026-11-09, PR pending):** every stock buy is sized for ≤1% loss and carries a broker-held GTC stop; stops are reconciled into `trades` each run. Next: charter section 8 step 2 (let sells through the cooldown). About 16 positions from pre-portfolio tests (~$17.6k, QQQ largest) sit in the Alpaca account owned by no portfolio — undecided.
 <!-- /now-tldr -->
 
 ## Project Overview
@@ -86,6 +86,8 @@ Exit-only cycle (3:30 PM ET daily): sells/holds only — buys suppressed in the 
 Virtual positions carry real cost basis + unrealized P&L (average-cost method over executed trades) — compute_virtual_cost_basis()
 Alpaca SDK calls wrapped in asyncio.to_thread() to avoid blocking the event loop
 Earnings data: position sizing reduced 50% at 0-1 days, 70% at 2 days before earnings
+Risk engine (every stock buy, all modes): qty = min(1%-risk / (2×ATR stop), 95% cash, 20% of portfolio) × earnings factor; Claude's qty ignored; no ATR → hold. Sent as Alpaca OTO with GTC stop leg (crypto excluded)
+Stop lifecycle (plans/stops.py): reconcile_stops at cycle start (fired → sell row + cash; vanished → UNPROTECTED Slack); release_stops cancels only this portfolio's legs before a sell; protect_remainder after a partial sell. Trade.stop_price/stop_order_id/stop_state (migration 079)
 Pipeline types: Position, Quote, NewsItem, TradeDecision, CycleResult (pipeline_types.py)
 Claude prompt includes a USAGE/HEADROOM block: total_invested vs max, orders_used_today vs limit, position slots, and effective_buy_ceiling = min(cash, max_single_trade, invest_headroom) — closes the information asymmetry that previously blocked trades at validation
 Coerce-before-validate: qty<=0 or price<=0 → hold (with reason preserved in audit trail)
@@ -171,6 +173,7 @@ backend/
       executor.py     # Per-portfolio trading cycle; asyncio locks; coerces qty<=0/price<=0 to hold; threads usage to Claude prompt; circuit breaker RED deactivates all portfolios
       routes.py       # CRUD + run + export at /portfolios/* (advisory lock budget validation, rate-limited)
       snapshots.py    # Daily snapshot capture for equity curves
+      stops.py        # Broker-held stop lifecycle vs the virtual ledger (reconcile / release / re-protect)
     forex/            # Feature module: independent forex backtest tool (Phase F+)
       models.py       # ForexBar (OHLCV cache), ForexBacktestRun (config + results)
       zones.py        # 5-bar pivot detection + 0.5% single-linkage clustering → S/R zones
@@ -201,6 +204,7 @@ backend/
     market_data.py    # Alpha Vantage news (quotes moved to Alpaca Data API)
     scheduler.py      # Trading frequency (first slot 10:00 AM, off the open) + exit-only check (3:30 PM) + daily snapshot (4:05 PM) + summary (4:10 PM) + earnings refresh (7 AM) + screener refresh (7:30 AM) — DB calls via to_thread()
     logger.py         # Trade logging to PostgreSQL
+    risk.py           # Risk engine: size_entry (1% risk, cash + 20% caps, earnings factor), 2×ATR tick-rounded stop
   data/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
   railway.toml        # Railway deploy config
@@ -427,7 +431,7 @@ uncomment its frontmatter block.
 ---
 
 <!-- DOCS:STATUS:START -->
-<!-- Generated by npm run docs:refresh on 2026-10-19. Do not edit by hand. -->
+<!-- Generated by npm run docs:refresh on 2026-11-09. Do not edit by hand. -->
 
 ### Project status
 

@@ -90,3 +90,12 @@ async def notify_daily_summary(
         f"Portfolio: ${portfolio_value:,.0f} ({pnl_sign}{pnl_pct:.1f}%)"
     )
     await _send_slack(text)
+
+
+async def notify_risk_event(text: str):
+    """Risk-engine events: a broker stop fired, or a position lost its stop.
+
+    Charter §3: any automatic action or lost protection posts to Slack —
+    nothing changes holdings silently.
+    """
+    await _send_slack(f":rotating_light: {text}")
