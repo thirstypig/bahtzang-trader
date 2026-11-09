@@ -39,6 +39,7 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/portfolios", label: "Strategies", icon: Icons.Plans, description: "Each strategy's budget, rules, and kill switch" },
       { href: "/screener", label: "Screener", icon: Icons.Analytics, description: "Daily ranked S&P 500 candidates (advisory)" },
+      { href: "/reports", label: "Weekly reports", icon: Icons.Analytics, description: "Each portfolio vs SPY after all costs, every Friday" },
       { href: "/markets", label: "Markets", icon: Icons.Markets, description: "Financial products: current, near-term, and future" },
       { href: "/backtest", label: "Backtest", icon: Icons.Backtest, description: "Stocks strategy backtests on historical data" },
       { href: "/earnings", label: "Earnings", icon: Icons.Earnings, description: "Upcoming earnings with proximity warnings" },

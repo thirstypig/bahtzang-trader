@@ -15,6 +15,8 @@ import {
   ScreenerResult,
   StrategyInfo,
   Trade,
+  WeeklyReportDetail,
+  WeeklyReportSummary,
 } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4070";
@@ -353,6 +355,14 @@ export async function getScreener(): Promise<ScreenerResult> {
 
 export async function refreshScreener(): Promise<{ status: string }> {
   return fetchAPI<{ status: string }>(`/screener/refresh`, { method: "POST" });
+}
+
+export async function getReports(): Promise<WeeklyReportSummary[]> {
+  return fetchAPI<WeeklyReportSummary[]>(`/reports`);
+}
+
+export async function getReport(id: number): Promise<WeeklyReportDetail> {
+  return fetchAPI<WeeklyReportDetail>(`/reports/${id}`);
 }
 
 export async function getPortfolioSnapshots(
