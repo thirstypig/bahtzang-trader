@@ -10,6 +10,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.32.0",
+    date: "2026-10-19",
+    changes: [
+      { type: "docs", title: "Experiment reset: Test 5 switched off (-9.3% while SPY gained 3.0%) and sell orders placed for its 11 positions. New trading charter: the goal is to beat simply holding SPY after all costs, stocks only, 80% SPY core with three higher-risk stock pools each run by Claude and by a simple rule, and safety limits enforced in code rather than requested of Claude" },
+      { type: "docs", title: "Graduation gate changed from 'zero losing weeks' (SPY itself loses about 4 weeks in 10, so it mostly measured luck) to: after 12+ weeks and 30+ trades, beat SPY after costs, worst drop no more than 15%, no single week worse than -5%" },
+      { type: "docs", title: "Feature inventory added to /docs: every feature in plain English and whether it actually affects trades. Headline: no stop-loss was enforced in code, the 48-hour cooldown also blocked sells, and several safety settings were saved but never used. /docs now renders tables" },
+      { type: "fix", title: "Automated tests on GitHub had failed on every push since July: three company-lookup tests only passed on a machine with a Finnhub key. They now pass everywhere" },
+    ],
+  },
+  {
     version: "0.31.0",
     date: "2026-07-22",
     changes: [

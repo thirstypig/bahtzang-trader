@@ -18,7 +18,7 @@ updated: 2026-10-19
 > the service is reachable, the key is valid, or the quota is intact. The 13-day
 > silent outage in June had every key configured the whole time.
 
-Last commit: **2026-09-12**
+Last commit: **2026-10-19**
 
 <!-- TODO: deploy timestamp requires the Railway API; commit date is a proxy. -->
 
