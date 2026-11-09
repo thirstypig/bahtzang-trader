@@ -1,4 +1,8 @@
-"""Historical OHLCV data pipeline — fetch from Alpaca, cache in PostgreSQL."""
+"""Historical daily OHLCV bars — fetch from Alpaca, cache in PostgreSQL.
+
+Shared infrastructure (moved from app/backtest/data.py): the backtester, the live
+executor's rules strategies and the screener all read bars from here.
+"""
 
 import asyncio
 import logging
@@ -9,13 +13,31 @@ import pandas as pd
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import Date, Float, Index, Integer, String, select
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.config import settings
-from app.backtest.models import OHLCVCache
+from app.database import Base
 
 logger = logging.getLogger(__name__)
+
+
+class OHLCVCache(Base):
+    """Cached daily OHLCV bars from Alpaca."""
+    __tablename__ = "ohlcv_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String(10), nullable=False)
+    bar_date: Mapped[date] = mapped_column(Date, nullable=False)
+    open: Mapped[float] = mapped_column(Float, nullable=False)
+    high: Mapped[float] = mapped_column(Float, nullable=False)
+    low: Mapped[float] = mapped_column(Float, nullable=False)
+    close: Mapped[float] = mapped_column(Float, nullable=False)
+    volume: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    __table_args__ = (
+        Index("ix_ohlcv_ticker_date", "ticker", "bar_date", unique=True),
+    )
 
 _data_client: StockHistoricalDataClient | None = None
 

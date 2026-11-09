@@ -16,8 +16,8 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from app.backtest.data import fetch_and_cache_bars
-from app.backtest.models import OHLCVCache
+from app.bars import fetch_and_cache_bars
+from app.bars import OHLCVCache
 
 _END = date.today()
 _START = _END - timedelta(days=400)
@@ -63,7 +63,7 @@ class TestFetchAndCacheBars:
     async def test_fully_cached_ticker_skipped_only_uncached_fetched(self, db_session):
         _seed_full_cache(db_session, "AAA")  # already fully covered
         calls: list = []
-        with patch("app.backtest.data._get_data_client", return_value=_mock_client(calls)):
+        with patch("app.bars._get_data_client", return_value=_mock_client(calls)):
             await fetch_and_cache_bars(["AAA", "BBB"], _START, _END, db_session)
 
         assert calls == [["BBB"]]                       # cached ticker skipped, only BBB fetched
@@ -72,14 +72,14 @@ class TestFetchAndCacheBars:
     async def test_all_cached_never_calls_alpaca(self, db_session):
         _seed_full_cache(db_session, "AAA")
         calls: list = []
-        with patch("app.backtest.data._get_data_client", return_value=_mock_client(calls)):
+        with patch("app.bars._get_data_client", return_value=_mock_client(calls)):
             await fetch_and_cache_bars(["AAA"], _START, _END, db_session)
 
         assert calls == []                              # coverage query saw full cache → no fetch
 
     async def test_uncached_tickers_fetched_in_one_batch(self, db_session):
         calls: list = []
-        with patch("app.backtest.data._get_data_client", return_value=_mock_client(calls)):
+        with patch("app.bars._get_data_client", return_value=_mock_client(calls)):
             await fetch_and_cache_bars(["AAA", "BBB", "CCC"], _START, _END, db_session)
 
         assert len(calls) == 1                          # one multi-symbol request, not three
@@ -95,7 +95,7 @@ class TestLoadBars:
 
     def test_one_query_regardless_of_ticker_count(self, db_session):
         from sqlalchemy import event
-        from app.backtest.data import load_bars
+        from app.bars import load_bars
 
         _seed_full_cache(db_session, "AAA")
         _seed_full_cache(db_session, "BBB")
@@ -117,7 +117,7 @@ class TestLoadBars:
         assert set(bars) == {"AAA", "BBB"}
 
     def test_dataframe_shape_and_order(self, db_session):
-        from app.backtest.data import load_bars
+        from app.bars import load_bars
 
         _seed_full_cache(db_session, "AAA")
         bars = load_bars(["AAA", "MISSING"], _START, _END, db_session)

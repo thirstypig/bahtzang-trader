@@ -158,10 +158,9 @@ backend/
       buy_and_hold.py      # BuyAndHold (equal-weight day-1 benchmark)
       dual_momentum.py     # DualMomentum (Antonacci: SPY/VEU/BIL monthly rotation)
     backtest/         # Feature module: backtesting framework (Phase F)
-      models.py       # BacktestConfig, BacktestResult, OHLCVCache tables
-      data.py         # Alpaca OHLCV fetch + PostgreSQL cache with gap-fill
+      models.py       # BacktestConfig, BacktestResult tables
       engine.py       # Day-by-day simulation with lookahead bias prevention
-      strategies.py   # Shim (deprecated): re-exports app.strategies.*; keeps PositionInfo + SimulationState
+      strategies.py   # Shim (deprecated): re-exports app.strategies.* (incl. PositionInfo + SimulationState)
       routes.py       # CRUD /backtest + background run
     earnings/         # Feature module: earnings calendar (Phase F)
       models.py       # EarningsEvent table (Finnhub cache)
@@ -204,6 +203,7 @@ backend/
     market_data.py    # Alpha Vantage news (quotes moved to Alpaca Data API)
     scheduler.py      # Trading frequency (first slot 10:00 AM, off the open) + exit-only check (3:30 PM) + daily snapshot (4:05 PM) + summary (4:10 PM) + earnings refresh (7 AM) + screener refresh (7:30 AM) — DB calls via to_thread()
     logger.py         # Trade logging to PostgreSQL
+    bars.py           # Shared: OHLCVCache table + Alpaca daily-bar fetch/cache (backtest, rules strategies, screener)
     risk.py           # Risk engine: size_entry (1% risk, cash + 20% caps, earnings factor), 2×ATR tick-rounded stop
   data/
     todo-tasks.json   # Admin todo tasks (runtime, file-based)
@@ -314,7 +314,7 @@ New features go in their own Python packages under `backend/app/`:
 - Integration with the trading pipeline kept to minimal touchpoints
 - Example: `backtest/` and `earnings/` are fully self-contained packages
 
-**Shared infrastructure (not feature modules):** Code used by multiple features lives at the `app/` level, not inside a feature module. Examples: `analytics.py`, `pipeline_types.py`, `strategies/`. Do not import from a feature module to serve another feature — that is an isolation violation. If the live executor needs strategies, import from `app.strategies`, not `app.backtest.strategies`.
+**Shared infrastructure (not feature modules):** Code used by multiple features lives at the `app/` level, not inside a feature module. Examples: `analytics.py`, `pipeline_types.py`, `strategies/`, `bars.py`, `risk.py`. **Enforced by `tests/test_feature_isolation.py`** — the only allowed cross-feature imports are plans → earnings and plans → screener (the designed feeds). Do not import from a feature module to serve another feature — that is an isolation violation. If the live executor needs strategies, import from `app.strategies`, not `app.backtest.strategies`.
 
 ---
 

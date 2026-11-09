@@ -137,7 +137,7 @@ def _plan_to_guardrails_config(plan: Portfolio) -> dict:
 
 def _live_state_for_strategy(plan: Portfolio, db: Session):
     """Build a SimulationState from live virtual positions for strategy.decide()."""
-    from app.backtest.strategies import PositionInfo, SimulationState
+    from app.strategies import PositionInfo, SimulationState
 
     virtual_positions = compute_virtual_positions(db, plan.id)
     positions_info = {
@@ -157,14 +157,11 @@ async def _get_strategy_decisions(
     Fetches recent OHLCV bars, runs the registered strategy, and translates
     StrategySignal objects into the same TradeDecision dict format the Claude
     path produces — so the rest of the executor loop is mode-agnostic.
-
-    # TODO: move fetch_and_cache_bars / load_bars out of app.backtest to
-    # app.market_data so they can be shared without violating feature isolation.
     """
     from datetime import date as _date, timedelta
     from app.strategies import STRATEGY_REGISTRY
-    from app.backtest.data import fetch_and_cache_bars, load_bars
-    from app.backtest.strategies import PositionInfo, SimulationState
+    from app.bars import fetch_and_cache_bars, load_bars
+    from app.strategies import PositionInfo, SimulationState
     from app.technical_analysis import _compute_indicators
     from app.claude_brain import GOAL_WATCHLIST
 
@@ -796,9 +793,8 @@ async def fetch_market_data(
 
     # Screener feed — union the latest run's top-N into the universe for any
     # plan that opted in, and render the ranked CSV once at the widest N.
-    # (Cross-feature import mirrors the existing app.backtest.data usage; the
-    # OHLCV/screener data layer is shared-infra-in-waiting — see the TODO in
-    # _get_strategy_decisions.)
+    # (plans → screener is a designed feed; allow-listed in
+    # tests/test_feature_isolation.py.)
     screener_csv = ""
     screener_n = max(
         (_screener_top_n(plan) for plan in (plans or [])),

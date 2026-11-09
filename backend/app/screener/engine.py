@@ -190,7 +190,7 @@ async def run_screener(
     """
     from app.screener.models import ScreenerRun, ScreenerCandidate
     from app.screener.universe import SCREENER_UNIVERSE
-    from app.backtest.data import fetch_and_cache_bars, load_bars
+    from app.bars import fetch_and_cache_bars, load_bars
 
     tickers = list(dict.fromkeys((universe or SCREENER_UNIVERSE) + [BENCHMARK]))
 

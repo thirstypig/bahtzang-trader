@@ -33,8 +33,8 @@ def _bars(daily: float, n: int = 260) -> pd.DataFrame:
 class TestRunScreener:
     async def test_persists_ranked_candidates_and_marks_complete(self, db_session):
         bars = {"UP": _bars(0.002), "DOWN": _bars(-0.002), "SPY": _bars(0.0003)}
-        with patch("app.backtest.data.fetch_and_cache_bars", new=AsyncMock(return_value=None)), \
-             patch("app.backtest.data.load_bars", return_value=bars):
+        with patch("app.bars.fetch_and_cache_bars", new=AsyncMock(return_value=None)), \
+             patch("app.bars.load_bars", return_value=bars):
             run = await run_screener(db_session, universe=["UP", "DOWN"], top_n=10)
 
         assert run.status == "complete"
@@ -53,7 +53,7 @@ class TestRunScreener:
 
     async def test_marks_failed_when_data_fetch_raises(self, db_session):
         with patch(
-            "app.backtest.data.fetch_and_cache_bars",
+            "app.bars.fetch_and_cache_bars",
             new=AsyncMock(side_effect=RuntimeError("alpaca down")),
         ):
             run = await run_screener(db_session, universe=["UP"], top_n=10)
@@ -82,8 +82,8 @@ class TestRunScreener:
             "momentum": 0.0, "rel_strength": 0.0, "trend_score": 0.0,
             "rsi": 50.0, "volatility": 0.1, "price": 100.0,
         }
-        with patch("app.backtest.data.fetch_and_cache_bars", new=AsyncMock(return_value=None)), \
-             patch("app.backtest.data.load_bars", return_value={"AAA": _bars(0.001)}), \
+        with patch("app.bars.fetch_and_cache_bars", new=AsyncMock(return_value=None)), \
+             patch("app.bars.load_bars", return_value={"AAA": _bars(0.001)}), \
              patch("app.screener.engine.rank_universe", return_value=[bad_row]):
             run = await run_screener(db_session, universe=["AAA"], top_n=10)
 

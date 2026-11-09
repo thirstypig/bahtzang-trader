@@ -14,7 +14,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from app.backtest.strategies import (
+from app.strategies import (
     STRATEGY_REGISTRY,
     DualMomentum,
     PositionInfo,
