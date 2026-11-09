@@ -54,6 +54,18 @@ def compute_position_size(
 MAX_POSITION_PCT = 0.20  # charter §3: biggest single position ≤ 20% of the portfolio
 CASH_BUFFER = 0.95  # leave 5% of cash for slippage between quote and fill
 
+# Charter 2026-11-09: two strategies. (risk per trade, biggest single position).
+# Anything else gets the charter caps (1%, 20%).
+PROFILE_LIMITS = {
+    "conservative": (0.005, 0.10),
+    "aggressive": (0.01, 0.20),
+}
+
+
+def limits_for_profile(profile: str | None) -> tuple[float, float]:
+    """(risk_pct, max_position_pct) for a portfolio's risk profile."""
+    return PROFILE_LIMITS.get(profile or "", (DEFAULT_RISK_PCT, MAX_POSITION_PCT))
+
 
 def round_stop_price(price: float) -> float:
     """Round a stop DOWN to a tick Alpaca accepts.
@@ -86,6 +98,8 @@ def size_entry(
     atr: float | None,
     earnings_days: int | None = None,
     held_value: float = 0.0,
+    risk_pct: float = DEFAULT_RISK_PCT,
+    max_position_pct: float = MAX_POSITION_PCT,
 ) -> tuple[int, float]:
     """Whole-share quantity and broker stop price for a new long entry.
 
@@ -100,10 +114,10 @@ def size_entry(
     stop = round_stop_price(compute_stop_price(entry_price, atr))
     if stop <= 0:
         raise RiskError(f"stop {stop} is not above zero for entry {entry_price}")
-    risk_qty = compute_position_size(portfolio_value, DEFAULT_RISK_PCT, entry_price, stop)
+    risk_qty = compute_position_size(portfolio_value, risk_pct, entry_price, stop)
     cash_qty = math.floor(max(cash, 0) * CASH_BUFFER / entry_price)
     cap_qty = math.floor(
-        max(portfolio_value * MAX_POSITION_PCT - held_value, 0) / entry_price
+        max(portfolio_value * max_position_pct - held_value, 0) / entry_price
     )
     qty = min(risk_qty, cash_qty, cap_qty)
     qty = math.floor(qty * _earnings_factor(earnings_days))

@@ -23,17 +23,17 @@ Generated 2026-11-09 from 451 git-tracked files.
 
 | Type | Files | Lines |
 |---|---:|---:|
-| `.py` | 140 | 19,955 |
-| `.md` | 179 | 16,826 |
+| `.py` | 140 | 20,005 |
+| `.md` | 179 | 16,813 |
 | `.tsx` | 75 | 11,580 |
 | `.json` | 9 | 8,681 |
-| `.ts` | 19 | 2,831 |
+| `.ts` | 19 | 2,839 |
 | `.mjs` | 4 | 595 |
 | `.sql` | 10 | 378 |
 | `.css` | 1 | 210 |
 | `.yml` | 1 | 48 |
 | `.toml` | 2 | 25 |
-| **Total** | **440** | **61,129** |
+| **Total** | **440** | **61,174** |
 
 ## Surface area
 
@@ -77,9 +77,9 @@ Generated 2026-11-09 from 451 git-tracked files.
 
 | Status | Count |
 |---|---:|
-| active | 41 |
+| active | 42 |
 | done | 7 |
-| draft | 7 |
+| draft | 6 |
 | locked | 2 |
 
 > ⚠ **3 docs have no frontmatter** and are invisible to the board.

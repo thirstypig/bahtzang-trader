@@ -280,3 +280,17 @@ class TestSellsBypassCooldownInCycle:
 
         assert results[0]["executed"] is True
         assert b.place_order.await_args.kwargs["action"] == "sell"
+
+
+@pytest.mark.integration
+class TestStrategyProfiles:
+    async def test_conservative_portfolio_bets_smaller(self, db_session):
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        plan.risk_profile = "conservative"
+        db_session.commit()
+        b = _broker()
+        with patch("app.plans.executor.claude_brain.get_trade_decision",
+                   new_callable=AsyncMock, return_value=_decision("buy", 50)), \
+             patch("app.plans.executor.broker", b):
+            await _run(db_session, plan)
+        assert b.place_order.await_args.kwargs["quantity"] == 12   # vs 25 at 1% risk

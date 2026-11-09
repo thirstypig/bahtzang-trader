@@ -1,101 +1,88 @@
 ---
 id: DOC-054
 type: guide
-status: draft
+status: active
 phase: null
 owner: james
 tags: [risk, portfolios, strategies, phase-g]
 links: [DOC-053, PRD-002, DOC-002]
-updated: 2026-10-19
+updated: 2026-11-09
 ---
 
 # Trading charter
 
-The rules every portfolio runs under. **Approved 2026-10-19.** Nothing here is built yet;
-✅ = decided, ❓ = still open.
+The rules the experiment runs under. **Simplified 2026-11-09** — two strategies, one
+yardstick. (Replaces the 2026-10-19 version with an 80% SPY core and three stock pools:
+too many moving parts for one question.)
 
-## 1. Goal
+## 1. The question
 
-- ✅ **Beat buy-and-hold SPY, after all costs.** Costs = price spread, fees, the Claude API
-  bill and estimated tax. Making money while trailing SPY counts as a loss.
-- ✅ **Stocks only.** US-listed stocks plus SPY. No crypto, forex, options, leverage,
-  margin or short selling.
-- ✅ Paper money only until a portfolio passes the gate in section 7.
+**Can Claude pick stocks well enough to beat simply holding SPY, after all costs?**
 
-## 2. How the money is split
+- Making money while trailing SPY counts as a loss.
+- Costs = fees on sales, the Claude API bill, and estimated tax (24% of net short-term
+  gains). The bid-ask spread is recorded too, but paper fills already happen at the
+  bid/ask, so it's already in the result.
+- Stocks only: US-listed stocks. No crypto, forex, options, leverage, margin or short selling.
+- Paper money only until a strategy passes the gate in section 5.
 
-| Part | Share | Holds | Decided by |
-|---|---|---|---|
-| Core | 80% | ✅ SPY only, for now. It doubles as the yardstick | Buy and hold |
-| Pool A: fast movers | ~3.3% × 2 | Listed stocks, price ≥ $5, ≥ $10M traded per day | Claude / simple rules |
-| Pool B: cheap listed | ~3.3% × 2 | Listed stocks, price $1–5, ≥ $1M traded per day | Claude / simple rules |
-| Pool C: OTC penny | ~3.3% × 2 | OTC stocks that Alpaca allows (309 today) | Claude / simple rules |
+## 2. The two strategies
 
-✅ Each pool runs twice on the same stock list: once with Claude choosing, once with a simple
-rule. Same money, same safety limits. The only difference is who picks.
+Both get **$10,000 of paper money**, pick from the **same daily shortlist** (the stocks the
+screener ranks highest among large and mid-size US companies — liquid, no penny stocks),
+and are judged the same way: **beat SPY after costs**. Claude makes the picks in both;
+what differs is the style Claude is asked for and the bet sizes the code enforces.
 
-⚠️ **Pool C's paper results will look better than reality**, because paper fills ignore wide
-spreads and thin trading. Reports label it that way.
+### Conservative — "the steady one"
 
-## 3. Safety limits ✅ (all enforced in code, none by asking Claude)
+- **What it does:** buys large, stable companies and mostly holds them. Trades only when
+  Claude sees a clear, high-confidence opportunity.
+- **Bet size (enforced in code):** a stopped-out trade loses at most **0.5%** of the
+  portfolio; no single stock is more than **10%** of it.
+- **What to expect:** smaller swings, fewer trades. It wins if careful, steady picks beat SPY.
+- **Watch for:** it may trade too rarely to reach 30 trades in 12 weeks. If so, loosen how
+  picky it is — at a weekly review, never mid-week.
+
+### Aggressive — "the hunter"
+
+- **What it does:** goes after the stocks with the strongest momentum; comfortable with
+  bigger price swings.
+- **Bet size (enforced in code):** a stopped-out trade loses at most **1%** of the
+  portfolio; no single stock is more than **20%** of it.
+- **What to expect:** bigger swings, more trades. It wins if riding strong trends beats SPY.
+
+**The yardstick is SPY's price** — no SPY portfolio is needed; the weekly report reads it.
+
+## 3. Safety limits (both strategies; enforced in code, never by asking Claude)
 
 | Rule | Limit |
 |---|---|
 | Stop-loss on every buy | A real stop order at Alpaca, placed with the buy (2 × the stock's typical daily move) |
-| Risk per trade | A stopped-out trade loses ≤ 1% of the portfolio |
-| Biggest single position | ≤ 20% of the portfolio |
+| Risk per trade / biggest position | Per strategy — see section 2 |
 | Max holdings at once | 8 |
-| New buys per day | ≤ 2 per portfolio |
+| New buys per day | ≤ 2 |
 | Daily loss halt | Down 3% in a day → no new buys until tomorrow |
 | Weekly loss halt | Down 6% in a week → no new buys until next week |
-| Hard stop | Down 15% from start → portfolio switched off, Slack alert |
-| Selling | Always allowed. The cooldown applies to buys only |
-| Every run path | Limits apply to scheduled runs **and** the "Run Now" button |
+| Hard stop | Down 15% from start → strategy switched off, Slack alert |
+| Selling | Always allowed |
 
-Any automatic halt posts to Slack. Nothing pauses silently.
+These apply to scheduled runs and the "Run Now" button. Any automatic halt posts to Slack.
 
-## 4. Costs
+## 4. Weekly report (Fridays after the close, on the Reports page)
 
-- ✅ Alpaca charges no commission on stock trades. Small regulatory fees apply on sells.
-- Every trade records an **estimated spread cost** (half the bid-ask gap, each side).
-- The **Claude API cost** is recorded per run and charged to the portfolio that used it.
-- **Estimated tax:** ✅ 24% on short-term gains (held under a year).
-- The backtester gets the same cost model, so backtests and live results are comparable.
+For each strategy: return vs SPY before and after costs, trades, wins and losses, costs,
+every safety limit that fired, and a draft note from Claude. **Change at most one rule per
+strategy per review**, never mid-week, and log it in the experiment log (EXP-###) with the
+reason.
 
-## 5. Weekly report (Fridays after the close)
+## 5. Pass / fail (per strategy)
 
-For each portfolio, and the account overall:
-- Return vs SPY, **before and after costs**
-- Trades, win rate, average win vs average loss
-- Costs: spread, fees, API, estimated tax
-- Every time a safety limit fired
-- A short "what we learned / what we'd change" note
+After **≥ 12 weeks and ≥ 30 trades**: beat SPY after costs, worst drop from peak ≤ 15%,
+and no single week worse than -5%. Passing earns the $200 live trial (Phase G), not proof
+of an edge.
 
-## 6. How we learn
+## 6. Status
 
-- Claude has no memory between days. Learning is a process **we** run.
-- Weekly review of the report. **Change at most one rule per portfolio per review**, and log
-  it in the experiment log (EXP-###) with the reason.
-- No rule changes in the middle of a week.
-
-## 7. Pass / fail
-
-- ✅ **Graduation gate (replaces "zero losing weeks", approved 2026-10-19):** after ≥ 12 weeks
-  and ≥ 30 trades, **beat SPY after costs**, worst drop from peak ≤ 15%, and no single week
-  worse than -5%. Passing earns the $200 live trial, not proof of an edge. (Why: SPY itself
-  loses roughly 4 weeks in 10, so "zero losing weeks" mostly measured luck.)
-- **Cut rule:** a pool that trails SPY by more than 10 points after 12 weeks is switched off.
-
-## 8. Build order (before any portfolio is switched on)
-
-1. Real stop orders: wire in the risk engine. First, one tiny test order to confirm Alpaca accepts it.
-2. Let sells through the cooldown.
-3. Enforce the section 3 limits in code. Apply them to "Run Now" too.
-4. Cost tracking (spread, API, tax estimate) and the weekly report.
-5. Switch off crypto and the "behind target, take more risk" prompt.
-6. Stock pools A/B/C and the simple-rule strategy for them.
-7. Create the core and the 6 experiment portfolios.
-
-## Open decisions for James
-
-None. All decided 2026-10-19.
+Built (PRs #46–#51 + this one): stops at Alpaca, safety limits, sells always allowed, cost
+tracking, weekly report, crypto and target-pressure prompt off, per-strategy bet sizes.
+**Remaining: create the two portfolios and switch them on.**

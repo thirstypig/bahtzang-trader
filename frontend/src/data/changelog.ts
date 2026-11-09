@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.38.0",
+    date: "2026-11-09",
+    changes: [
+      { type: "docs", title: "Simpler plan: two strategies, both picked by Claude and both judged against SPY after costs. Conservative buys large, steady companies with small bets (a stopped-out trade loses at most 0.5%, at most 10% in one stock). Aggressive chases the strongest trends with bigger bets (1%, 20%). The 80% SPY core and the three stock pools are gone; the OTC 'penny' pool turned out to be foreign blue chips we couldn't price anyway" },
+      { type: "feat", title: "Bet-size limits are now set per strategy from each portfolio's risk profile, enforced in code" },
+    ],
+  },
+  {
     version: "0.37.0",
     date: "2026-11-09",
     changes: [
