@@ -107,3 +107,45 @@ class TestLimitsInCycle:
         plan = _make_rules_portfolio(db_session, "claude_decides")
         _, claude = await _run(db_session, plan, [_d("hold", "AAPL", 0)], _broker())
         assert claude.await_args.kwargs["guardrails_config"]["max_positions"] == 8
+
+
+@pytest.mark.integration
+class TestReviewFixes:
+    async def test_buy_count_includes_this_cycles_buys(self, db_session):
+        """Three buys proposed in one cycle → the third is blocked by buys made seconds earlier."""
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        b = _broker()
+        results, _ = await _run(db_session, plan,
+                                [_d("buy", "AAPL"), _d("buy", "MSFT"), _d("buy", "NEW")], b)
+        assert [r["executed"] for r in results] == [True, True, False]
+        assert results[2]["reasoning"].startswith("Max new buys")
+
+    async def test_add_to_held_stock_allowed_at_eight_in_cycle(self, db_session):
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        for t in ["AAPL", "T1", "T2", "T3", "T4", "T5", "T6", "T7"]:
+            _hold(db_session, plan, t, qty=1, price=50.0)
+        b = _broker()
+        results, _ = await _run(db_session, plan, [_d("buy", "AAPL")], b)
+        assert results[0]["executed"] is True
+
+    async def test_inactive_portfolio_stops_still_reconciled(self, db_session):
+        """A hard-stopped (inactive) portfolio's broker stop fires → run_all_plans records it."""
+        from app.plans.executor import run_all_plans
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        db_session.add(Trade(portfolio_id=plan.id, ticker="AAPL", action="buy", quantity=10,
+                             price=50.0, executed=True, guardrail_passed=True, stop_price=46.0,
+                             stop_qty=10, stop_order_id="leg-1", stop_state="open"))
+        plan.is_active = False
+        plan.virtual_cash = 9_500.0
+        db_session.commit()
+        b = _broker()
+        b.get_positions = AsyncMock(return_value=[])
+        b.get_account_balance = AsyncMock(return_value={"cash_available": 0, "total_value": 0})
+        b.get_order = AsyncMock(return_value={"status": "filled", "filled_qty": 10.0, "filled_avg_price": 46.0})
+        with patch("app.plans.executor.broker", b), \
+             patch("app.plans.stops.notifier.notify_risk_event", new_callable=AsyncMock):
+            await run_all_plans(db_session)
+
+        db_session.refresh(plan)
+        assert float(plan.virtual_cash) == 9_960.0
+        assert db_session.query(Trade).filter_by(portfolio_id=plan.id, action="sell").count() == 1

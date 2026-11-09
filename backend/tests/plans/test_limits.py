@@ -119,3 +119,27 @@ class TestSwitchOff:
         db_session.refresh(plan)
         assert plan.is_active is False
         assert "HARD STOP" in alert.await_args.args[0]
+
+
+@pytest.mark.integration
+class TestBudgetChangeShiftsReferences:
+    def test_budget_cut_is_not_a_loss(self, db_session):
+        """Yesterday $10k at budget $10k; budget cut to $6k moved $4k out of cash.
+        Value $6k is flat, not -40%."""
+        from app.plans.limits import evaluate_cycle_limits
+        plan = _plan(db_session)
+        _snap(db_session, plan, date(2026, 11, 10), 10_000)  # snapshot budget = 10k
+        plan.budget = 6_000
+        db_session.commit()
+        lim = evaluate_cycle_limits(db_session, plan, 6_000, TODAY)
+        assert (lim.hard_stop, lim.buy_halt) == (False, None)
+
+    def test_top_up_does_not_hide_a_daily_loss(self, db_session):
+        from app.plans.limits import evaluate_cycle_limits
+        plan = _plan(db_session)
+        _snap(db_session, plan, date(2026, 11, 10), 10_000)
+        plan.budget = 20_000  # +$10k cash added
+        db_session.commit()
+        # $19,600 = the $20k reference minus a real $400 (-2%)… and $19,300 is -3.5%.
+        assert evaluate_cycle_limits(db_session, plan, 19_600, TODAY).buy_halt is None
+        assert evaluate_cycle_limits(db_session, plan, 19_300, TODAY).buy_halt.startswith("Daily loss halt")

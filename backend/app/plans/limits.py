@@ -60,14 +60,21 @@ def today_et(now: datetime | None = None) -> date:
 
 
 def _reference(db: Session, plan: Portfolio, before: date) -> float:
-    """Latest snapshot value dated strictly before ``before``; else the budget."""
+    """Latest snapshot value dated strictly before ``before``; else the budget.
+
+    A budget change since the snapshot moved the same amount into or out of cash
+    (PATCH budget adjusts virtual_cash), so shift the reference by it — otherwise a
+    budget cut reads as a loss and a top-up hides one.
+    """
     snap = (
         db.query(PlanSnapshot)
         .filter(PlanSnapshot.portfolio_id == plan.id, PlanSnapshot.date < before)
         .order_by(PlanSnapshot.date.desc())
         .first()
     )
-    return float(snap.total_value) if snap else float(plan.budget)
+    if snap is None:
+        return float(plan.budget)
+    return float(snap.total_value) + (float(plan.budget) - float(snap.budget))
 
 
 def evaluate_cycle_limits(

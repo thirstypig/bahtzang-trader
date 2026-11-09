@@ -898,6 +898,23 @@ async def run_all_plans(db: Session, exit_only: bool = False) -> dict[int, list[
         broker.get_account_balance("default"),
     )
 
+    # 1b. Paused / hard-stopped portfolios keep their broker stops, and those can
+    # fire at any time. Record the fills (and Slack them) even though the
+    # portfolio doesn't trade — otherwise its ledger shows shares that are gone.
+    inactive_with_stops = (
+        db.query(Portfolio)
+        .filter(Portfolio.is_active.is_(False))
+        .filter(Portfolio.id.in_(
+            db.query(Trade.portfolio_id).filter(Trade.stop_state == "open")
+        ))
+        .all()
+    )
+    for p in inactive_with_stops:
+        try:
+            await reconcile_stops(db, p, broker)
+        except Exception as e:
+            logger.error("Plan %d: reconcile while paused failed: %s", p.id, e)
+
     # 2. Account-wide circuit breaker — uses default thresholds (5% / 10%).
     # Per-portfolio thresholds (Portfolio.circuit_breaker_*) are honored
     # inside each portfolio's own validation.
