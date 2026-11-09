@@ -6,7 +6,7 @@ phase: null
 owner: james
 tags: [foundations, deployment]
 links: [DOC-013]
-updated: 2026-10-19
+updated: 2026-11-09
 ---
 
 # Infrastructure costs

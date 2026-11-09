@@ -6,7 +6,7 @@ phase: null
 owner: james
 tags: [foundations]
 links: [DOC-010]
-updated: 2026-10-19
+updated: 2026-11-09
 ---
 
 # Repo stats
@@ -17,23 +17,23 @@ updated: 2026-10-19
 > Real progress is features and phases shipped, not lines written. A refactor that
 > deletes 2,000 lines is usually progress, and this number will call it a regression.
 
-Generated 2026-10-19 from 425 git-tracked files.
+Generated 2026-11-09 from 430 git-tracked files.
 
 ## Code
 
 | Type | Files | Lines |
 |---|---:|---:|
-| `.py` | 121 | 16,839 |
-| `.md` | 176 | 16,482 |
+| `.py` | 124 | 17,936 |
+| `.md` | 177 | 16,638 |
 | `.tsx` | 73 | 11,307 |
 | `.json` | 9 | 8,681 |
-| `.ts` | 19 | 2,728 |
+| `.ts` | 19 | 2,738 |
 | `.mjs` | 4 | 595 |
-| `.sql` | 8 | 347 |
+| `.sql` | 9 | 354 |
 | `.css` | 1 | 210 |
 | `.yml` | 1 | 48 |
 | `.toml` | 2 | 25 |
-| **Total** | **414** | **57,262** |
+| **Total** | **419** | **58,532** |
 
 ## Surface area
 
@@ -41,7 +41,7 @@ Generated 2026-10-19 from 425 git-tracked files.
 |---|---:|
 | Backend routes | 46 |
 | Frontend pages | 25 |
-| Docs (excluding templates) | 57 |
+| Docs (excluding templates) | 58 |
 
 ## Docs by type
 
@@ -81,6 +81,9 @@ Generated 2026-10-19 from 425 git-tracked files.
 | done | 7 |
 | draft | 7 |
 | locked | 2 |
+
+> ⚠ **1 docs have no frontmatter** and are invisible to the board.
+> Retrofit them or they cannot be found.
 
 ## Roadmap and to-dos
 
