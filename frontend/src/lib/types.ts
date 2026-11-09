@@ -337,6 +337,7 @@ export interface CompanyProfile {
 export interface ReportCosts {
   spread: number;
   spread_unpriced_trades: number;
+  spread_in_fills?: boolean;
   fees: number;
   api: number;
   est_tax: number;

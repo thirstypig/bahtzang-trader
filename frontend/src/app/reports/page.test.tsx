@@ -17,7 +17,7 @@ import { getReport, getReports } from "@/lib/api";
 const mockList = vi.mocked(getReports);
 const mockDetail = vi.mocked(getReport);
 
-const costs = { spread: 0.7, spread_unpriced_trades: 1, fees: 0.01, api: 0.1, est_tax: 48, total: 48.81 };
+const costs = { spread: 0.7, spread_unpriced_trades: 1, spread_in_fills: true, fees: 0.01, api: 0.1, est_tax: 48, total: 48.11 };
 const row = {
   id: 6, name: "Pool A Claude", active: true, start_value: 10000, end_value: 10300,
   return_pct: 3, after_cost_return_pct: 2.5119, spy_return_pct: 1, beat_spy: true,
@@ -57,5 +57,8 @@ describe("ReportsPage", () => {
     expect(screen.getAllByText(/Daily loss halt × 2/).length).toBeGreaterThan(0);
     expect(screen.getByText(/one week is too little data/)).toBeInTheDocument();
     expect(screen.getByText(/review before acting/i)).toBeInTheDocument();
+    expect(screen.getByText("All portfolios combined")).toBeInTheDocument();
+    expect(screen.getByText(/excludes Alpaca positions no portfolio owns/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/already in fill prices/i).length).toBeGreaterThan(0);
   });
 });

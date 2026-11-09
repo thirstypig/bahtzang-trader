@@ -63,7 +63,11 @@ class TestBuildWeeklyReport:
         # avg cost 100 → sell 10 @ 120 realizes $200 → tax $48
         c = r["costs"]
         assert (c["spread"], c["fees"], c["api"], c["est_tax"]) == pytest.approx((0.7, 0.01, 0.10, 48.0))
-        assert r["after_cost_return_pct"] == pytest.approx((300 - 0.7 - 0.01 - 0.10 - 48) / 100)
+        # Paper fills already happen at the bid/ask (verified 2026-11-09), so the
+        # spread is shown but NOT subtracted again.
+        assert c["spread_in_fills"] is True
+        assert c["total"] == pytest.approx(0.01 + 0.10 + 48)
+        assert r["after_cost_return_pct"] == pytest.approx((300 - 0.01 - 0.10 - 48) / 100)
         assert r["beat_spy"] is True
         assert (r["trades"], r["wins"], r["losses"]) == (2, 1, 0)
 
@@ -145,3 +149,55 @@ class TestRoutes:
         assert lst[0]["week_ending"] == "2026-11-06"
         detail = client.get(f"/reports/{lst[0]['id']}").json()
         assert detail["note"] == "n"
+
+
+@pytest.mark.integration
+class TestReviewFixes:
+    def test_switched_off_portfolio_still_reported(self, db_session):
+        """A hard-stopped portfolio with no snapshot/trade this week must not vanish."""
+        from app.reports.engine import build_weekly_report
+        plan = _plan(db_session)
+        _trade(db_session, plan, datetime(2026, 10, 20, 15), "buy", 10, 100.0,
+               virtual_cash_before=10_000, virtual_cash_after=9_000)
+        _trade(db_session, plan, datetime(2026, 10, 28, 15), "sell", 10, 80.0,
+               virtual_cash_before=9_000, virtual_cash_after=9_800)
+        _snap(db_session, plan, date(2026, 10, 30), 9_800)
+        plan.is_active = False
+        db_session.commit()
+
+        payload = build_weekly_report(db_session, FRI, SPY)
+        r = _row(payload, plan)
+        assert r["end_value"] == 9_800 and r["since_start"]["return_pct"] == pytest.approx(-2.0)
+        assert payload["account"]["since_start_value"] == 10_000
+
+    def test_no_snapshot_flat_cash_uses_ledger_cash(self, db_session):
+        """No positions and no snapshot this week: end value = cash after the last trade."""
+        from app.reports.engine import build_weekly_report
+        plan = _plan(db_session)
+        _snap(db_session, plan, date(2026, 10, 30), 10_000)
+        _trade(db_session, plan, datetime(2026, 10, 20, 15), "buy", 10, 100.0,
+               virtual_cash_before=10_000, virtual_cash_after=9_000)
+        _trade(db_session, plan, datetime(2026, 11, 4, 15), "sell", 10, 95.0,
+               virtual_cash_before=9_000, virtual_cash_after=9_950)
+        db_session.commit()
+        assert _row(build_weekly_report(db_session, FRI, SPY), plan)["end_value"] == 9_950
+
+    def test_account_tax_nets_gains_across_portfolios(self, db_session):
+        from app.reports.engine import build_weekly_report
+        a = _plan(db_session)
+        b = make_plan(db_session, name="B", budget=5_000, virtual_cash=5_000)
+        b.created_at = a.created_at
+        for p, sell_px in ((a, 110.0), (b, 90.0)):  # +$100 and -$100 realized
+            _trade(db_session, p, datetime(2026, 11, 2, 15), "buy", 10, 100.0)
+            _trade(db_session, p, datetime(2026, 11, 4, 15), "sell", 10, sell_px)
+        db_session.commit()
+        acct = build_weekly_report(db_session, FRI, SPY)["account"]
+        assert acct["costs"]["est_tax"] == 0
+
+    def test_account_includes_unassigned_api_cost(self, db_session):
+        from app.reports.engine import build_weekly_report
+        _plan(db_session)
+        db_session.add(ApiUsage(portfolio_id=None, purpose="report_note", model="m",
+                                timestamp=datetime(2026, 11, 6, 21, tzinfo=timezone.utc), cost=0.05))
+        db_session.commit()
+        assert build_weekly_report(db_session, FRI, SPY)["account"]["costs"]["api"] == pytest.approx(0.05)

@@ -25,18 +25,21 @@ async def take_plan_snapshots(db: Session) -> int:
 
     Returns the number of snapshots saved.
     """
-    active_plans = db.query(Portfolio).filter(Portfolio.is_active.is_(True)).all()
+    # Active portfolios, plus switched-off ones that still hold shares (a hard stop
+    # leaves positions and broker stops in place — their value must keep being
+    # recorded, or the weekly report and equity curve quietly lose the loss).
+    all_positions: dict[int, dict[str, float]] = {}
+    all_tickers: set[str] = set()
+    active_plans = []
+    for plan in db.query(Portfolio).all():
+        vp = compute_virtual_positions(db, plan.id)
+        if plan.is_active or any(q > 1e-9 for q in vp.values()):
+            active_plans.append(plan)
+            all_positions[plan.id] = vp
+            all_tickers.update(vp.keys())
     if not active_plans:
         logger.info("No active plans — skipping plan snapshots")
         return 0
-
-    # Gather all tickers across plans to fetch quotes once
-    all_positions: dict[int, dict[str, float]] = {}
-    all_tickers: set[str] = set()
-    for plan in active_plans:
-        vp = compute_virtual_positions(db, plan.id)
-        all_positions[plan.id] = vp
-        all_tickers.update(vp.keys())
 
     today = date_type.today()
 

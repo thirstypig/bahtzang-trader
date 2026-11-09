@@ -116,3 +116,36 @@ class TestStopAndHardStop:
         await _run(db_session, plan, _d("buy", 5), _broker())
         row = db_session.query(Trade).filter_by(portfolio_id=plan.id).one()
         assert row.action == "hold" and row.claude_reasoning.startswith("HARD STOP")
+
+
+@pytest.mark.integration
+class TestQuoteOrdering:
+    async def test_quote_fetched_before_stop_is_cancelled(self, db_session):
+        """The quote call must not sit between cancelling a stop and selling."""
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        db_session.add(Trade(portfolio_id=plan.id, ticker="AAPL", action="buy", quantity=10,
+                             price=50.0, executed=True, guardrail_passed=True, stop_price=46.0,
+                             stop_qty=10, stop_order_id="leg-1", stop_state="open"))
+        plan.virtual_cash = 9_500.0
+        db_session.commit()
+        b = _broker()
+        order = MagicMock()
+        order.attach_mock(b.get_bid_ask, "quote")
+        order.attach_mock(b.cancel_order, "cancel")
+        order.attach_mock(b.place_order, "place")
+        await _run(db_session, plan, _d("sell", 10), b)
+        names = [c[0] for c in order.mock_calls]
+        assert names.index("quote") < names.index("cancel") < names.index("place")
+
+    async def test_slow_quote_times_out_and_trade_still_happens(self, db_session):
+        import asyncio
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        b = _broker()
+
+        async def hang(_):
+            await asyncio.sleep(10)
+        b.get_bid_ask = AsyncMock(side_effect=hang)
+        with patch("app.plans.executor.QUOTE_TIMEOUT_S", 0.05):
+            results = await _run(db_session, plan, _d("buy", 5), b)
+        row = db_session.get(Trade, results[0]["trade_id"])
+        assert row.executed and row.spread_cost is None

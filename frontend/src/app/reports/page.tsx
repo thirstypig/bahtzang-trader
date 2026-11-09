@@ -25,12 +25,15 @@ function Verdict({ beat }: { beat: boolean | null }) {
   );
 }
 
-function RowCard({ title, row }: { title: string; row: ReportRow }) {
+function RowCard({ title, subtitle, row }: { title: string; subtitle?: string; row: ReportRow }) {
   const c = row.costs;
   return (
     <section className="bz-glass rounded-2xl p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-primary">{title}</h2>
+        <div>
+          <h2 className="text-lg font-semibold text-primary">{title}</h2>
+          {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+        </div>
         <Verdict beat={row.beat_spy} />
       </div>
 
@@ -73,8 +76,12 @@ function RowCard({ title, row }: { title: string; row: ReportRow }) {
         <div>
           <h3 className="mb-1 font-medium text-primary">Costs this week</h3>
           <p className="text-secondary">
-            Spread {formatCurrency(c.spread)} · Fees {formatCurrency(c.fees)} · Claude {formatCurrency(c.api)} · Est. tax{" "}
-            {formatCurrency(c.est_tax)} · <span className="text-primary">Total {formatCurrency(c.total)}</span>
+            Fees {formatCurrency(c.fees)} · Claude {formatCurrency(c.api)} · Est. tax {formatCurrency(c.est_tax)} ·{" "}
+            <span className="text-primary">Total {formatCurrency(c.total)}</span>
+          </p>
+          <p className="text-xs text-muted">
+            Spread {formatCurrency(c.spread)}
+            {c.spread_in_fills !== false && " — already in fill prices, not added to the total"}
           </p>
           {c.spread_unpriced_trades > 0 && (
             <p className="text-xs text-muted">{c.spread_unpriced_trades} trade(s) had no quote — spread not counted.</p>
@@ -184,7 +191,11 @@ export default function ReportsPage() {
             </p>
           </section>
 
-          <RowCard title="Whole account" row={detail.payload.account} />
+          <RowCard
+            title="All portfolios combined"
+            subtitle="Sum of the portfolios — excludes Alpaca positions no portfolio owns"
+            row={detail.payload.account}
+          />
           {detail.payload.portfolios.map((row) => (
             <RowCard key={row.id} title={row.name ?? `Portfolio ${row.id}`} row={row} />
           ))}

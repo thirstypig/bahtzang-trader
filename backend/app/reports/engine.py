@@ -6,8 +6,10 @@ portfolio started:
   trades / wins / losses / average win and loss, cost breakdown, and every time a
   safety limit fired (counted from the trade ledger's reasons).
 
-Paper fills include no spread and no fees, so every estimated cost is subtracted from
-the portfolio's value change. Read-only over the portfolio ledger (reports → plans is
+Alpaca paper fills market orders at the bid/ask (verified 2026-11-09 against quotes:
+buys at the ask, sells at the bid), so the spread is ALREADY inside portfolio value —
+it is recorded and shown, never subtracted again. Paper charges no regulatory fees, so
+fees, the Claude bill and estimated tax are subtracted. Read-only over the portfolio ledger (reports → plans is
 an allow-listed, read-only feature dependency).
 """
 
@@ -27,6 +29,19 @@ logger = logging.getLogger(__name__)
 
 ET = ZoneInfo("America/New_York")
 NOTE_MODEL = "claude-sonnet-4-6"
+
+GATE_WEEKS = 12  # charter §7 — a portfolio stays in the report this long after its last trade
+
+
+def _net_shares(executed) -> float:
+    net = 0.0
+    for t in executed:
+        if t.action == "buy":
+            net += float(t.quantity)
+        elif t.action == "sell":
+            net -= float(t.quantity)
+    return net
+
 
 LIMIT_EVENT_PREFIXES = [
     "Daily loss halt", "Weekly loss halt", "Max holdings", "Max new buys",
@@ -72,8 +87,10 @@ def _costs(db: Session, plan: Portfolio, trades: list[Trade], start: datetime, e
     tax = estimated_tax(gains)
     return {
         "spread": round(spread, 4), "spread_unpriced_trades": unpriced,
+        "spread_in_fills": True,  # paper fills at bid/ask: shown, not subtracted
         "fees": round(fees, 4), "api": round(api, 4), "est_tax": round(tax, 4),
-        "total": round(spread + fees + api + tax, 4),
+        "total": round(fees + api + tax, 4),
+        "realized_gain": round(sum(gains), 4),
     }
 
 
@@ -90,12 +107,21 @@ def _portfolio_row(db: Session, plan: Portfolio, week_ending: date, spy: dict) -
                        PlanSnapshot.date >= monday, PlanSnapshot.date <= week_ending)
                .order_by(PlanSnapshot.date.desc()).first())
     start_value = _snapshot_value(before, plan) if before else budget
-    end_value = _snapshot_value(in_week, plan) if in_week else start_value
 
     all_trades = (db.query(Trade)
                   .filter(Trade.portfolio_id == plan.id, Trade.timestamp < w_end)
                   .order_by(Trade.timestamp, Trade.id).all())
     executed_all = [t for t in all_trades if t.executed and t.action in ("buy", "sell")]
+
+    end_estimated = False
+    if in_week:
+        end_value = _snapshot_value(in_week, plan)
+    elif _net_shares(executed_all) <= 1e-9:
+        # No shares held: value is just cash, which the ledger records exactly.
+        cash = [t.virtual_cash_after for t in executed_all if t.virtual_cash_after is not None]
+        end_value = float(cash[-1]) if cash else start_value
+    else:
+        end_value, end_estimated = start_value, True
     realized_by_id = {r.trade_id: r for r in realized_sells(executed_all)}
     week_trades = [t for t in all_trades if t.timestamp >= w_start]
 
@@ -123,6 +149,7 @@ def _portfolio_row(db: Session, plan: Portfolio, week_ending: date, spy: dict) -
     return {
         "id": plan.id, "name": plan.name, "active": plan.is_active,
         "start_value": round(start_value, 2), "end_value": round(end_value, 2),
+        "end_value_estimated": end_estimated,
         "return_pct": _pct(end_value, start_value) or 0.0,
         "after_cost_return_pct": after_week,
         "spy_return_pct": spy_week,
@@ -144,21 +171,62 @@ def _portfolio_row(db: Session, plan: Portfolio, week_ending: date, spy: dict) -
     }
 
 
-def _account_row(rows: list[dict], spy_week: float | None) -> dict:
+def _combine_costs(costs_list: list[dict], unassigned_api: float) -> dict:
+    """Sum portfolio costs, then tax the NET realized gain once (one taxpayer: a loss
+    in one portfolio offsets a gain in another) and add Claude cost no portfolio owns."""
+    s = lambda k: sum(c[k] for c in costs_list)
+    gain = s("realized_gain")
+    tax = estimated_tax([gain])
+    api = s("api") + unassigned_api
+    return {
+        "spread": round(s("spread"), 4), "spread_unpriced_trades": s("spread_unpriced_trades"),
+        "spread_in_fills": True, "fees": round(s("fees"), 4), "api": round(api, 4),
+        "est_tax": round(tax, 4), "total": round(s("fees") + api + tax, 4),
+        "realized_gain": round(gain, 4),
+    }
+
+
+def _unassigned_api(db: Session, start: datetime, end: datetime) -> float:
+    return sum(float(u.cost) for u in db.query(ApiUsage).filter(
+        ApiUsage.portfolio_id.is_(None),
+        ApiUsage.timestamp >= start.replace(tzinfo=timezone.utc),
+        ApiUsage.timestamp < end.replace(tzinfo=timezone.utc),
+    ))
+
+
+def _account_row(db: Session, rows: list[dict], week_ending: date, spy: dict) -> dict:
+    """All portfolios combined (NOT the Alpaca account: positions no portfolio owns
+    are excluded)."""
+    monday = week_ending - timedelta(days=week_ending.weekday())
+    w_start, w_end = _utc_naive(monday), _utc_naive(week_ending + timedelta(days=1))
     start = sum(r["start_value"] for r in rows)
     end = sum(r["end_value"] for r in rows)
-    keys = ("spread", "spread_unpriced_trades", "fees", "api", "est_tax", "total")
-    costs = {k: round(sum(r["costs"][k] for r in rows), 4) for k in keys}
+    costs = _combine_costs([r["costs"] for r in rows], _unassigned_api(db, w_start, w_end))
+    since_costs = _combine_costs([r["since_start"]["costs"] for r in rows],
+                                 _unassigned_api(db, datetime(1970, 1, 1), w_end))
+    since_start_value = sum(r["since_start"]["start_value"] for r in rows)
     events: dict[str, int] = {}
     for r in rows:
         for e in r["limit_events"]:
             events[e["type"]] = events.get(e["type"], 0) + e["count"]
+    spy_week = _pct(_close_on_or_before(spy, week_ending), _close_on_or_before(spy, monday - timedelta(days=1)))
     after = round((end - start - costs["total"]) / start * 100, 4) if start else None
+    after_since = (round((end - since_start_value - since_costs["total"]) / since_start_value * 100, 4)
+                   if since_start_value else None)
     return {
+        "name": "All portfolios combined",
         "start_value": round(start, 2), "end_value": round(end, 2),
         "return_pct": _pct(end, start) or 0.0, "after_cost_return_pct": after,
         "spy_return_pct": spy_week,
         "beat_spy": (after > spy_week) if (after is not None and spy_week is not None) else None,
+        "since_start_value": round(since_start_value, 2),
+        "since_start": {
+            "start_value": round(since_start_value, 2),
+            "return_pct": _pct(end, since_start_value),
+            "after_cost_return_pct": after_since,
+            "spy_return_pct": None,  # portfolios start on different days — see each row
+            "costs": since_costs,
+        },
         "trades": sum(r["trades"] for r in rows),
         "wins": sum(r["wins"] for r in rows), "losses": sum(r["losses"] for r in rows),
         "costs": costs,
@@ -167,29 +235,39 @@ def _account_row(rows: list[dict], spy_week: float | None) -> dict:
 
 
 def _included(db: Session, week_ending: date) -> list[Portfolio]:
-    """Active portfolios, plus any that traded or were snapshotted this week."""
+    """Active portfolios, plus any that hold shares, traded or were snapshotted this
+    week, or traded within the 12-week gate window — a switched-off portfolio must not
+    drop out of the record (survivorship bias)."""
     monday = week_ending - timedelta(days=week_ending.weekday())
     w_start, w_end = _utc_naive(monday), _utc_naive(week_ending + timedelta(days=1))
+    window_start = _utc_naive(monday - timedelta(weeks=GATE_WEEKS))
     touched = {pid for (pid,) in db.query(Trade.portfolio_id).filter(
-        Trade.timestamp >= w_start, Trade.timestamp < w_end).distinct()}
+        Trade.timestamp >= window_start, Trade.timestamp < w_end).distinct()}
     touched |= {pid for (pid,) in db.query(PlanSnapshot.portfolio_id).filter(
         PlanSnapshot.date >= monday, PlanSnapshot.date <= week_ending).distinct()}
     plans = db.query(Portfolio).order_by(Portfolio.id).all()
-    return [p for p in plans if float(p.budget) > 0 and (p.is_active or p.id in touched)]
+    out = []
+    for p in plans:
+        if float(p.budget) <= 0:
+            continue
+        if p.is_active or p.id in touched or _net_shares(
+            db.query(Trade).filter(Trade.portfolio_id == p.id, Trade.executed.is_(True),
+                                   Trade.timestamp < w_end).all()) > 1e-9:
+            out.append(p)
+    return out
 
 
 def build_weekly_report(db: Session, week_ending: date, spy_closes: dict[date, float]) -> dict:
     rows = [_portfolio_row(db, p, week_ending, spy_closes) for p in _included(db, week_ending)]
-    monday = week_ending - timedelta(days=week_ending.weekday())
-    spy_week = _pct(_close_on_or_before(spy_closes, week_ending),
-                    _close_on_or_before(spy_closes, monday - timedelta(days=1)))
     return {
         "week_ending": week_ending.isoformat(),
         "portfolios": rows,
-        "account": _account_row(rows, spy_week),
+        "account": _account_row(db, rows, week_ending, spy_closes),
         "assumptions": {
-            "costs": "estimated spread (half the bid-ask gap at order time) + SEC/FINRA sell fees "
-                     "+ Claude API + estimated tax; paper fills include none of these",
+            "costs": "SEC/FINRA sell fees + Claude API + estimated tax are subtracted. The spread "
+                     "(half the bid-ask gap at order time) is shown but not subtracted: paper fills "
+                     "already happen at the bid/ask (verified 2026-11-09)",
+            "combined_row": "sum of portfolios — excludes Alpaca positions no portfolio owns",
             "tax": f"{SHORT_TERM_TAX_RATE:.0%} of the period's net realized gain, floored at 0, no carry-forward",
             "backtest_half_spread_bps": BACKTEST_HALF_SPREAD_BPS,
             "pool_c": "OTC paper results look better than reality (paper ignores wide spreads)",

@@ -36,11 +36,14 @@ broker = AlpacaBroker()
 _plan_locks: dict[int, asyncio.Lock] = {}
 
 
+QUOTE_TIMEOUT_S = 2.0
+
+
 async def _bid_ask(ticker: str) -> tuple[float | None, float | None]:
-    """Latest bid/ask for spread-cost recording; never raises (cost tracking must
-    not block a trade)."""
+    """Latest bid/ask for spread-cost recording; never raises and never waits more
+    than QUOTE_TIMEOUT_S (cost tracking must not delay or block a trade)."""
     try:
-        return await broker.get_bid_ask(ticker)
+        return await asyncio.wait_for(broker.get_bid_ask(ticker), QUOTE_TIMEOUT_S)
     except Exception as e:
         logger.warning("Bid/ask for %s unavailable: %s", ticker, e)
         return None, None
@@ -630,6 +633,13 @@ async def _execute_plan_cycle(
         stop_price = decision.pop("_stop_price", None)
         stop_order_id: str | None = None
         prior_stop: float | None = None
+        spread_cost: float | None = None
+        fee_cost: float | None = None
+        bid = ask = None
+        if passed and decision["action"] in ("buy", "sell") and decision.get("quantity", 0) > 0:
+            # Quote BEFORE any stop is cancelled: nothing slow may sit between
+            # cancelling a stop and placing the sell.
+            bid, ask = await _bid_ask(decision["ticker"])
         if passed and decision["action"] == "sell" and decision.get("quantity", 0) > 0:
             # Alpaca reserves shares for an open stop leg — cancel THIS portfolio's
             # stops first or the sell is rejected. A stop that fired in the meantime
@@ -641,10 +651,7 @@ async def _execute_plan_cycle(
                 block_reason = "Sell skipped: broker stop already fired or would not cancel"
                 remaining_cash = float(plan.virtual_cash)
                 cash_before = remaining_cash
-        spread_cost: float | None = None
-        fee_cost: float | None = None
         if passed and decision["action"] in ("buy", "sell") and decision.get("quantity", 0) > 0:
-            bid, ask = await _bid_ask(decision["ticker"])
             try:
                 # 080-fix: Capture broker return for reconciliation tracking
                 order_result = await broker.place_order(
