@@ -17,23 +17,23 @@ updated: 2026-11-09
 > Real progress is features and phases shipped, not lines written. A refactor that
 > deletes 2,000 lines is usually progress, and this number will call it a regression.
 
-Generated 2026-11-09 from 451 git-tracked files.
+Generated 2026-11-09 from 452 git-tracked files.
 
 ## Code
 
 | Type | Files | Lines |
 |---|---:|---:|
 | `.py` | 140 | 20,005 |
-| `.md` | 179 | 16,813 |
+| `.md` | 179 | 16,815 |
 | `.tsx` | 75 | 11,580 |
 | `.json` | 9 | 8,681 |
 | `.ts` | 19 | 2,839 |
 | `.mjs` | 4 | 595 |
-| `.sql` | 10 | 378 |
+| `.sql` | 11 | 406 |
 | `.css` | 1 | 210 |
 | `.yml` | 1 | 48 |
 | `.toml` | 2 | 25 |
-| **Total** | **440** | **61,174** |
+| **Total** | **441** | **61,204** |
 
 ## Surface area
 

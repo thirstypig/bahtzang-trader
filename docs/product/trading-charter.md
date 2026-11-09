@@ -85,4 +85,6 @@ of an edge.
 
 Built (PRs #46–#51 + this one): stops at Alpaca, safety limits, sells always allowed, cost
 tracking, weekly report, crypto and target-pressure prompt off, per-strategy bet sizes.
-**Remaining: create the two portfolios and switch them on.**
+**Running since 2026-11-09:** Conservative (portfolio id 7) and Aggressive (id 8), created by
+`backend/scripts/create_conservative_aggressive.sql`. First buys 2026-11-10; the 12-week clock
+starts then (earliest pass review: early February 2027).
