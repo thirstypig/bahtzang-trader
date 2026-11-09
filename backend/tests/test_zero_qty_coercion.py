@@ -130,6 +130,14 @@ async def test_plan_executor_passes_headroom_to_claude(db_session):
     from app.plans.models import Portfolio
 
     plan = make_plan(db_session, budget=1000.0, virtual_cash=200.0)
+    # The $800 invested must exist as holdings — otherwise the portfolio is worth
+    # $200 (-80%) and the charter hard stop correctly switches it off before Claude.
+    from datetime import datetime
+    from app.models import Trade
+    db_session.add(Trade(portfolio_id=plan.id, ticker="SPY", action="buy", quantity=8,
+                         price=100.0, executed=True, guardrail_passed=True,
+                         timestamp=datetime(2026, 1, 5, 15, 0)))
+    db_session.commit()
 
     captured = {}
 

@@ -20,6 +20,9 @@ from app.models import Trade
 from app.plans.models import Portfolio
 from app.plans.constraints import check_trading_constraints, update_touch_history
 from app.plans.stops import covered_qty, protect_remainder, reconcile_stops, release_stops
+from app.plans.limits import (
+    MAX_HOLDINGS, buy_block_reason, evaluate_cycle_limits, portfolio_value, switch_off, today_et,
+)
 from app.risk import RiskError, size_entry
 
 logger = logging.getLogger(__name__)
@@ -128,6 +131,8 @@ def _plan_to_guardrails_config(plan: Portfolio) -> dict:
     config["max_total_invested"] = budget
     config["max_single_trade_size"] = min(config["max_single_trade_size"], budget * 0.5)
     config["kill_switch"] = False
+    # Holdings cap is enforced in code (plans/limits.py); tell Claude the same number.
+    config["max_positions"] = MAX_HOLDINGS
     if plan.target_amount:
         config["target_amount"] = float(plan.target_amount)
     if plan.target_date:
@@ -341,6 +346,18 @@ async def _execute_plan_cycle(
     # P&L fields stay 0 when we lack a live price or a cost basis — better
     # to show nothing than a fake number Claude would act on.
     avg_costs = compute_virtual_cost_basis(db, plan.id)
+
+    # Charter §3 gate 1 (every run path): hard stop switches the portfolio off
+    # before Claude is even asked; loss halts block buys for this cycle.
+    current_value = portfolio_value(
+        float(plan.virtual_cash), virtual_positions, price_map, avg_costs
+    )
+    limits = evaluate_cycle_limits(db, plan, current_value, today_et())
+    if limits.hard_stop:
+        await switch_off(db, plan, current_value)
+        return []
+    halt_announced = False
+
     plan_positions = []
     for ticker, qty in virtual_positions.items():
         live_price = price_map.get(ticker, 0)
@@ -464,6 +481,21 @@ async def _execute_plan_cycle(
         # Coerce degenerate decisions to holds BEFORE validation —
         # see app/decision_coercion.py for rationale.
         coerce_zero_qty_to_hold(decision, log_prefix=plan_log_prefix)
+
+        # Charter §3 gate 2: halts, ≤8 holdings, ≤2 new buys/day. Buys only.
+        if decision["action"] == "buy":
+            reason = buy_block_reason(
+                db, plan, decision["ticker"], virtual_positions, limits,
+                datetime.now(timezone.utc),
+            )
+            if reason:
+                logger.info("Plan %d: buy of %s blocked — %s", plan.id, decision["ticker"], reason)
+                if limits.buy_halt and not halt_announced:
+                    await notifier.notify_risk_event(f"{plan.name}: buys halted — {reason}")
+                    halt_announced = True
+                decision["action"] = "hold"
+                decision["quantity"] = 0
+                decision["reasoning"] = f"{reason}. {decision.get('reasoning', '')}".strip()
 
         price = None
         if decision["ticker"] and decision["action"] != "hold":
@@ -717,14 +749,11 @@ async def _apply_risk_sizing(
     reason (missing data never becomes a tradeable number).
     """
     ticker = decision["ticker"]
-    portfolio_value = cash + sum(
-        qty * (price_map.get(t) or avg_costs.get(t, 0.0))
-        for t, qty in virtual_positions.items()
-    )
+    value = portfolio_value(cash, virtual_positions, price_map, avg_costs)
     atr = await _fetch_atr(ticker)
     try:
         qty, stop = size_entry(
-            portfolio_value=portfolio_value, cash=cash, entry_price=price, atr=atr,
+            portfolio_value=value, cash=cash, entry_price=price, atr=atr,
             earnings_days=days_until_earnings(db, ticker),
             held_value=virtual_positions.get(ticker, 0.0) * price,
         )
