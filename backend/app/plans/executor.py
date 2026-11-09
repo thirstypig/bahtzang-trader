@@ -19,6 +19,8 @@ from app.brokers.alpaca import AlpacaBroker
 from app.models import Trade
 from app.plans.models import Portfolio
 from app.plans.constraints import check_trading_constraints, update_touch_history
+from app.plans.stops import protect_remainder, reconcile_stops, release_stops
+from app.risk import RiskError, size_entry
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,20 @@ broker = AlpacaBroker()
 # from double-spending virtual cash (e.g., scheduler + manual /run collision).
 # Broker-level order serialization is handled by `order_lock` in alpaca.py (069-fix).
 _plan_locks: dict[int, asyncio.Lock] = {}
+
+
+async def _fetch_atr(ticker: str) -> float | None:
+    """ATR(14) for one ticker from the Alpaca indicator batch; None on any failure.
+
+    Fetched per buy (≤ a couple per day) rather than threaded through the shared
+    market-data tuple. None means "no safe stop" and the buy is skipped.
+    """
+    try:
+        indicators = await get_indicators([ticker])
+        return (indicators.get(ticker) or {}).get("atr14")
+    except Exception as e:
+        logger.warning("ATR fetch failed for %s: %s", ticker, e)
+        return None
 
 
 def _get_plan_lock(plan_id: int) -> asyncio.Lock:
@@ -310,6 +326,12 @@ async def _execute_plan_cycle(
     # feed shouldn't have its prompt steered by it.
     plan_screener_csv = screener_csv if _screener_top_n(plan) > 0 else ""
 
+    # Risk engine: broker-held stops act between cycles. Record any that fired (and
+    # flag any that vanished) BEFORE positions/cash are read, so neither Claude nor
+    # the sell validation acts on shares that are already gone.
+    await reconcile_stops(db, plan, broker)
+    db.refresh(plan)
+
     # Build plan-specific context
     virtual_positions = compute_virtual_positions(db, plan.id)
     plan_config = _plan_to_guardrails_config(plan)
@@ -459,8 +481,14 @@ async def _execute_plan_cycle(
             if coerce_bad_price_to_hold(decision, price, log_prefix=plan_log_prefix):
                 price = None
 
-            # Position sizing
-            if decision["action"] == "buy" and price:
+            # Position sizing. Stocks: the risk engine decides how much (Claude's
+            # quantity is ignored) and every entry carries a broker-held stop.
+            # Crypto keeps the old path — Alpaca crypto cannot hold a stop order.
+            from app.symbols import is_crypto
+            if decision["action"] == "buy" and price and not is_crypto(decision["ticker"]):
+                await _apply_risk_sizing(db, plan, decision, price, remaining_cash,
+                                         virtual_positions, price_map, avg_costs)
+            elif decision["action"] == "buy" and price:
                 from app.position_sizing import kelly_position_size
                 ed = days_until_earnings(db, decision["ticker"])
                 max_size = kelly_position_size(
@@ -505,7 +533,7 @@ async def _execute_plan_cycle(
         # insufficient. Update the reasoning field so the audit trail reflects
         # the actual quantity (previously Claude's "buy 1 share" would be
         # silently logged as "buy 0.25 share" with unchanged reasoning).
-        if decision["action"] == "buy" and price and price > 0:
+        if decision["action"] == "buy" and price and price > 0 and "_stop_price" not in decision:
             trade_value = price * decision.get("quantity", 0)
             # Keep 5% buffer for slippage; minimum $1 order
             max_affordable = max(remaining_cash * 0.95, 0)
@@ -549,6 +577,19 @@ async def _execute_plan_cycle(
         executed = False
         alpaca_order_id: str | None = None
         cash_before = remaining_cash
+        stop_price = decision.pop("_stop_price", None)
+        stop_order_id: str | None = None
+        prior_stop: float | None = None
+        if passed and decision["action"] == "sell" and decision.get("quantity", 0) > 0:
+            # Alpaca reserves shares for an open stop leg — cancel THIS portfolio's
+            # stops first or the sell is rejected. A stop that fired in the meantime
+            # is recorded by release_stops; selling again would double-sell.
+            ok_to_sell, prior_stop = await release_stops(db, plan, decision["ticker"], broker)
+            if not ok_to_sell:
+                passed = False
+                block_reason = "Sell skipped: broker stop already fired or would not cancel"
+                remaining_cash = float(plan.virtual_cash)
+                cash_before = remaining_cash
         if passed and decision["action"] in ("buy", "sell") and decision.get("quantity", 0) > 0:
             try:
                 # 080-fix: Capture broker return for reconciliation tracking
@@ -557,8 +598,10 @@ async def _execute_plan_cycle(
                     ticker=decision["ticker"],
                     action=decision["action"],
                     quantity=decision["quantity"],
+                    stop_price=stop_price,
                 )
                 alpaca_order_id = order_result.get("order_id") if order_result else None
+                stop_order_id = order_result.get("stop_order_id") if order_result else None
                 executed = True
                 if decision["action"] == "buy":
                     remaining_cash -= trade_value
@@ -596,6 +639,10 @@ async def _execute_plan_cycle(
             virtual_cash_after=remaining_cash,
             rules_recommendation=rules_rec,
         )
+        if executed and stop_order_id:
+            plan_trade.stop_price = stop_price
+            plan_trade.stop_order_id = stop_order_id
+            plan_trade.stop_state = "open"
         db.add(plan_trade)
         if executed:
             plan.virtual_cash = remaining_cash
@@ -618,6 +665,13 @@ async def _execute_plan_cycle(
             # Re-raise to stop the cycle; other plans continue in run_all_plans
             raise
 
+        # Partial exit: the cancelled stop covered the whole position — re-protect
+        # what is left at the same (never looser) level.
+        if executed and decision["action"] == "sell" and prior_stop is not None:
+            left = virtual_positions.get(decision["ticker"], 0) - decision["quantity"]
+            if left > 1e-9:
+                await protect_remainder(db, plan, plan_trade, left, prior_stop, broker)
+
         result: CycleResult = {
             "trade_id": plan_trade.id,
             "action": decision["action"],
@@ -633,6 +687,45 @@ async def _execute_plan_cycle(
         results.append(result)
 
     return results
+
+
+async def _apply_risk_sizing(
+    db: Session, plan: Portfolio, decision: dict, price: float, cash: float,
+    virtual_positions: dict[str, float], price_map: dict, avg_costs: dict,
+) -> None:
+    """Replace a stock buy's quantity with the risk-engine size and attach its stop.
+
+    Mutates ``decision``: on success sets quantity + ``_stop_price`` and notes the
+    sizing in the reasoning; when no safe size exists, turns it into a hold with the
+    reason (missing data never becomes a tradeable number).
+    """
+    ticker = decision["ticker"]
+    portfolio_value = cash + sum(
+        qty * (price_map.get(t) or avg_costs.get(t, 0.0))
+        for t, qty in virtual_positions.items()
+    )
+    atr = await _fetch_atr(ticker)
+    try:
+        qty, stop = size_entry(
+            portfolio_value=portfolio_value, cash=cash, entry_price=price, atr=atr,
+            earnings_days=days_until_earnings(db, ticker),
+        )
+    except RiskError as e:
+        qty, stop, why = 0, None, str(e)
+    else:
+        why = "not even one share fits the 1% risk / cash / 20% limits"
+    if qty <= 0:
+        logger.info("Plan %d: risk engine skipped buy of %s — %s", plan.id, ticker, why)
+        decision["action"] = "hold"
+        decision["quantity"] = 0
+        decision["reasoning"] = f"Risk engine: buy skipped — {why}. {decision.get('reasoning', '')}".strip()
+        return
+    decision["quantity"] = qty
+    decision["_stop_price"] = stop
+    decision["reasoning"] = (
+        f"{decision.get('reasoning', '')} [Risk engine: {qty} sh, stop ${stop:.2f} "
+        f"= 2×ATR ${atr:.2f} below ${price:.2f}, max loss ≈ ${qty * (price - stop):.0f}]"
+    ).strip()
 
 
 async def fetch_market_data(

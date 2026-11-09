@@ -91,6 +91,17 @@ def _mock_require_auth():
     return _MOCK_USER
 
 
+@pytest.fixture(autouse=True)
+def _stub_atr():
+    """Risk engine needs an ATR per buy; never fetch bars from Alpaca in tests.
+
+    2.0 is a neutral default. Tests that exercise "no ATR → no trade" override it.
+    """
+    with patch("app.plans.executor._fetch_atr", new_callable=AsyncMock,
+               return_value=2.0, create=True):
+        yield
+
+
 # ---------------------------------------------------------------------------
 # Broker fixtures
 # ---------------------------------------------------------------------------
