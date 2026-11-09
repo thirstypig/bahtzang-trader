@@ -24,7 +24,7 @@ from app.plans.stops import covered_qty, protect_remainder, reconcile_stops, rel
 from app.plans.limits import (
     MAX_HOLDINGS, buy_block_reason, evaluate_cycle_limits, portfolio_value, switch_off, today_et,
 )
-from app.risk import RiskError, size_entry
+from app.risk import RiskError, limits_for_profile, size_entry
 
 logger = logging.getLogger(__name__)
 
@@ -792,8 +792,10 @@ async def _apply_risk_sizing(
     ticker = decision["ticker"]
     value = portfolio_value(cash, virtual_positions, price_map, avg_costs)
     atr = await _fetch_atr(ticker)
+    risk_pct, max_position_pct = limits_for_profile(plan.risk_profile)
     try:
         qty, stop = size_entry(
+            risk_pct=risk_pct, max_position_pct=max_position_pct,
             portfolio_value=value, cash=cash, entry_price=price, atr=atr,
             earnings_days=days_until_earnings(db, ticker),
             held_value=virtual_positions.get(ticker, 0.0) * price,
@@ -812,7 +814,8 @@ async def _apply_risk_sizing(
     decision["_stop_price"] = stop
     decision["reasoning"] = (
         f"{decision.get('reasoning', '')} [Risk engine: {qty} sh, stop ${stop:.2f} "
-        f"= 2×ATR ${atr:.2f} below ${price:.2f}, max loss ≈ ${qty * (price - stop):.0f}]"
+        f"= 2×ATR ${atr:.2f} below ${price:.2f}, max loss ≈ ${qty * (price - stop):.0f} "
+        f"({risk_pct:.1%} risk, {plan.risk_profile})]"
     ).strip()
 
 

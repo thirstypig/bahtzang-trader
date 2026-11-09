@@ -123,3 +123,22 @@ class TestPositionCapCountsHolding:
     def test_already_at_cap_returns_zero(self):
         qty, _ = _size(held_value=2_500)
         assert qty == 0
+
+
+class TestPerStrategyLimits:
+    """Charter 2026-11-09: conservative = 0.5% risk, 10% max position;
+    aggressive = 1% risk, 20% max position."""
+
+    def test_profile_limits(self):
+        from app.risk import limits_for_profile
+        assert limits_for_profile("conservative") == (0.005, 0.10)
+        assert limits_for_profile("aggressive") == (0.01, 0.20)
+        assert limits_for_profile("moderate") == (0.01, 0.20)   # default = charter caps
+
+    def test_conservative_risks_half(self):
+        qty, _ = _size(risk_pct=0.005, max_position_pct=0.10)
+        assert qty == 12            # $50 risk / $4 stop distance
+
+    def test_conservative_position_cap_is_ten_pct(self):
+        qty, _ = _size(entry_price=100, atr=0.25, risk_pct=0.005, max_position_pct=0.10)
+        assert qty == 10            # 10% of $10k / $100
