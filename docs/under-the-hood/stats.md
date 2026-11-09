@@ -17,31 +17,31 @@ updated: 2026-11-09
 > Real progress is features and phases shipped, not lines written. A refactor that
 > deletes 2,000 lines is usually progress, and this number will call it a regression.
 
-Generated 2026-11-09 from 436 git-tracked files.
+Generated 2026-11-09 from 450 git-tracked files.
 
 ## Code
 
 | Type | Files | Lines |
 |---|---:|---:|
-| `.py` | 129 | 18,652 |
-| `.md` | 178 | 16,730 |
-| `.tsx` | 73 | 11,307 |
+| `.py` | 139 | 19,883 |
+| `.md` | 179 | 16,826 |
+| `.tsx` | 75 | 11,580 |
 | `.json` | 9 | 8,681 |
-| `.ts` | 19 | 2,753 |
+| `.ts` | 19 | 2,823 |
 | `.mjs` | 4 | 595 |
-| `.sql` | 9 | 355 |
+| `.sql` | 10 | 378 |
 | `.css` | 1 | 210 |
 | `.yml` | 1 | 48 |
 | `.toml` | 2 | 25 |
-| **Total** | **425** | **59,356** |
+| **Total** | **439** | **61,049** |
 
 ## Surface area
 
 | Metric | Count |
 |---|---:|
-| Backend routes | 46 |
-| Frontend pages | 25 |
-| Docs (excluding templates) | 59 |
+| Backend routes | 49 |
+| Frontend pages | 26 |
+| Docs (excluding templates) | 60 |
 
 ## Docs by type
 
@@ -82,7 +82,7 @@ Generated 2026-11-09 from 436 git-tracked files.
 | draft | 7 |
 | locked | 2 |
 
-> ⚠ **2 docs have no frontmatter** and are invisible to the board.
+> ⚠ **3 docs have no frontmatter** and are invisible to the board.
 > Retrofit them or they cannot be found.
 
 ## Roadmap and to-dos

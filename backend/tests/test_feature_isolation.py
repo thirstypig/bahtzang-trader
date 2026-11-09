@@ -11,10 +11,11 @@ import pathlib
 import re
 
 APP = pathlib.Path(__file__).resolve().parents[1] / "app"
-FEATURES = ["backtest", "earnings", "plans", "forex", "screener"]
+FEATURES = ["backtest", "earnings", "plans", "forex", "screener", "reports"]
 ALLOWED = {
     ("plans", "earnings"),   # earnings-proximity sizing + prompt CSV feed
     ("plans", "screener"),   # screener top-N feed into opted-in portfolios
+    ("reports", "plans"),    # weekly report reads the portfolio ledger (read-only)
 }
 IMPORT = re.compile(r"^\s*(?:from|import)\s+app\.(\w+)", re.M)
 

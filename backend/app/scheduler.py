@@ -296,6 +296,21 @@ async def _run_screener():
 
 
 SUMMARY_JOB_ID = "daily_summary"
+WEEKLY_REPORT_JOB_ID = "weekly_report"
+
+
+async def _weekly_report():
+    """Charter §5: Friday after the close — saved report, Claude-drafted note."""
+    logger.info("Building weekly report")
+    db = SessionLocal()
+    try:
+        from app.reports.engine import run_weekly_report
+        report = await run_weekly_report(db)
+        logger.info("Weekly report saved for %s", report.week_ending)
+    except Exception as e:
+        logger.exception("Weekly report failed: %s", e)
+    finally:
+        db.close()
 
 
 def _max_frequency_among_active(db) -> str:
@@ -390,6 +405,13 @@ def start_scheduler():
     scheduler.add_job(
         _daily_summary, summary_trigger,
         id=SUMMARY_JOB_ID, replace_existing=True,
+    )
+
+    # Weekly report Friday 4:20 PM ET (after the 4:06 portfolio snapshots)
+    scheduler.add_job(
+        _weekly_report,
+        CronTrigger(day_of_week="fri", hour=16, minute=20, timezone=ET),
+        id=WEEKLY_REPORT_JOB_ID, replace_existing=True,
     )
 
 

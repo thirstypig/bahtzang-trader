@@ -332,3 +332,54 @@ export interface CompanyProfile {
   yahoo_url: string;
   source: "finnhub" | "none";
 }
+
+// Weekly report (charter §5) — see backend/app/reports/engine.py
+export interface ReportCosts {
+  spread: number;
+  spread_unpriced_trades: number;
+  spread_in_fills?: boolean;
+  fees: number;
+  api: number;
+  est_tax: number;
+  total: number;
+}
+
+export interface ReportRow {
+  id?: number;
+  name?: string;
+  active?: boolean;
+  start_value: number;
+  end_value: number;
+  return_pct: number;
+  after_cost_return_pct: number | null;
+  spy_return_pct: number | null;
+  beat_spy: boolean | null;
+  since_start?: {
+    start_value: number;
+    return_pct: number | null;
+    after_cost_return_pct: number | null;
+    spy_return_pct: number | null;
+    costs: ReportCosts;
+  };
+  trades: number;
+  wins: number;
+  losses: number;
+  win_rate?: number | null;
+  avg_win?: number | null;
+  avg_loss?: number | null;
+  costs: ReportCosts;
+  limit_events: { type: string; count: number }[];
+}
+
+export interface WeeklyReportSummary {
+  id: number;
+  week_ending: string;
+  created_at: string | null;
+  portfolios: { id: number; name: string; after_cost_return_pct: number | null; spy_return_pct: number | null; beat_spy: boolean | null }[];
+}
+
+export interface WeeklyReportDetail extends WeeklyReportSummary {
+  payload: { week_ending: string; portfolios: ReportRow[]; account: ReportRow; assumptions: Record<string, unknown> };
+  note: string | null;
+  note_model: string | null;
+}

@@ -26,6 +26,7 @@ from app.plans.models import (  # noqa: F401
     Portfolio, PlanSnapshot, PortfolioTouchHistory, PortfolioStrategyAudit, TickerPrice
 )
 from app.screener.models import ScreenerRun, ScreenerCandidate  # noqa: F401
+from app.reports.models import WeeklyReport  # noqa: F401
 
 
 class Trade(Base):
@@ -76,6 +77,10 @@ class Trade(Base):
     # Shares the stop covers — so re-protection never stacks two stops on one share.
     stop_qty: Mapped[float | None] = mapped_column(Float, nullable=True)
     stop_state: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # Charter §4 cost tracking: half the bid-ask gap at order time (NULL = no
+    # trustworthy quote — unknown, not zero) and SEC + FINRA fees on sells.
+    spread_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 6), nullable=True)
+    fee_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 6), nullable=True)
 
     __table_args__ = (
         Index("ix_trades_timestamp_executed", "timestamp", "executed"),
@@ -108,6 +113,46 @@ class Trade(Base):
             d["virtual_cash_after"] = float(self.virtual_cash_after) if self.virtual_cash_after is not None else None
             d["rules_recommendation"] = self.rules_recommendation
         return d
+
+
+class ApiUsage(Base):
+    """One Claude API response and what it cost, charged to the portfolio that used
+    it (portfolio_id NULL = account-level, e.g. the weekly report note)."""
+    __tablename__ = "api_usage"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False,
+    )
+    portfolio_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("portfolios.id", ondelete="SET NULL"), nullable=True,
+    )
+    purpose: Mapped[str] = mapped_column(String(20), nullable=False)
+    model: Mapped[str] = mapped_column(String(64), nullable=False)
+    input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cache_creation_input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cache_read_input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cost: Mapped[Decimal] = mapped_column(Numeric(12, 6), nullable=False)
+
+    __table_args__ = (Index("ix_api_usage_portfolio_ts", "portfolio_id", "timestamp"),)
+
+
+def record_api_usage(db, usages: list, *, portfolio_id: int | None, purpose: str,
+                     model: str = "claude-sonnet-4-6") -> None:
+    """Write one ApiUsage row per Claude ``usage`` object (caller commits)."""
+    from app.costs import api_cost
+    for u in usages:
+        if u is None:
+            continue
+        db.add(ApiUsage(
+            portfolio_id=portfolio_id, purpose=purpose, model=model,
+            input_tokens=getattr(u, "input_tokens", 0) or 0,
+            output_tokens=getattr(u, "output_tokens", 0) or 0,
+            cache_creation_input_tokens=getattr(u, "cache_creation_input_tokens", 0) or 0,
+            cache_read_input_tokens=getattr(u, "cache_read_input_tokens", 0) or 0,
+            cost=api_cost(u),
+        ))
 
 
 class PortfolioSnapshot(Base):

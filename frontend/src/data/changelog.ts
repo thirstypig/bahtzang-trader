@@ -10,6 +10,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.36.0",
+    date: "2026-11-09",
+    changes: [
+      { type: "feat", title: "Costs are now counted: every trade records its estimated spread (half the gap between buy and sell prices at order time) and the SEC and FINRA fees on sales, and every Claude call's cost is charged to the portfolio that made it" },
+      { type: "feat", title: "Weekly report on a new Reports page, written every Friday after the close: each portfolio and all portfolios combined against SPY, before and after fees, the Claude bill and 24% estimated tax, plus trades, wins and losses, every safety limit that fired, and a draft note from Claude to review. The spread is shown but not subtracted: we checked, and paper fills already happen at the bid and ask prices. Switched-off portfolios stay in the report" },
+      { type: "feat", title: "The backtester uses the same costs: an assumed spread on every fill, sale fees, and estimated tax, so backtests and live results compare like for like" },
+    ],
+  },
+  {
     version: "0.35.0",
     date: "2026-11-09",
     changes: [

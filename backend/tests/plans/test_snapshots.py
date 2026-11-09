@@ -170,3 +170,23 @@ class TestMissingPriceHandling:
 
         assert count == 0
         assert db_session.query(PlanSnapshot).filter_by(portfolio_id=plan.id).count() == 0
+
+
+@pytest.mark.integration
+class TestInactiveWithPositions:
+    @pytest.mark.asyncio
+    async def test_switched_off_portfolio_holding_shares_is_snapshotted(self, db_session):
+        """A hard-stopped portfolio keeps its broker stops and its shares; its value
+        must keep being recorded so the weekly report and equity curve stay honest."""
+        held = make_plan(db_session, name="Stopped", budget=10000, virtual_cash=5000, is_active=False)
+        make_trade(db_session, held.id, ticker="AAPL", action="buy", quantity=10, price=150)
+        empty = make_plan(db_session, name="Old", budget=1000, virtual_cash=1000, is_active=False)
+
+        with patch("app.plans.snapshots.get_indicators", new=AsyncMock(
+            return_value={"AAPL": {"price": 160.0}}
+        )):
+            count = await take_plan_snapshots(db_session)
+
+        assert count == 1
+        assert db_session.query(PlanSnapshot).filter_by(portfolio_id=held.id).count() == 1
+        assert db_session.query(PlanSnapshot).filter_by(portfolio_id=empty.id).count() == 0
