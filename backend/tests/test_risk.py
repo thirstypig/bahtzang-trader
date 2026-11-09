@@ -62,3 +62,53 @@ class TestPositionSize:
         with pytest.raises(RiskError):
             compute_position_size(equity=10_000, risk_pct=0.01,
                                   entry_price=100.0, stop_price=100.0)
+
+
+from app.risk import round_stop_price, size_entry  # noqa: E402
+
+
+def _size(**kw):
+    args = dict(portfolio_value=10_000, cash=10_000, entry_price=50, atr=2.0)
+    args.update(kw)
+    return size_entry(**args)
+
+
+class TestRoundStopPrice:
+    def test_round_stop_price(self):
+        assert round_stop_price(46.239) == 46.23
+        assert round_stop_price(0.123456) == 0.1234
+        assert round_stop_price(11.57) == 11.57
+
+
+class TestSizeEntry:
+    def test_risk_sized(self):
+        assert _size() == (25, 46.0)
+
+    def test_tight_stop_capped_by_cash(self):
+        qty, _ = _size(cash=1_000, entry_price=100, atr=0.25)
+        assert qty == 9
+
+    def test_tight_stop_capped_by_position_cap(self):
+        qty, _ = _size(entry_price=100, atr=0.25)
+        assert qty == 20
+
+    def test_earnings_tomorrow_halves(self):
+        assert _size(earnings_days=1)[0] == 12
+        assert _size(earnings_days=2)[0] == 17
+        assert _size(earnings_days=5)[0] == 25
+
+    def test_no_atr_raises(self):
+        with pytest.raises(RiskError):
+            _size(atr=None)
+
+    def test_stop_at_or_below_zero_raises(self):
+        with pytest.raises(RiskError):
+            _size(entry_price=1.0, atr=0.6)
+
+    def test_too_small_returns_zero(self):
+        qty, _ = _size(portfolio_value=100, cash=100, entry_price=500, atr=10)
+        assert qty == 0
+
+    def test_stop_is_rounded(self):
+        _, stop = _size(atr=1.3333)
+        assert stop == 47.33

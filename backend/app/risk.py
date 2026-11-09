@@ -49,3 +49,58 @@ def compute_position_size(
         )
     risk_budget = equity * risk_pct
     return math.floor(risk_budget / stop_distance)
+
+
+MAX_POSITION_PCT = 0.20  # charter §3: biggest single position ≤ 20% of the portfolio
+CASH_BUFFER = 0.95  # leave 5% of cash for slippage between quote and fill
+
+
+def round_stop_price(price: float) -> float:
+    """Round a stop DOWN to a tick Alpaca accepts.
+
+    Alpaca rejects sub-penny prices: $1 and up trade in $0.01 ticks, below $1 in
+    $0.0001. Rounding down keeps the stop at or below the computed level (never
+    tighter than the risk math intended). The epsilon stops float noise turning an
+    exact 11.57 into 11.56.
+    """
+    scale = 100 if price >= 1 else 10_000
+    return math.floor(price * scale + 1e-6) / scale
+
+
+def _earnings_factor(earnings_days: int | None) -> float:
+    """Shrink entries right before earnings — a gap can jump straight past the stop."""
+    if earnings_days is None or earnings_days < 0:
+        return 1.0
+    if earnings_days <= 1:
+        return 0.5
+    if earnings_days == 2:
+        return 0.7
+    return 1.0
+
+
+def size_entry(
+    *,
+    portfolio_value: float,
+    cash: float,
+    entry_price: float,
+    atr: float | None,
+    earnings_days: int | None = None,
+) -> tuple[int, float]:
+    """Whole-share quantity and broker stop price for a new long entry.
+
+    qty = min(risk-sized, affordable with CASH_BUFFER, MAX_POSITION_PCT of portfolio),
+    then the earnings factor, floored. A risk-sized qty alone can be leveraged (tight
+    stop → huge size), so the caps are part of the contract, not an afterthought.
+
+    Returns (0, stop) when not even one share fits — the caller skips the trade.
+    Raises RiskError when no safe stop exists (no ATR, stop at or below zero).
+    """
+    stop = round_stop_price(compute_stop_price(entry_price, atr))
+    if stop <= 0:
+        raise RiskError(f"stop {stop} is not above zero for entry {entry_price}")
+    risk_qty = compute_position_size(portfolio_value, DEFAULT_RISK_PCT, entry_price, stop)
+    cash_qty = math.floor(max(cash, 0) * CASH_BUFFER / entry_price)
+    cap_qty = math.floor(max(portfolio_value, 0) * MAX_POSITION_PCT / entry_price)
+    qty = min(risk_qty, cash_qty, cap_qty)
+    qty = math.floor(qty * _earnings_factor(earnings_days))
+    return max(qty, 0), stop
