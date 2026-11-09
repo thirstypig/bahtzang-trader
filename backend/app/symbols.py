@@ -9,6 +9,11 @@ different handling at several boundaries:
   - Alpha Vantage quotes/news and Finnhub earnings don't speak slash pairs
 """
 
+# Trading charter §1: stocks only. The crypto support below stays (dormant) — when
+# this is False the executor turns crypto buys into holds and keeps crypto pairs out
+# of the candidate universe; selling crypto still works so old holdings can close.
+CRYPTO_ENABLED = False
+
 # Alpaca's tradeable USD crypto pairs (paper + live). Kept as an allow-list so
 # a typo like "BTC/USDT" fails loudly at the data layer instead of silently.
 SUPPORTED_CRYPTO: frozenset[str] = frozenset({
