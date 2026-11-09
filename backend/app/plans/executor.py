@@ -16,7 +16,8 @@ from app.circuit_breaker import check_circuit_breakers, RED
 from app.technical_analysis import get_indicators, format_indicators_csv
 from app.sector_rotation import get_sector_signals, format_sector_csv
 from app.brokers.alpaca import AlpacaBroker
-from app.models import Trade
+from app.costs import half_spread_cost, sell_fees
+from app.models import Trade, record_api_usage
 from app.plans.models import Portfolio
 from app.plans.constraints import check_trading_constraints, update_touch_history
 from app.plans.stops import covered_qty, protect_remainder, reconcile_stops, release_stops
@@ -33,6 +34,16 @@ broker = AlpacaBroker()
 # from double-spending virtual cash (e.g., scheduler + manual /run collision).
 # Broker-level order serialization is handled by `order_lock` in alpaca.py (069-fix).
 _plan_locks: dict[int, asyncio.Lock] = {}
+
+
+async def _bid_ask(ticker: str) -> tuple[float | None, float | None]:
+    """Latest bid/ask for spread-cost recording; never raises (cost tracking must
+    not block a trade)."""
+    try:
+        return await broker.get_bid_ask(ticker)
+    except Exception as e:
+        logger.warning("Bid/ask for %s unavailable: %s", ticker, e)
+        return None, None
 
 
 async def _fetch_atr(ticker: str) -> float | None:
@@ -391,6 +402,7 @@ async def _execute_plan_cycle(
     )
 
     # === Decision generation — branched by portfolio.decision_mode ===
+    usage_sink: list = []  # Claude usage objects this cycle → api_usage rows
     if plan.decision_mode == "rules_decide":
         decisions = await _get_strategy_decisions(plan, db, price_map)
     elif plan.decision_mode == "rules_with_claude_oversight":
@@ -408,7 +420,9 @@ async def _execute_plan_cycle(
         }
         decisions = []
         for sd in strategy_decisions:
-            review = await claude_brain.review_trade_decision(sd, oversight_context, plan)
+            review = await claude_brain.review_trade_decision(
+                sd, oversight_context, plan, usage_sink=usage_sink,
+            )
             decision = sd.copy()
             decision["_rules_recommendation"] = {k: v for k, v in sd.items() if not k.startswith("_")}
             if not review.get("confirmed", True) and review.get("override_decision"):
@@ -441,8 +455,15 @@ async def _execute_plan_cycle(
             total_invested=plan_total_invested,
             orders_used_today=plan_orders_today,
             exit_only=exit_only,
+            usage_sink=usage_sink,
         )
     # === End decision generation ===
+
+    # Charter §4: charge this cycle's Claude calls to this portfolio.
+    if usage_sink:
+        purpose = "oversight" if plan.decision_mode == "rules_with_claude_oversight" else "decision"
+        record_api_usage(db, usage_sink, portfolio_id=plan.id, purpose=purpose)
+        db.commit()
 
     # Exit-only enforcement — single point for ALL decision modes. The Claude
     # prompt already says "no buys" on exit cycles, but prompts are requests,
@@ -620,7 +641,10 @@ async def _execute_plan_cycle(
                 block_reason = "Sell skipped: broker stop already fired or would not cancel"
                 remaining_cash = float(plan.virtual_cash)
                 cash_before = remaining_cash
+        spread_cost: float | None = None
+        fee_cost: float | None = None
         if passed and decision["action"] in ("buy", "sell") and decision.get("quantity", 0) > 0:
+            bid, ask = await _bid_ask(decision["ticker"])
             try:
                 # 080-fix: Capture broker return for reconciliation tracking
                 order_result = await broker.place_order(
@@ -632,6 +656,9 @@ async def _execute_plan_cycle(
                 )
                 alpaca_order_id = order_result.get("order_id") if order_result else None
                 stop_order_id = order_result.get("stop_order_id") if order_result else None
+                spread_cost = half_spread_cost(decision["quantity"], bid, ask)
+                if decision["action"] == "sell" and price:
+                    fee_cost = sell_fees(decision["quantity"], price)
                 executed = True
                 if decision["action"] == "buy":
                     remaining_cash -= trade_value
@@ -668,6 +695,8 @@ async def _execute_plan_cycle(
             virtual_cash_before=cash_before,
             virtual_cash_after=remaining_cash,
             rules_recommendation=rules_rec,
+            spread_cost=spread_cost,
+            fee_cost=fee_cost,
         )
         if executed and stop_price is not None and stop_order_id:
             plan_trade.stop_price = stop_price

@@ -207,6 +207,7 @@ async def get_trade_decision(
     total_invested: float = 0.0,
     orders_used_today: int = 0,
     exit_only: bool = False,
+    usage_sink: list | None = None,
 ) -> list[TradeDecision]:
     """Send portfolio context to Claude and get a structured trade decision.
 
@@ -389,6 +390,8 @@ async def get_trade_decision(
             messages=[{"role": "user", "content": user_prompt}],
             timeout=30.0,
         )
+        if usage_sink is not None and getattr(message, "usage", None) is not None:
+            usage_sink.append(message.usage)  # charter §4: API cost per portfolio
     except anthropic.APITimeoutError:
         logger.warning("Claude API timed out after 30s — defaulting to hold")
         return [{
@@ -437,6 +440,7 @@ async def review_trade_decision(
     rules_decision: dict,
     context: dict,
     portfolio: Portfolio,
+    usage_sink: list | None = None,
 ) -> dict:
     """Ask Claude to confirm or override a single rules-based trade decision.
 
@@ -516,6 +520,8 @@ async def review_trade_decision(
             messages=[{"role": "user", "content": "\n".join(prompt_parts)}],
             timeout=30.0,
         )
+        if usage_sink is not None and getattr(message, "usage", None) is not None:
+            usage_sink.append(message.usage)
     except anthropic.APITimeoutError:
         logger.warning("Claude review API timed out — failing closed (confirmed=True)")
         return {

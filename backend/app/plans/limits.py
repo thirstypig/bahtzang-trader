@@ -145,13 +145,21 @@ def buy_block_reason(
 async def switch_off(db: Session, plan: Portfolio, current_value: float) -> None:
     """Hard stop: turn the portfolio off and say so. Broker-held stops stay in place;
     unwinding is manual (rollback = kill switch + manual unwind)."""
-    plan.is_active = False
-    db.commit()
     start = float(plan.budget)
     msg = (
         f"HARD STOP — {plan.name} switched off: value ${current_value:,.0f} is "
         f"{current_value / start - 1:.1%} from its ${start:,.0f} start "
         f"(limit -{HARD_STOP_PCT:.0%}). Broker stops remain; unwind manually."
     )
+    plan.is_active = False
+    # Audit row: every cycle is logged, and the weekly report counts limit events
+    # from the trade ledger.
+    db.add(Trade(
+        portfolio_id=plan.id, ticker="", action="hold", quantity=0,
+        claude_reasoning=msg, guardrail_passed=False, guardrail_block_reason=msg,
+        executed=False, virtual_cash_before=plan.virtual_cash,
+        virtual_cash_after=plan.virtual_cash,
+    ))
+    db.commit()
     logger.warning("Plan %d: %s", plan.id, msg)
     await notifier.notify_risk_event(msg)

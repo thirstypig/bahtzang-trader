@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app import notifier
+from app.costs import sell_fees
 from app.models import Trade
 from app.plans.models import Portfolio
 
@@ -64,6 +65,7 @@ async def _record_fill(db: Session, plan: Portfolio, row: Trade, info: dict) -> 
         guardrail_passed=True,
         executed=True,
         alpaca_order_id=row.stop_order_id,
+        fee_cost=sell_fees(qty, price),  # spread unknown for a stop fill → NULL
         virtual_cash_before=cash_before,
         virtual_cash_after=cash_after,
         timestamp=datetime.now(timezone.utc),

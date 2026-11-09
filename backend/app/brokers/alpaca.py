@@ -167,6 +167,15 @@ class AlpacaBroker(BrokerInterface):
             await asyncio.sleep(0.5)
         return status
 
+    async def get_bid_ask(self, ticker: str) -> tuple[float | None, float | None]:
+        """Latest bid/ask for spread-cost recording. Any failure → (None, None):
+        cost tracking must never block a trade."""
+        try:
+            return await _latest_bid_ask(ticker)
+        except Exception as e:
+            logger.warning("Latest quote for %s unavailable: %s", ticker, e)
+            return None, None
+
     async def place_stop_order(self, ticker: str, quantity: int, stop_price: float) -> dict:
         """Standalone GTC sell-stop — re-protects shares left after a partial sell."""
         client = _get_client()
@@ -181,6 +190,29 @@ class AlpacaBroker(BrokerInterface):
             order = await asyncio.to_thread(client.submit_order, order_data=order_data)
         logger.info("Alpaca stop placed: %s %s @ %s — ID: %s", ticker, quantity, stop_price, order.id)
         return {"order_id": str(order.id), "status": str(order.status)}
+
+
+_data_client = None
+
+
+def _get_data_client():
+    global _data_client
+    if _data_client is None:
+        from alpaca.data.historical import StockHistoricalDataClient
+        _data_client = StockHistoricalDataClient(
+            settings.ALPACA_API_KEY, settings.ALPACA_SECRET_KEY,
+        )
+    return _data_client
+
+
+async def _latest_bid_ask(ticker: str) -> tuple[float | None, float | None]:
+    from alpaca.data.requests import StockLatestQuoteRequest
+    client = _get_data_client()
+    quotes = await asyncio.to_thread(
+        client.get_stock_latest_quote, StockLatestQuoteRequest(symbol_or_symbols=ticker),
+    )
+    q = quotes[ticker]
+    return float(q.bid_price or 0) or None, float(q.ask_price or 0) or None
 
 
 def _status(status) -> str:

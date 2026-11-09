@@ -92,6 +92,14 @@ def _mock_require_auth():
 
 
 @pytest.fixture(autouse=True)
+def _stub_bid_ask():
+    """Spread-cost recording asks Alpaca for a quote; never hit the network in tests."""
+    with patch("app.brokers.alpaca.AlpacaBroker.get_bid_ask", new_callable=AsyncMock,
+               return_value=(None, None)):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def _stub_atr():
     """Risk engine needs an ATR per buy; never fetch bars from Alpaca in tests.
 
