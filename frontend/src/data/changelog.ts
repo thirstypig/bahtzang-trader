@@ -10,6 +10,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.33.0",
+    date: "2026-11-09",
+    changes: [
+      { type: "feat", title: "Real stop-losses: every stock buy is now sized so a stopped-out trade loses about 1% of the portfolio (capped by cash and 20% per position, smaller right before earnings) and is sent with a stop order Alpaca holds, 2× the stock's typical daily move below the price. Applies to every portfolio, decision mode and run path. No price-swing data means no buy" },
+      { type: "feat", title: "Stops stay in sync with the books: each run records any stop that fired as a sale, flags a stop that disappeared as unprotected on Slack, cancels only that portfolio's stop before a sell, and re-places a stop on the shares left after a partial sell" },
+      { type: "fix", title: "Stop orders now stay open until filled (they were set to expire at the day's close), confirmed when the 1-share Ford test's stop sold at $11.57" },
+      { type: "docs", title: "Test 5's 11 closing sales recorded in the trade history: final result -9.28% on $10,000" },
+    ],
+  },
+  {
     version: "0.32.0",
     date: "2026-10-19",
     changes: [

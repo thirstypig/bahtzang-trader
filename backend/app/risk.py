@@ -85,11 +85,13 @@ def size_entry(
     entry_price: float,
     atr: float | None,
     earnings_days: int | None = None,
+    held_value: float = 0.0,
 ) -> tuple[int, float]:
     """Whole-share quantity and broker stop price for a new long entry.
 
     qty = min(risk-sized, affordable with CASH_BUFFER, MAX_POSITION_PCT of portfolio),
-    then the earnings factor, floored. A risk-sized qty alone can be leveraged (tight
+    then the earnings factor, floored. ``held_value`` is what the portfolio already
+    holds in this ticker — the 20% cap is per position, not per order. A risk-sized qty alone can be leveraged (tight
     stop → huge size), so the caps are part of the contract, not an afterthought.
 
     Returns (0, stop) when not even one share fits — the caller skips the trade.
@@ -100,7 +102,9 @@ def size_entry(
         raise RiskError(f"stop {stop} is not above zero for entry {entry_price}")
     risk_qty = compute_position_size(portfolio_value, DEFAULT_RISK_PCT, entry_price, stop)
     cash_qty = math.floor(max(cash, 0) * CASH_BUFFER / entry_price)
-    cap_qty = math.floor(max(portfolio_value, 0) * MAX_POSITION_PCT / entry_price)
+    cap_qty = math.floor(
+        max(portfolio_value * MAX_POSITION_PCT - held_value, 0) / entry_price
+    )
     qty = min(risk_qty, cash_qty, cap_qty)
     qty = math.floor(qty * _earnings_factor(earnings_days))
     return max(qty, 0), stop

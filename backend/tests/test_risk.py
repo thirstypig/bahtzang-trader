@@ -112,3 +112,14 @@ class TestSizeEntry:
     def test_stop_is_rounded(self):
         _, stop = _size(atr=1.3333)
         assert stop == 47.33
+
+
+class TestPositionCapCountsHolding:
+    def test_position_cap_counts_existing_holding(self):
+        # Already hold $1,800 of a $10k portfolio → only $200 more fits under 20%.
+        qty, _ = _size(entry_price=50, atr=0.25, held_value=1_800)
+        assert qty == 4
+
+    def test_already_at_cap_returns_zero(self):
+        qty, _ = _size(held_value=2_500)
+        assert qty == 0

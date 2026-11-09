@@ -82,14 +82,19 @@ async def _mark_unprotected(db: Session, plan: Portfolio, row: Trade, status: st
 
 
 async def _settle(db: Session, plan: Portfolio, row: Trade, info: dict) -> Trade | None:
-    """Apply one broker status to one open stop row. Returns the sell row if it fired."""
+    """Apply one broker status to one open stop row. Returns the sell row if shares sold."""
     status = info["status"]
     if status == "filled":
         return await _record_fill(db, plan, row, info)
     if status in _LIVE:
         return None
+    # Dead stop. It may have sold part of the position before dying — those shares
+    # are gone and must leave the ledger even though the order isn't "filled".
+    sell = None
+    if info.get("filled_qty") and info.get("filled_avg_price"):
+        sell = await _record_fill(db, plan, row, info)
     await _mark_unprotected(db, plan, row, status)
-    return None
+    return sell
 
 
 async def reconcile_stops(db: Session, plan: Portfolio, broker) -> list[Trade]:
@@ -119,29 +124,43 @@ async def release_stops(
     """Cancel this portfolio's open stops on ``ticker`` so a sell can go through.
 
     Returns (ok_to_sell, highest_cancelled_stop). ok_to_sell is False when a stop
-    turned out to have fired (the fill is recorded — selling again would double-sell)
-    or when a cancel did not settle (the shares are still reserved). The highest stop
-    is what a partial-sell remainder is re-protected at: never loosen protection.
+    turned out to have sold shares (the fill is recorded — the position changed, so
+    selling now could double-sell), when a cancel did not settle (shares still
+    reserved), or when the broker errored. highest_cancelled_stop is returned EVEN
+    when ok is False: those stops are gone, and the caller must re-protect whatever
+    is still held if the sell does not happen. Never loosen protection.
     """
     ok = True
     highest: float | None = None
     for row in _open_stops(db, plan, ticker):
-        status = await broker.cancel_order(row.stop_order_id)
-        if status in _GONE:
+        try:
+            status = await broker.cancel_order(row.stop_order_id)
+            info = await broker.get_order(row.stop_order_id) if status != "pending_cancel" else None
+        except Exception as e:
+            logger.warning(
+                "Plan %d: cancelling stop %s on %s failed (%s) — sell skipped",
+                plan.id, row.stop_order_id, ticker, e,
+            )
+            ok = False
+            break
+        if status == "filled":
+            await _record_fill(db, plan, row, info)
+            ok = False
+        elif status in _GONE:
+            if info and info.get("filled_qty") and info.get("filled_avg_price"):
+                await _record_fill(db, plan, row, info)  # sold part before the cancel
+                ok = False
             row.stop_state = "cancelled"
             db.commit()
             price = float(row.stop_price)
             highest = price if highest is None else max(highest, price)
-        elif status == "filled":
-            await _record_fill(db, plan, row, await broker.get_order(row.stop_order_id))
-            ok = False
         else:
             logger.warning(
                 "Plan %d: stop %s on %s did not cancel (status %s) — sell skipped",
                 plan.id, row.stop_order_id, ticker, status,
             )
             ok = False
-    return ok, (highest if ok else None)
+    return ok, highest
 
 
 async def protect_remainder(

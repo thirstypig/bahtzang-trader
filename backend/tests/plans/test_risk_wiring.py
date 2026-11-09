@@ -161,3 +161,64 @@ class TestStopLifecycleInCycle:
         b.place_stop_order.assert_awaited_once_with("AAPL", 6, 46.0)
         row = db_session.get(Trade, results[0]["trade_id"])
         assert (row.stop_order_id, row.stop_state) == ("stop-rem", "open")
+
+
+@pytest.mark.integration
+class TestReviewFixesInCycle:
+    async def test_sell_order_failure_restores_stop(self, db_session):
+        """C1: stop cancelled, sell rejected → the whole position gets a stop again."""
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        _seed_open_buy(db_session, plan)
+        b = _broker()
+        b.place_order = AsyncMock(side_effect=RuntimeError("symbol halted"))
+        with patch("app.plans.executor.claude_brain.get_trade_decision",
+                   new_callable=AsyncMock, return_value=_decision("sell", 4)), \
+             patch("app.plans.executor.broker", b):
+            results = await _run(db_session, plan)
+
+        assert results[0]["executed"] is False
+        b.place_stop_order.assert_awaited_once_with("AAPL", 10, 46.0)
+
+    async def test_add_respects_20pct_with_existing_holding(self, db_session):
+        """I1: hold 36 AAPL @ $50 = $1,800 → only 4 more shares fit under 20%."""
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        _seed_open_buy(db_session, plan, qty=36.0)
+        b = _broker()
+        with patch("app.plans.executor.claude_brain.get_trade_decision",
+                   new_callable=AsyncMock, return_value=_decision("buy", 50)), \
+             patch("app.plans.executor.broker", b):
+            await _run(db_session, plan)
+
+        assert b.place_order.await_args.kwargs["quantity"] == 4
+
+    async def test_missing_stop_leg_alerts(self, db_session):
+        """I2: stop requested but Alpaca returned no leg id → Slack, never silent."""
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        b = _broker()
+        b.place_order = AsyncMock(return_value={"order_id": "ord-1", "status": "accepted",
+                                                "filled_qty": 0, "stop_order_id": None})
+        with patch("app.plans.executor.claude_brain.get_trade_decision",
+                   new_callable=AsyncMock, return_value=_decision("buy", 5)), \
+             patch("app.plans.executor.broker", b), \
+             patch("app.plans.executor.notifier.notify_risk_event", new_callable=AsyncMock) as alert:
+            await _run(db_session, plan)
+
+        assert "stop" in alert.await_args.args[0].lower()
+
+    async def test_second_sell_after_release_fill_is_blocked(self, db_session):
+        """I3: release records a fill → a later same-ticker sell sees 0 shares."""
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        _seed_open_buy(db_session, plan)
+        b = _broker()
+        b.cancel_order = AsyncMock(return_value="filled")
+        b.get_order = AsyncMock(side_effect=[
+            {"status": "held", "filled_qty": 0.0, "filled_avg_price": None},
+            {"status": "filled", "filled_qty": 10.0, "filled_avg_price": 46.0},
+        ])
+        two = _decision("sell", 10) + _decision("sell", 10)
+        with patch("app.plans.executor.claude_brain.get_trade_decision",
+                   new_callable=AsyncMock, return_value=two), \
+             patch("app.plans.executor.broker", b):
+            await _run(db_session, plan)
+
+        b.place_order.assert_not_awaited()

@@ -6,7 +6,7 @@ phase: null
 owner: james
 tags: [trading-pipeline, risk, portfolios, strategies]
 links: [PRD-002, DOC-017, DOC-018]
-updated: 2026-10-19
+updated: 2026-11-09
 ---
 
 # Feature inventory: what's actually live
@@ -59,9 +59,9 @@ Short file names: `executor` = `backend/app/plans/executor.py`, `brain` = `backe
 
 | Feature | What it does | Live in trading? | Evidence | Suggested |
 |---|---|---|---|---|
-| **Stop-loss %** (preset: 3/5/8%) | Meant to sell a position once it's down X%. | **Yes (prompt only)**. Claude is asked to sell losers at the 3:30 check. No order or code enforces it | `brain:288-299`. No other reader of `stop_loss_threshold` | Fix. This is the cause of Test 5's -10% to -24% exits |
-| **Risk engine** (`risk.py`: stop set from typical daily price swing (ATR), size set from how much you risk) | Works out a stop price and a share count so each loss is about 1% of equity. | **No, built but not wired in** | `risk.py:25,37`. Only tests import `app.risk`. The single `place_order` call (`executor:555-560`) passes no `stop_price` | Fix. This is PRD-002's core |
-| **Broker-held stop (OTO order)** | Alpaca holds a real stop order the moment a buy fills. | **No, built but not wired in** | `brokers/alpaca.py:100-110` supports it and no caller uses it. Not yet live-verified on paper | Fix. Wire it in with the risk engine |
+| **Stop-loss %** (preset: 3/5/8%) | Meant to sell a position once it's down X%. | **Superseded (2026-11-09).** The % setting is still only a sentence in Claude's 3:30 prompt, but every stock buy now carries a real stop at Alpaca (next two rows) | `brain:288-299`. No other reader of `stop_loss_threshold` | Remove the prompt sentence (PRD-002 Phase 4) so it doesn't imply Claude controls exits |
+| **Risk engine** (`risk.py`: stop set from typical daily price swing (ATR), size set from how much you risk) | Works out a stop price and a share count so each loss is about 1% of equity. | **Yes (2026-11-09)**, every stock buy, every decision mode and run path. Sets the share count (Claude's number is ignored), capped by cash and 20% of the portfolio, smaller near earnings. No ATR → no buy | `risk.py:size_entry`, `executor:_apply_risk_sizing` | Keep |
+| **Broker-held stop (OTO order)** | Alpaca holds a real stop order the moment a buy fills. | **Yes (2026-11-09).** Stop is GTC and fired correctly on the 10/20 paper test. Each run first records stops that fired (sell + cash back) and flags any stop that vanished as UNPROTECTED on Slack. Before a sell, the bot cancels only that portfolio's stop; after a partial sell it re-places a stop on the shares left | `plans/stops.py`, `brokers/alpaca.py` | Keep. Crypto can't hold a stop (charter step 5 turns crypto off) |
 | Min confidence (preset value) | Blocks buys where Claude's confidence is below 75/60/45%. | Yes (enforced, buys only) | `executor:543-545` | Keep |
 | **Min confidence (per-portfolio setting)** | The confidence floor you set in the portfolio's strategy form. | **No, setting is saved but never used**. The preset value above wins | Read only by `plans/routes.py`. `executor:109` uses the preset | Fix or remove from UI |
 | Max single trade size (preset 5/10/20% of budget, capped at 50%) | Biggest single buy allowed. | **Yes (prompt only)** | `executor:113`, `brain:240,372`. Not checked in the executor's validation (`executor:533-545`) | Fix. Enforce it in code |
@@ -143,7 +143,7 @@ Short file names: `executor` = `backend/app/plans/executor.py`, `brain` = `backe
 
 ## Top findings
 
-1. **No stop-loss exists in code.** The 3/5/8% "stop-loss" is only a sentence in Claude's 3:30 prompt (`claude_brain.py:288-299`). The real-stop machinery (`risk.py` + Alpaca stop orders) is built and tested but has no caller. This is why Test 5's losers ran to -10% to -24%.
+1. **~~No stop-loss exists in code.~~ Fixed 2026-11-09:** every stock buy is sized by the risk engine and carries a real stop at Alpaca. Before this, the 3/5/8% "stop-loss" was only a sentence in Claude's 3:30 prompt, which is why Test 5's losers ran to -10% to -24%.
 2. **The 48-hour cooldown also blocks sells** (`constraints.py:46`, applied to every non-hold at `executor.py:491`). Even if Claude decides to cut a loser the day after buying it, the code turns that sell into a hold.
 3. **Four per-portfolio safety settings do nothing:** min confidence, circuit-breaker daily/weekly %, and respect-wash-sale. They're saved and shown in the UI, but the executor uses fixed preset values or never checks them. Kelly fraction only works in rules modes. Separately, the circuit-breaker settings are stored in the wrong units (`-5.0` vs `0.05`), so wiring them in as-is would halt trading on every run.
 4. **Most preset limits are only requests to Claude.** Max trade size, max positions and daily order limit are written into the prompt but never checked in code. Max total invested is silently raised to 100% of budget.

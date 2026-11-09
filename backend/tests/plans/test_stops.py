@@ -18,7 +18,8 @@ def _broker(**status_by_id):
     b = MagicMock()
 
     async def get_order(oid):
-        v = status_by_id[oid]
+        # Unlisted orders: cancelled with nothing filled (what a clean cancel looks like).
+        v = status_by_id.get(oid, {"status": "canceled", "filled_qty": 0.0, "filled_avg_price": None})
         if isinstance(v, Exception):
             raise v
         return v
@@ -218,3 +219,53 @@ class TestProtectRemainder:
         await protect_remainder(db_session, plan, sell, 7.0, 46.0, b)
 
         assert "UNPROTECTED" in slack.await_args.args[0]
+
+
+@pytest.mark.integration
+class TestReviewFixes:
+    async def test_partial_release_still_reports_cancelled_stop(self, db_session, slack):
+        """Row 1 cancels, row 2 won't settle → sell blocked, but caller learns row 1's
+        stop is gone so it can re-protect (C1)."""
+        from app.plans.stops import release_stops
+        plan = make_plan(db_session)
+        _open_buy(db_session, plan, leg="leg-1", stop=46.0)
+        _open_buy(db_session, plan, leg="leg-2", stop=47.0)
+        b = _broker(**{"leg-1": {"status": "canceled", "filled_qty": 0.0, "filled_avg_price": None}})
+        b.cancel_order = AsyncMock(side_effect=["canceled", "pending_cancel"])
+
+        ok, cancelled = await release_stops(db_session, plan, "AAPL", b)
+        assert (ok, cancelled) == (False, 46.0)
+
+    async def test_release_broker_error_blocks_sell(self, db_session, slack):
+        from app.plans.stops import release_stops
+        plan = make_plan(db_session)
+        buy = _open_buy(db_session, plan)
+        b = _broker()
+        b.cancel_order = AsyncMock(side_effect=RuntimeError("timeout"))
+
+        ok, cancelled = await release_stops(db_session, plan, "AAPL", b)
+        assert (ok, cancelled) == (False, None)
+        db_session.refresh(buy)
+        assert buy.stop_state == "open"
+
+    async def test_cancelled_stop_with_partial_fill_records_it(self, db_session, slack):
+        """A stop that sold 4 of 10 shares and was then cancelled: the 4 are gone."""
+        from app.plans.stops import reconcile_stops
+        plan = make_plan(db_session, virtual_cash=500.0)
+        _open_buy(db_session, plan)
+        b = _broker(**{"leg-1": {"status": "canceled", "filled_qty": 4.0, "filled_avg_price": 46.0}})
+
+        inserted = await reconcile_stops(db_session, plan, b)
+        assert [t.quantity for t in inserted] == [4.0]
+        assert "UNPROTECTED" in slack.await_args.args[0]
+
+    async def test_release_records_partial_fill_and_blocks_sell(self, db_session, slack):
+        from app.plans.stops import release_stops
+        plan = make_plan(db_session, virtual_cash=500.0)
+        _open_buy(db_session, plan)
+        b = _broker(**{"leg-1": {"status": "canceled", "filled_qty": 4.0, "filled_avg_price": 46.0}})
+
+        ok, _ = await release_stops(db_session, plan, "AAPL", b)
+        assert ok is False
+        sell = db_session.query(Trade).filter_by(portfolio_id=plan.id, action="sell").one()
+        assert sell.quantity == 4.0

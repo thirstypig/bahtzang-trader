@@ -586,6 +586,7 @@ async def _execute_plan_cycle(
             # is recorded by release_stops; selling again would double-sell.
             ok_to_sell, prior_stop = await release_stops(db, plan, decision["ticker"], broker)
             if not ok_to_sell:
+                # prior_stop is kept: any stop already cancelled is re-placed below.
                 passed = False
                 block_reason = "Sell skipped: broker stop already fired or would not cancel"
                 remaining_cash = float(plan.virtual_cash)
@@ -643,6 +644,14 @@ async def _execute_plan_cycle(
             plan_trade.stop_price = stop_price
             plan_trade.stop_order_id = stop_order_id
             plan_trade.stop_state = "open"
+        elif executed and stop_price is not None:
+            # Stop requested but no leg id came back: the stop may exist at Alpaca
+            # yet be invisible to reconcile/release. Never let that pass silently.
+            await notifier.notify_risk_event(
+                f"{plan.name}: bought {decision.get('quantity')} {decision.get('ticker')} "
+                f"(order {alpaca_order_id}) but Alpaca returned no stop leg id — "
+                f"check its stop at ${stop_price:.2f} in Alpaca"
+            )
         db.add(plan_trade)
         if executed:
             plan.virtual_cash = remaining_cash
@@ -665,12 +674,18 @@ async def _execute_plan_cycle(
             # Re-raise to stop the cycle; other plans continue in run_all_plans
             raise
 
-        # Partial exit: the cancelled stop covered the whole position — re-protect
-        # what is left at the same (never looser) level.
-        if executed and decision["action"] == "sell" and prior_stop is not None:
-            left = virtual_positions.get(decision["ticker"], 0) - decision["quantity"]
-            if left > 1e-9:
-                await protect_remainder(db, plan, plan_trade, left, prior_stop, broker)
+        # Stops were cancelled for this sell. Whatever is still held — after a
+        # partial sell, OR because the sell failed / was skipped — gets a stop
+        # again at the same (never looser) level. Never leave shares naked.
+        if decision["action"] == "sell" and prior_stop is not None:
+            still_held = compute_virtual_positions(db, plan.id).get(decision["ticker"], 0)
+            if still_held > 1e-9:
+                await protect_remainder(db, plan, plan_trade, still_held, prior_stop, broker)
+
+        # Holdings may have changed (this trade, or a stop fill recorded during
+        # release) — later decisions in this cycle must see the current ledger.
+        if decision["action"] != "hold":
+            virtual_positions = compute_virtual_positions(db, plan.id)
 
         result: CycleResult = {
             "trade_id": plan_trade.id,
@@ -709,6 +724,7 @@ async def _apply_risk_sizing(
         qty, stop = size_entry(
             portfolio_value=portfolio_value, cash=cash, entry_price=price, atr=atr,
             earnings_days=days_until_earnings(db, ticker),
+            held_value=virtual_positions.get(ticker, 0.0) * price,
         )
     except RiskError as e:
         qty, stop, why = 0, None, str(e)
