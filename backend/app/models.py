@@ -26,6 +26,7 @@ from app.plans.models import (  # noqa: F401
     Portfolio, PlanSnapshot, PortfolioTouchHistory, PortfolioStrategyAudit, TickerPrice
 )
 from app.screener.models import ScreenerRun, ScreenerCandidate  # noqa: F401
+from app.reports.models import WeeklyReport  # noqa: F401
 
 
 class Trade(Base):

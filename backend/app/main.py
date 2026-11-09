@@ -19,6 +19,7 @@ from app.earnings.routes import router as earnings_router
 from app.forex.routes import router as forex_router
 from app.plans.routes import router as plans_router
 from app.screener.routes import router as screener_router
+from app.reports.routes import router as reports_router
 from app.company import router as company_router
 from app.routes import bot, portfolio, todos, trades
 from app.scheduler import start_scheduler, stop_scheduler
@@ -152,4 +153,5 @@ app.include_router(earnings_router)
 app.include_router(forex_router)
 app.include_router(plans_router)
 app.include_router(screener_router)
+app.include_router(reports_router)
 app.include_router(company_router)
