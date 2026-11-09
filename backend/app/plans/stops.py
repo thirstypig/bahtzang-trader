@@ -108,3 +108,66 @@ async def reconcile_stops(db: Session, plan: Portfolio, broker) -> list[Trade]:
         if sell is not None:
             inserted.append(sell)
     return inserted
+
+
+_GONE = {"canceled", "expired", "rejected"}
+
+
+async def release_stops(
+    db: Session, plan: Portfolio, ticker: str, broker
+) -> tuple[bool, float | None]:
+    """Cancel this portfolio's open stops on ``ticker`` so a sell can go through.
+
+    Returns (ok_to_sell, highest_cancelled_stop). ok_to_sell is False when a stop
+    turned out to have fired (the fill is recorded — selling again would double-sell)
+    or when a cancel did not settle (the shares are still reserved). The highest stop
+    is what a partial-sell remainder is re-protected at: never loosen protection.
+    """
+    ok = True
+    highest: float | None = None
+    for row in _open_stops(db, plan, ticker):
+        status = await broker.cancel_order(row.stop_order_id)
+        if status in _GONE:
+            row.stop_state = "cancelled"
+            db.commit()
+            price = float(row.stop_price)
+            highest = price if highest is None else max(highest, price)
+        elif status == "filled":
+            await _record_fill(db, plan, row, await broker.get_order(row.stop_order_id))
+            ok = False
+        else:
+            logger.warning(
+                "Plan %d: stop %s on %s did not cancel (status %s) — sell skipped",
+                plan.id, row.stop_order_id, ticker, status,
+            )
+            ok = False
+    return ok, (highest if ok else None)
+
+
+async def protect_remainder(
+    db: Session, plan: Portfolio, sell_trade: Trade, remaining_qty: float,
+    stop_price: float, broker,
+) -> None:
+    """After a partial sell, re-place a GTC stop on the whole shares still held."""
+    whole = int(remaining_qty)
+    if whole < 1:
+        if remaining_qty > 0:
+            logger.warning(
+                "Plan %d: %.4f %s left after sell is unprotected (under one share)",
+                plan.id, remaining_qty, sell_trade.ticker,
+            )
+        return
+    try:
+        res = await broker.place_stop_order(sell_trade.ticker, whole, stop_price)
+    except Exception as e:
+        msg = (
+            f"{plan.name}: {whole} {sell_trade.ticker} is UNPROTECTED — "
+            f"re-placing its stop at ${stop_price:.2f} failed: {e}"
+        )
+        logger.error("Plan %d: %s", plan.id, msg)
+        await notifier.notify_risk_event(msg)
+        return
+    sell_trade.stop_order_id = res["order_id"]
+    sell_trade.stop_price = stop_price
+    sell_trade.stop_state = "open"
+    db.commit()

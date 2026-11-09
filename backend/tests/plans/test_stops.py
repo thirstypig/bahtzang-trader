@@ -125,3 +125,96 @@ class TestReconcileStops:
 
         assert await reconcile_stops(db_session, a, b) == []
         b.get_order.assert_not_awaited()
+
+
+@pytest.mark.integration
+class TestReleaseStops:
+    async def test_sell_cancels_only_own_stop_first(self, db_session, slack):
+        from app.plans.stops import release_stops
+        a = make_plan(db_session, name="A")
+        b_plan = make_plan(db_session, name="B")
+        mine = _open_buy(db_session, a, leg="leg-a", stop=46.0)
+        theirs = _open_buy(db_session, b_plan, leg="leg-b", stop=44.0)
+        b = _broker()
+
+        ok, prior = await release_stops(db_session, a, "AAPL", b)
+
+        assert (ok, prior) == (True, 46.0)
+        b.cancel_order.assert_awaited_once_with("leg-a")
+        db_session.refresh(mine)
+        db_session.refresh(theirs)
+        assert mine.stop_state == "cancelled"
+        assert theirs.stop_state == "open"
+
+    async def test_highest_stop_kept_across_adds(self, db_session, slack):
+        from app.plans.stops import release_stops
+        plan = make_plan(db_session)
+        _open_buy(db_session, plan, leg="leg-1", stop=46.0)
+        _open_buy(db_session, plan, leg="leg-2", stop=48.5)
+
+        ok, prior = await release_stops(db_session, plan, "AAPL", _broker())
+        assert (ok, prior) == (True, 48.5)
+
+    async def test_cancel_race_records_fill_and_blocks_sell(self, db_session, slack):
+        from app.plans.stops import release_stops
+        plan = make_plan(db_session, virtual_cash=500.0)
+        _open_buy(db_session, plan)
+        b = _broker(**{"leg-1": _filled()})
+        b.cancel_order = AsyncMock(return_value="filled")
+
+        ok, prior = await release_stops(db_session, plan, "AAPL", b)
+
+        assert (ok, prior) == (False, None)
+        sell = db_session.query(Trade).filter_by(portfolio_id=plan.id, action="sell").one()
+        assert sell.claude_reasoning.startswith("Broker stop fired")
+
+    async def test_no_open_stops_ok(self, db_session, slack):
+        from app.plans.stops import release_stops
+        plan = make_plan(db_session)
+        b = _broker()
+        assert await release_stops(db_session, plan, "AAPL", b) == (True, None)
+        b.cancel_order.assert_not_awaited()
+
+
+@pytest.mark.integration
+class TestProtectRemainder:
+    def _sell_row(self, db, plan):
+        t = Trade(portfolio_id=plan.id, ticker="AAPL", action="sell", quantity=2.4,
+                  price=55.0, executed=True, guardrail_passed=True)
+        db.add(t)
+        db.commit()
+        return t
+
+    async def test_protect_remainder_places_whole_share_stop(self, db_session, slack):
+        from app.plans.stops import protect_remainder
+        plan = make_plan(db_session)
+        sell = self._sell_row(db_session, plan)
+        b = _broker()
+
+        await protect_remainder(db_session, plan, sell, 7.6, 46.0, b)
+
+        b.place_stop_order.assert_awaited_once_with("AAPL", 7, 46.0)
+        db_session.refresh(sell)
+        assert (sell.stop_order_id, float(sell.stop_price), sell.stop_state) == ("stop-new", 46.0, "open")
+
+    async def test_protect_remainder_under_one_share_warns(self, db_session, slack, caplog):
+        from app.plans.stops import protect_remainder
+        plan = make_plan(db_session)
+        sell = self._sell_row(db_session, plan)
+        b = _broker()
+
+        await protect_remainder(db_session, plan, sell, 0.4, 46.0, b)
+
+        b.place_stop_order.assert_not_awaited()
+        assert "unprotected" in caplog.text.lower()
+
+    async def test_protect_remainder_broker_failure_alerts(self, db_session, slack):
+        from app.plans.stops import protect_remainder
+        plan = make_plan(db_session)
+        sell = self._sell_row(db_session, plan)
+        b = _broker()
+        b.place_stop_order = AsyncMock(side_effect=RuntimeError("rejected"))
+
+        await protect_remainder(db_session, plan, sell, 7.0, 46.0, b)
+
+        assert "UNPROTECTED" in slack.await_args.args[0]
