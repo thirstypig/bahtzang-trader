@@ -21,9 +21,14 @@ async def check_trading_constraints(
 ) -> Tuple[bool, str | None]:
     """Check trading frequency rules before executing trade.
 
-    Enforces:
-    1. Cooldown window — min hours between touches on same ticker
-    2. Frequency cap — max 5 buys and 5 sells per ticker per week
+    Enforces, for BUYS only:
+    1. Cooldown window — min hours since the last touch (buy or sell) on the ticker
+    2. Frequency cap — max 5 buys per ticker per week
+
+    Sells always pass (trading charter §3: "Selling is always allowed. The cooldown
+    applies to buys only"). Blocking a sell is how a loser gets held past the
+    decision to cut it. A sell still updates touch history, so a re-buy right after
+    it waits out the cooldown — that's the churn the cooldown exists to stop.
 
     Returns: (allowed, reason_if_blocked)
     """
@@ -31,8 +36,8 @@ async def check_trading_constraints(
     ticker = decision.get("ticker", "").upper()
     action = decision.get("action", "").upper()
 
-    # Skip validation for holds
-    if action == "HOLD":
+    # Holds and sells are never blocked here.
+    if action in ("HOLD", "SELL"):
         return True, None
 
     # 1. Check per-ticker cooldown
@@ -47,23 +52,13 @@ async def check_trading_constraints(
             reason = f"Cooldown: {ticker} touched {hours_elapsed:.1f}h ago, need {portfolio.cooldown_hours}h"
             return False, reason
 
-    # 2. Check per-ticker frequency (5 buys + 5 sells per week)
+    # 2. Check per-ticker buy frequency (5 per week)
     week_start = decision_timestamp - timedelta(days=7)
-
     buys_this_week = await _count_trades_async(
         db, portfolio.id, ticker, "BUY", week_start
     )
-
-    sells_this_week = await _count_trades_async(
-        db, portfolio.id, ticker, "SELL", week_start
-    )
-
     if action == "BUY" and buys_this_week >= 5:
         reason = f"Frequency cap: {ticker} max 5 buys/week, already at 5"
-        return False, reason
-
-    if action == "SELL" and sells_this_week >= 5:
-        reason = f"Frequency cap: {ticker} max 5 sells/week, already at 5"
         return False, reason
 
     return True, None

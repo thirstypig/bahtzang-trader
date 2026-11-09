@@ -257,3 +257,26 @@ class TestSecondScanFixesInCycle:
             results = await _run(db_session, plan)
 
         assert db_session.get(Trade, results[0]["trade_id"]).stop_qty == 25
+
+
+@pytest.mark.integration
+class TestSellsBypassCooldownInCycle:
+    async def test_sell_day_after_buy_executes(self, db_session):
+        """End to end: bought 1h ago (touch history set), Claude cuts it → it sells."""
+        from datetime import datetime, timedelta, timezone
+        from app.plans.models import PortfolioTouchHistory
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        _seed_open_buy(db_session, plan)
+        db_session.add(PortfolioTouchHistory(
+            portfolio_id=plan.id, ticker="AAPL", last_action="BUY",
+            last_decision_timestamp=datetime.now(timezone.utc) - timedelta(hours=1),
+        ))
+        db_session.commit()
+        b = _broker()
+        with patch("app.plans.executor.claude_brain.get_trade_decision",
+                   new_callable=AsyncMock, return_value=_decision("sell", 10)), \
+             patch("app.plans.executor.broker", b):
+            results = await _run(db_session, plan)
+
+        assert results[0]["executed"] is True
+        assert b.place_order.await_args.kwargs["action"] == "sell"

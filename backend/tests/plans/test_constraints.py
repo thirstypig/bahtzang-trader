@@ -52,7 +52,7 @@ async def test_constraint_check_cooldown_enforced(db_session, portfolio):
 	db_session.add(touch)
 	db_session.commit()
 
-	decision = {"ticker": "AAPL", "action": "SELL", "quantity": 10}
+	decision = {"ticker": "AAPL", "action": "BUY", "quantity": 10}
 	now = datetime.now()
 
 	# Should fail — only 24 hours elapsed, need 48
@@ -117,8 +117,8 @@ async def test_constraint_check_frequency_cap_buys(db_session, portfolio):
 
 
 @pytest.mark.asyncio
-async def test_constraint_check_frequency_cap_sells(db_session, portfolio):
-	"""Should block SELL when portfolio has 5+ sells on same ticker in past week."""
+async def test_sell_ignores_frequency_cap(db_session, portfolio):
+	"""Charter §3: selling is always allowed — 5 sells this week don't block a 6th."""
 	# Create 5 executed SELL trades in the past 7 days
 	for i in range(5):
 		trade = Trade(
@@ -137,12 +137,47 @@ async def test_constraint_check_frequency_cap_sells(db_session, portfolio):
 	decision = {"ticker": "MSFT", "action": "SELL", "quantity": 10}
 	now = datetime.now()
 
-	# Should fail — already at 5 sells
 	allowed, reason = await check_trading_constraints(db_session, portfolio, decision, now)
 
+	assert allowed is True
+	assert reason is None
+
+
+@pytest.mark.asyncio
+async def test_sell_ignores_cooldown(db_session, portfolio):
+	"""Charter §3: the cooldown applies to buys only — cutting a loser the day
+	after buying it must not be turned into a hold."""
+	db_session.add(PortfolioTouchHistory(
+		portfolio_id=portfolio.id,
+		ticker="AAPL",
+		last_decision_timestamp=datetime.now() - timedelta(hours=1),
+		last_action="BUY",
+	))
+	db_session.commit()
+
+	decision = {"ticker": "AAPL", "action": "SELL", "quantity": 10}
+	allowed, reason = await check_trading_constraints(db_session, portfolio, decision, datetime.now())
+
+	assert allowed is True
+	assert reason is None
+
+
+@pytest.mark.asyncio
+async def test_buy_after_sell_still_cools_down(db_session, portfolio):
+	"""A sell still starts the clock for the NEXT buy — no sell-then-rebuy churn."""
+	db_session.add(PortfolioTouchHistory(
+		portfolio_id=portfolio.id,
+		ticker="AAPL",
+		last_decision_timestamp=datetime.now() - timedelta(hours=1),
+		last_action="SELL",
+	))
+	db_session.commit()
+
+	decision = {"ticker": "AAPL", "action": "BUY", "quantity": 10}
+	allowed, reason = await check_trading_constraints(db_session, portfolio, decision, datetime.now())
+
 	assert allowed is False
-	assert "Frequency cap" in reason
-	assert "max 5 sells" in reason
+	assert "Cooldown" in reason
 
 
 @pytest.mark.asyncio

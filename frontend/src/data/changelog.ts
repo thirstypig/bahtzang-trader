@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.34.0",
+    date: "2026-11-09",
+    changes: [
+      { type: "fix", title: "Selling is always allowed: the 48-hour cooldown and the 5-per-week limit now apply to buys only. Before, a decision to cut a loser the day after buying it was quietly turned into a hold. A sale still starts the clock before the same stock can be bought again" },
+    ],
+  },
+  {
     version: "0.33.0",
     date: "2026-11-09",
     changes: [
