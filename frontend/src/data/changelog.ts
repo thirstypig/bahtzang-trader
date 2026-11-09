@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.35.0",
+    date: "2026-11-09",
+    changes: [
+      { type: "feat", title: "Charter safety limits now enforced in code for every portfolio, on scheduled runs and the Run Now button: at most 8 holdings, at most 2 new buys a day, no new buys after a 3% loss on the day or 6% on the week, and a portfolio down 15% from its start is switched off with a Slack alert. Sells are never blocked" },
+      { type: "refactor", title: "Feature packages no longer reach into each other: shared price-history code moved out of the backtest package, and a test now fails if any feature imports another (except the earnings and screener feeds into portfolios)" },
+    ],
+  },
+  {
     version: "0.34.0",
     date: "2026-11-09",
     changes: [
