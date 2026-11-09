@@ -44,7 +44,9 @@ async def test_buy_with_stop_builds_oto_order():
     assert data.order_class == OrderClass.OTO
     assert data.stop_loss.stop_price == 94.0
     assert data.take_profit is None          # no profit target, by design
-    assert data.time_in_force == TimeInForce.DAY
+    # The stop leg inherits the parent's TIF. DAY would cancel the stop at the first
+    # close (seen on a live paper order 2026-10-19), leaving the position unprotected.
+    assert data.time_in_force == TimeInForce.GTC
 
 
 @pytest.mark.asyncio
@@ -57,6 +59,7 @@ async def test_buy_without_stop_stays_a_simple_order():
     data = captured["data"]
     assert getattr(data, "order_class", None) in (None, OrderClass.SIMPLE)
     assert getattr(data, "stop_loss", None) is None
+    assert data.time_in_force == TimeInForce.DAY  # fractional orders require DAY
 
 
 @pytest.mark.asyncio
