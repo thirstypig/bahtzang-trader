@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.37.0",
+    date: "2026-11-09",
+    changes: [
+      { type: "fix", title: "Stocks only, as the charter says: crypto buys are switched off in code (selling an old crypto holding still works), and crypto pairs no longer reach Claude's candidate list" },
+      { type: "fix", title: "Removed the 'timeline goal' from Claude's instructions, which told it to be more aggressive when behind a dollar target. The only goal is beating SPY after costs" },
+    ],
+  },
+  {
     version: "0.36.0",
     date: "2026-11-09",
     changes: [

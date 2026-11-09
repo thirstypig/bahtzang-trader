@@ -506,15 +506,20 @@ async def _execute_plan_cycle(
         # see app/decision_coercion.py for rationale.
         coerce_zero_qty_to_hold(decision, log_prefix=plan_log_prefix)
 
-        # Charter §3 gate 2: halts, ≤8 holdings, ≤2 new buys/day. Buys only.
+        # Charter §1 + §3 gate 2: stocks only, then halts, ≤8 holdings, ≤2 new
+        # buys/day. Buys only — selling (crypto included) is always allowed.
         if decision["action"] == "buy":
-            reason = buy_block_reason(
-                db, plan, decision["ticker"], virtual_positions, limits,
-                datetime.now(timezone.utc),
-            )
+            from app.symbols import CRYPTO_ENABLED, is_crypto
+            if not CRYPTO_ENABLED and is_crypto(decision.get("ticker", "")):
+                reason = "Stocks only (charter §1) — crypto buys are switched off"
+            else:
+                reason = buy_block_reason(
+                    db, plan, decision["ticker"], virtual_positions, limits,
+                    datetime.now(timezone.utc),
+                )
             if reason:
                 logger.info("Plan %d: buy of %s blocked — %s", plan.id, decision["ticker"], reason)
-                if limits.buy_halt and not halt_announced:
+                if limits.buy_halt and reason == limits.buy_halt and not halt_announced:
                     await notifier.notify_risk_event(f"{plan.name}: buys halted — {reason}")
                     halt_announced = True
                 decision["action"] = "hold"
@@ -854,7 +859,11 @@ async def fetch_market_data(
             # path — so Claude-mode portfolios silently ignored it.
             extra = (plan.strategy_params or {}).get("tickers")
             if isinstance(extra, list):
-                all_tickers.update(t for t in extra if isinstance(t, str) and t)
+                from app.symbols import CRYPTO_ENABLED, is_crypto
+                all_tickers.update(
+                    t for t in extra
+                    if isinstance(t, str) and t and (CRYPTO_ENABLED or not is_crypto(t))
+                )
 
     # Screener feed — union the latest run's top-N into the universe for any
     # plan that opted in, and render the ranked CSV once at the widest N.

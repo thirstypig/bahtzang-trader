@@ -334,29 +334,9 @@ async def get_trade_decision(
         prompt_parts.append(f"NEWS ({len(news)} items):")
         prompt_parts.append(json.dumps(news[:5]))  # Top 5 news items
 
-    # Timeline goal context — both fields are coerced/validated before
-    # interpolation as defense-in-depth against prompt injection. Pydantic
-    # validators on GuardrailsUpdate already enforce shape at the route
-    # boundary; this is the second line.
-    target_amount_raw = guardrails_config.get("target_amount")
-    target_date_raw = guardrails_config.get("target_date")
-    target_amount: float | None = None
-    target_date: str | None = None
-    if target_amount_raw is not None:
-        try:
-            target_amount = float(target_amount_raw)
-        except (TypeError, ValueError):
-            target_amount = None
-    if target_date_raw is not None and re.match(r"^\d{4}-\d{2}-\d{2}$", str(target_date_raw)):
-        target_date = str(target_date_raw)
-    if target_amount and target_amount > 0 and target_date:
-        prompt_parts.append("")
-        prompt_parts.append(
-            f"TIMELINE GOAL: Grow portfolio to ${target_amount:,.0f} by {target_date}. "
-            f"Current portfolio: ${cash_available + sum(p.get('market_value', 0) for p in positions):,.0f}. "
-            "Factor this timeline into your urgency and willingness to take positions. "
-            "If behind schedule, be more aggressive about finding opportunities."
-        )
+    # No timeline goal in the prompt (charter §8 step 5): "if behind schedule, be
+    # more aggressive" pushed toward risk, and the experiment's only goal is to beat
+    # SPY after costs. target_amount/target_date stay on the portfolio, unused here.
 
     prompt_parts.append("")
     prompt_parts.append(

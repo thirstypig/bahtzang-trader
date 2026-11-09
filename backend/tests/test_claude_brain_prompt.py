@@ -189,7 +189,10 @@ async def test_max_proposals_clamped_to_orders_remaining(captured_prompt):
 
 
 @pytest.mark.asyncio
-async def test_timeline_block_renders_with_valid_target(captured_prompt):
+async def test_timeline_block_never_renders_even_with_valid_target(captured_prompt):
+    """Charter §8 step 5: a dollar-by-date target ("if behind schedule, be more
+    aggressive") pushes toward risk and conflicts with the beat-SPY goal, so the
+    prompt no longer carries it. The fields stay on the portfolio, unused by Claude."""
     config = {
         "max_total_invested": 50_000, "max_single_trade_size": 5_000,
         "daily_order_limit": 5, "min_confidence": 0.6, "max_positions": 10,
@@ -201,7 +204,9 @@ async def test_timeline_block_renders_with_valid_target(captured_prompt):
         guardrails_config=config,
     )
     prompt = captured_prompt[0]
-    assert "TIMELINE GOAL: Grow portfolio to $100,000 by 2027-12-31" in prompt
+    assert "TIMELINE GOAL" not in prompt
+    assert "behind schedule" not in prompt
+    assert "more aggressive" not in prompt
 
 
 @pytest.mark.asyncio
@@ -266,7 +271,7 @@ async def test_timeline_block_suppressed_when_target_amount_zero_or_negative(cap
 async def test_timeline_block_coerces_string_target_amount(captured_prompt):
     """A string-typed target_amount that IS a clean number coerces
     successfully (Pydantic might deliver str if the env path is loose).
-    Block should render."""
+    Block still must not render (removed in charter step 5)."""
     config = {
         "max_total_invested": 50_000, "max_single_trade_size": 5_000,
         "daily_order_limit": 5, "min_confidence": 0.6, "max_positions": 10,
@@ -277,7 +282,7 @@ async def test_timeline_block_coerces_string_target_amount(captured_prompt):
         positions=[], cash_available=10_000, market_data=[], news=[],
         guardrails_config=config,
     )
-    assert "TIMELINE GOAL: Grow portfolio to $100,000 by 2027-12-31" in captured_prompt[0]
+    assert "TIMELINE GOAL" not in captured_prompt[0]
 
 
 @pytest.mark.asyncio
