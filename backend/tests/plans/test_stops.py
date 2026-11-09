@@ -269,3 +269,44 @@ class TestReviewFixes:
         assert ok is False
         sell = db_session.query(Trade).filter_by(portfolio_id=plan.id, action="sell").one()
         assert sell.quantity == 4.0
+
+
+@pytest.mark.integration
+class TestSecondScanFixes:
+    async def test_lookup_failure_after_cancel_still_reports_stop(self, db_session, slack):
+        from app.plans.stops import release_stops
+        plan = make_plan(db_session)
+        buy = _open_buy(db_session, plan)
+        b = _broker(**{"leg-1": RuntimeError("lookup down")})
+
+        ok, cancelled = await release_stops(db_session, plan, "AAPL", b)
+
+        assert (ok, cancelled) == (False, 46.0)
+        db_session.refresh(buy)
+        assert buy.stop_state == "cancelled"
+        slack.assert_awaited()
+
+    async def test_lookup_failure_after_fill_keeps_row_open(self, db_session, slack):
+        from app.plans.stops import release_stops
+        plan = make_plan(db_session)
+        buy = _open_buy(db_session, plan)
+        b = _broker(**{"leg-1": RuntimeError("lookup down")})
+        b.cancel_order = AsyncMock(return_value="filled")
+
+        ok, cancelled = await release_stops(db_session, plan, "AAPL", b)
+
+        assert (ok, cancelled) == (False, None)
+        db_session.refresh(buy)
+        assert buy.stop_state == "open"  # next reconcile records the fill
+
+    async def test_protect_remainder_records_stop_qty(self, db_session, slack):
+        from app.plans.stops import protect_remainder
+        plan = make_plan(db_session)
+        sell = Trade(portfolio_id=plan.id, ticker="AAPL", action="sell", quantity=2.0,
+                     price=55.0, executed=True, guardrail_passed=True)
+        db_session.add(sell)
+        db_session.commit()
+
+        await protect_remainder(db_session, plan, sell, 7.6, 46.0, _broker())
+        db_session.refresh(sell)
+        assert sell.stop_qty == 7

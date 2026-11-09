@@ -72,6 +72,8 @@ class Trade(Base):
     # "open" until reconciled to "filled" or "cancelled".
     stop_price: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
     stop_order_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Shares the stop covers — so re-protection never stacks two stops on one share.
+    stop_qty: Mapped[float | None] = mapped_column(Float, nullable=True)
     stop_state: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
     __table_args__ = (

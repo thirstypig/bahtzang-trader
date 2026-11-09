@@ -222,3 +222,38 @@ class TestReviewFixesInCycle:
             await _run(db_session, plan)
 
         b.place_order.assert_not_awaited()
+
+
+@pytest.mark.integration
+class TestSecondScanFixesInCycle:
+    async def test_reprotect_only_uncovered_shares(self, db_session):
+        """Two lots: leg-1 (6 sh) cancels, leg-2 (4 sh) stuck pending → sell skipped,
+        re-protect covers only the 6 uncovered shares, never stacking a second stop
+        on the 4 that leg-2 still covers."""
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        for leg, q in (("leg-1", 6.0), ("leg-2", 4.0)):
+            db_session.add(Trade(portfolio_id=plan.id, ticker="AAPL", action="buy",
+                                 quantity=q, price=50.0, executed=True, guardrail_passed=True,
+                                 stop_price=46.0, stop_qty=q, stop_order_id=leg,
+                                 stop_state="open"))
+        plan.virtual_cash = 9_500.0
+        db_session.commit()
+        b = _broker()
+        b.cancel_order = AsyncMock(side_effect=["canceled", "pending_cancel"])
+        with patch("app.plans.executor.claude_brain.get_trade_decision",
+                   new_callable=AsyncMock, return_value=_decision("sell", 10)), \
+             patch("app.plans.executor.broker", b):
+            results = await _run(db_session, plan)
+
+        assert results[0]["executed"] is False
+        b.place_stop_order.assert_awaited_once_with("AAPL", 6, 46.0)
+
+    async def test_buy_row_records_stop_qty(self, db_session):
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        b = _broker()
+        with patch("app.plans.executor.claude_brain.get_trade_decision",
+                   new_callable=AsyncMock, return_value=_decision("buy", 5)), \
+             patch("app.plans.executor.broker", b):
+            results = await _run(db_session, plan)
+
+        assert db_session.get(Trade, results[0]["trade_id"]).stop_qty == 25

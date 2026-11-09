@@ -30,6 +30,14 @@ _LIVE = {"new", "held", "accepted", "pending_new", "partially_filled", "pending_
          "accepted_for_bidding", "calculated", "pending_replace", "replaced", "done_for_day"}
 
 
+def covered_qty(db: Session, plan: Portfolio, ticker: str) -> float:
+    """Shares of ``ticker`` this portfolio already has an open stop on."""
+    return sum(
+        (r.stop_qty if r.stop_qty is not None else r.quantity)
+        for r in _open_stops(db, plan, ticker)
+    )
+
+
 def _open_stops(db: Session, plan: Portfolio, ticker: str | None = None) -> list[Trade]:
     q = db.query(Trade).filter(Trade.portfolio_id == plan.id, Trade.stop_state == "open")
     if ticker is not None:
@@ -135,7 +143,6 @@ async def release_stops(
     for row in _open_stops(db, plan, ticker):
         try:
             status = await broker.cancel_order(row.stop_order_id)
-            info = await broker.get_order(row.stop_order_id) if status != "pending_cancel" else None
         except Exception as e:
             logger.warning(
                 "Plan %d: cancelling stop %s on %s failed (%s) — sell skipped",
@@ -143,6 +150,25 @@ async def release_stops(
             )
             ok = False
             break
+        info = None
+        if status == "filled" or status in _GONE:
+            try:
+                info = await broker.get_order(row.stop_order_id)
+            except Exception as e:
+                if status == "filled":
+                    # Can't learn the fill size: leave the row open so the next
+                    # reconcile records it. Don't sell on top of an unknown fill.
+                    logger.warning("Plan %d: fill lookup for %s failed (%s)",
+                                   plan.id, row.stop_order_id, e)
+                    ok = False
+                    continue
+                # The stop IS gone — report it so the caller re-protects — but a
+                # partial fill can't be ruled out, so block the sell and say so.
+                ok = False
+                await notifier.notify_risk_event(
+                    f"{plan.name}: cancelled stop {row.stop_order_id} on {ticker} but "
+                    f"could not check it for a partial fill ({e}) — verify in Alpaca"
+                )
         if status == "filled":
             await _record_fill(db, plan, row, info)
             ok = False
@@ -188,5 +214,6 @@ async def protect_remainder(
         return
     sell_trade.stop_order_id = res["order_id"]
     sell_trade.stop_price = stop_price
+    sell_trade.stop_qty = whole
     sell_trade.stop_state = "open"
     db.commit()

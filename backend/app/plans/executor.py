@@ -19,7 +19,7 @@ from app.brokers.alpaca import AlpacaBroker
 from app.models import Trade
 from app.plans.models import Portfolio
 from app.plans.constraints import check_trading_constraints, update_touch_history
-from app.plans.stops import protect_remainder, reconcile_stops, release_stops
+from app.plans.stops import covered_qty, protect_remainder, reconcile_stops, release_stops
 from app.risk import RiskError, size_entry
 
 logger = logging.getLogger(__name__)
@@ -640,9 +640,10 @@ async def _execute_plan_cycle(
             virtual_cash_after=remaining_cash,
             rules_recommendation=rules_rec,
         )
-        if executed and stop_order_id:
+        if executed and stop_price is not None and stop_order_id:
             plan_trade.stop_price = stop_price
             plan_trade.stop_order_id = stop_order_id
+            plan_trade.stop_qty = decision["quantity"]
             plan_trade.stop_state = "open"
         elif executed and stop_price is not None:
             # Stop requested but no leg id came back: the stop may exist at Alpaca
@@ -678,9 +679,13 @@ async def _execute_plan_cycle(
         # partial sell, OR because the sell failed / was skipped — gets a stop
         # again at the same (never looser) level. Never leave shares naked.
         if decision["action"] == "sell" and prior_stop is not None:
+            # Only the shares no open stop still covers (a lot whose cancel didn't
+            # settle keeps its own stop) — two stops on one share could both fire
+            # and sell shares this portfolio doesn't own.
             still_held = compute_virtual_positions(db, plan.id).get(decision["ticker"], 0)
-            if still_held > 1e-9:
-                await protect_remainder(db, plan, plan_trade, still_held, prior_stop, broker)
+            uncovered = still_held - covered_qty(db, plan, decision["ticker"])
+            if uncovered > 1e-9:
+                await protect_remainder(db, plan, plan_trade, uncovered, prior_stop, broker)
 
         # Holdings may have changed (this trade, or a stop fill recorded during
         # release) — later decisions in this cycle must see the current ledger.

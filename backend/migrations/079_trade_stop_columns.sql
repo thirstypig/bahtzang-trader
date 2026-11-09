@@ -3,4 +3,5 @@
 -- positions. Additive + nullable: safe to apply before the code that reads it deploys.
 ALTER TABLE trades ADD COLUMN IF NOT EXISTS stop_price NUMERIC(14,4) NULL;
 ALTER TABLE trades ADD COLUMN IF NOT EXISTS stop_order_id VARCHAR(64) NULL;
+ALTER TABLE trades ADD COLUMN IF NOT EXISTS stop_qty DOUBLE PRECISION NULL;
 ALTER TABLE trades ADD COLUMN IF NOT EXISTS stop_state VARCHAR(16) NULL;
