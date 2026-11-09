@@ -13,6 +13,7 @@ from app.bars import fetch_and_cache_bars, load_bars
 from app.backtest.models import BacktestConfig, BacktestResult
 from app.strategies import STRATEGY_REGISTRY
 from app.strategies import PositionInfo, SimulationState
+from app.costs import BACKTEST_HALF_SPREAD_BPS, estimated_tax, sell_fees
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ async def run_backtest(config: BacktestConfig, db: Session) -> BacktestResult:
 
         # 5. Simulate
         state = SimulationState(cash=config.initial_capital)
+        tally = {"spread": 0.0, "fees": 0.0, "gains": []}
 
         for current_date in trading_days:
             # LOOKAHEAD PREVENTION: slice bars to current_date only
@@ -113,8 +115,9 @@ async def run_backtest(config: BacktestConfig, db: Session) -> BacktestResult:
                     if alloc < price or len(state.positions) >= config.max_positions:
                         continue
                     qty = int(alloc / price)
-                    cost = qty * price
-                    state.cash -= cost
+                    spread = _half_spread(qty, price)
+                    state.cash -= qty * price + spread
+                    tally["spread"] += spread
                     state.positions[ticker] = PositionInfo(quantity=qty, avg_price=price)
                     state.trades.append({
                         "date": str(current_date),
@@ -124,21 +127,15 @@ async def run_backtest(config: BacktestConfig, db: Session) -> BacktestResult:
                         "price": round(price, 2),
                         "reason": signal.reason,
                         "confidence": round(signal.confidence, 2),
+                        "spread_cost": round(spread, 6),
                     })
 
                 elif signal.action == "sell" and ticker in state.positions:
                     pos = state.positions.pop(ticker)
-                    proceeds = pos.quantity * price
-                    state.cash += proceeds
-                    state.trades.append({
-                        "date": str(current_date),
-                        "ticker": ticker,
-                        "action": "sell",
-                        "quantity": pos.quantity,
-                        "price": round(price, 2),
-                        "reason": signal.reason,
-                        "confidence": round(signal.confidence, 2),
-                    })
+                    state.trades.append(_sell_fill(
+                        state, tally, current_date, ticker, pos, price,
+                        signal.reason, round(signal.confidence, 2),
+                    ))
 
             # Stop-loss check
             for ticker in list(state.positions.keys()):
@@ -148,17 +145,10 @@ async def run_backtest(config: BacktestConfig, db: Session) -> BacktestResult:
                 pos = state.positions[ticker]
                 loss_pct = (price - pos.avg_price) / pos.avg_price
                 if loss_pct <= -config.stop_loss_pct:
-                    proceeds = pos.quantity * price
-                    state.cash += proceeds
-                    state.trades.append({
-                        "date": str(current_date),
-                        "ticker": ticker,
-                        "action": "sell",
-                        "quantity": pos.quantity,
-                        "price": round(price, 2),
-                        "reason": f"Stop-loss triggered at {loss_pct*100:.1f}%",
-                        "confidence": 1.0,
-                    })
+                    state.trades.append(_sell_fill(
+                        state, tally, current_date, ticker, pos, price,
+                        f"Stop-loss triggered at {loss_pct*100:.1f}%", 1.0,
+                    ))
                     del state.positions[ticker]
 
             # Mark to market
@@ -181,6 +171,14 @@ async def run_backtest(config: BacktestConfig, db: Session) -> BacktestResult:
         result.win_rate_pct = metrics.win_rate_pct
         result.profit_factor = metrics.profit_factor
         result.total_trades = len(state.trades)
+        # Spread + fees already reduced cash (they're inside equity); tax comes off
+        # at the end on the run's net realized gains.
+        tax = estimated_tax(tally["gains"])
+        result.total_costs = round(tally["spread"] + tally["fees"] + tax, 4)
+        final_equity = equities[-1] if equities else config.initial_capital
+        result.return_after_costs_pct = round(
+            ((final_equity - tax) / config.initial_capital - 1) * 100, 4
+        )
         result.equity_curve = json.dumps(state.equity_curve)
         result.trades_log = json.dumps(state.trades)
         db.commit()
@@ -199,6 +197,32 @@ async def run_backtest(config: BacktestConfig, db: Session) -> BacktestResult:
         logger.error("Backtest failed: %s", e)
 
     return result
+
+
+def _half_spread(qty: float, price: float) -> float:
+    """Assumed half-spread cost (no quotes in a backtest) — see app.costs."""
+    return qty * price * BACKTEST_HALF_SPREAD_BPS / 10_000
+
+
+def _sell_fill(state, tally, current_date, ticker, pos, price, reason, confidence) -> dict:
+    """Close a position: proceeds minus assumed spread and SEC/FINRA fees."""
+    spread = _half_spread(pos.quantity, price)
+    fees = sell_fees(pos.quantity, price)
+    state.cash += pos.quantity * price - spread - fees
+    tally["spread"] += spread
+    tally["fees"] += fees
+    tally["gains"].append(pos.quantity * (price - pos.avg_price))
+    return {
+        "date": str(current_date),
+        "ticker": ticker,
+        "action": "sell",
+        "quantity": pos.quantity,
+        "price": round(price, 2),
+        "reason": reason,
+        "confidence": confidence,
+        "spread_cost": round(spread, 6),
+        "fee_cost": round(fees, 6),
+    }
 
 
 def _compute_equity(

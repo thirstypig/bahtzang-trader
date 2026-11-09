@@ -6,6 +6,7 @@ from datetime import date, datetime, timezone
 from sqlalchemy import Date, DateTime, Float, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.costs import BACKTEST_HALF_SPREAD_BPS, SHORT_TERM_TAX_RATE
 from app.database import Base
 
 
@@ -68,6 +69,9 @@ class BacktestResult(Base):
     win_rate_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
     profit_factor: Mapped[float | None] = mapped_column(Float, nullable=True)
     total_trades: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Charter §4 cost model: spread + fees (already inside equity) + estimated tax.
+    total_costs: Mapped[float | None] = mapped_column(Float, nullable=True)
+    return_after_costs_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
     # Full results as JSON
     equity_curve: Mapped[str | None] = mapped_column(Text, nullable=True)
     trades_log: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -91,6 +95,14 @@ class BacktestResult(Base):
             "win_rate_pct": self.win_rate_pct,
             "profit_factor": self.profit_factor,
             "total_trades": self.total_trades,
+            "total_costs": self.total_costs,
+            "return_after_costs_pct": self.return_after_costs_pct,
+            "cost_assumptions": {
+                "half_spread_bps": BACKTEST_HALF_SPREAD_BPS,
+                "sell_fees": "SEC Section 31 + FINRA TAF (2026 rates)",
+                "tax_rate": SHORT_TERM_TAX_RATE,
+                "note": "total_return_pct is after spread and fees, before tax",
+            },
         }
 
     def to_detail(self) -> dict:

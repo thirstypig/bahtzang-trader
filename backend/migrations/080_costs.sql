@@ -16,3 +16,7 @@ CREATE TABLE IF NOT EXISTS api_usage (
     cost NUMERIC(12,6) NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_api_usage_portfolio_ts ON api_usage (portfolio_id, timestamp);
+
+-- Backtester cost model (same costs as live).
+ALTER TABLE backtest_results ADD COLUMN IF NOT EXISTS total_costs DOUBLE PRECISION NULL;
+ALTER TABLE backtest_results ADD COLUMN IF NOT EXISTS return_after_costs_pct DOUBLE PRECISION NULL;
