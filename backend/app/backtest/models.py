@@ -1,4 +1,4 @@
-"""Backtest database models — config, results, and OHLCV cache."""
+"""Backtest database models — config and results. (OHLCV cache: app/bars.py.)"""
 
 import json
 from datetime import date, datetime, timezone
@@ -98,21 +98,3 @@ class BacktestResult(Base):
         d["equity_curve"] = json.loads(self.equity_curve) if self.equity_curve else []
         d["trades_log"] = json.loads(self.trades_log) if self.trades_log else []
         return d
-
-
-class OHLCVCache(Base):
-    """Cached daily OHLCV bars from Alpaca."""
-    __tablename__ = "ohlcv_cache"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    ticker: Mapped[str] = mapped_column(String(10), nullable=False)
-    bar_date: Mapped[date] = mapped_column(Date, nullable=False)
-    open: Mapped[float] = mapped_column(Float, nullable=False)
-    high: Mapped[float] = mapped_column(Float, nullable=False)
-    low: Mapped[float] = mapped_column(Float, nullable=False)
-    close: Mapped[float] = mapped_column(Float, nullable=False)
-    volume: Mapped[int] = mapped_column(Integer, nullable=False)
-
-    __table_args__ = (
-        Index("ix_ohlcv_ticker_date", "ticker", "bar_date", unique=True),
-    )

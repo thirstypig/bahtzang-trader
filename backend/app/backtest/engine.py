@@ -9,10 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.analytics import compute_metrics
 from app.technical_analysis import _compute_indicators
-from app.backtest.data import fetch_and_cache_bars, load_bars
+from app.bars import fetch_and_cache_bars, load_bars
 from app.backtest.models import BacktestConfig, BacktestResult
 from app.strategies import STRATEGY_REGISTRY
-from app.backtest.strategies import PositionInfo, SimulationState
+from app.strategies import PositionInfo, SimulationState
 
 logger = logging.getLogger(__name__)
 

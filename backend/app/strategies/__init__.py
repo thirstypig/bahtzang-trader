@@ -13,6 +13,7 @@ from app.strategies.dual_momentum import DualMomentum
 from app.strategies.registry import STRATEGY_REGISTRY, get_strategy_info
 from app.strategies.rsi_mean_reversion import RSIMeanReversion
 from app.strategies.sma_crossover import SMACrossover
+from app.strategies.state import PositionInfo, SimulationState
 
 __all__ = [
     "BaseStrategy",
@@ -23,4 +24,6 @@ __all__ = [
     "RSIMeanReversion",
     "BuyAndHold",
     "DualMomentum",
+    "PositionInfo",
+    "SimulationState",
 ]
