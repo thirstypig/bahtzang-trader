@@ -1,4 +1,7 @@
-"""Three-tier circuit breaker — triggers on portfolio drawdown, not market volatility.
+"""RETIRED 2026-11-09 — not called by the live pipeline. Replaced by per-portfolio
+charter §3 limits in app/plans/limits.py. Kept (with its tests) for reference.
+
+Three-tier circuit breaker — triggers on portfolio drawdown, not market volatility.
 
 YELLOW: daily loss > 3% → halve position sizes (auto-reset next day)
 ORANGE: weekly loss > 7% or 3+ consecutive losses → halt buys (auto-reset next day)
