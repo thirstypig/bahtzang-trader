@@ -68,7 +68,9 @@ async def _record_fill(db: Session, plan: Portfolio, row: Trade, info: dict) -> 
         fee_cost=sell_fees(qty, price),  # spread unknown for a stop fill → NULL
         virtual_cash_before=cash_before,
         virtual_cash_after=cash_after,
-        timestamp=datetime.now(timezone.utc),
+        # The fill can be days before this run (a Friday stop is seen Monday); date the
+        # sell when it happened so the weekly report puts it in the right week.
+        timestamp=(info.get("filled_at") or datetime.now(timezone.utc)).astimezone(timezone.utc),
     )
     db.add(sell)
     row.stop_state = "filled"

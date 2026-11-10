@@ -6,7 +6,7 @@ phase: null
 owner: james
 tags: [foundations]
 links: [DOC-010]
-updated: 2026-11-09
+updated: 2026-11-10
 ---
 
 # Repo stats
@@ -17,23 +17,23 @@ updated: 2026-11-09
 > Real progress is features and phases shipped, not lines written. A refactor that
 > deletes 2,000 lines is usually progress, and this number will call it a regression.
 
-Generated 2026-11-09 from 452 git-tracked files.
+Generated 2026-11-10 from 452 git-tracked files.
 
 ## Code
 
 | Type | Files | Lines |
 |---|---:|---:|
-| `.py` | 140 | 20,005 |
-| `.md` | 179 | 16,815 |
+| `.py` | 140 | 20,052 |
+| `.md` | 179 | 16,812 |
 | `.tsx` | 75 | 11,580 |
 | `.json` | 9 | 8,681 |
-| `.ts` | 19 | 2,839 |
+| `.ts` | 19 | 2,847 |
 | `.mjs` | 4 | 595 |
 | `.sql` | 11 | 406 |
 | `.css` | 1 | 210 |
 | `.yml` | 1 | 48 |
 | `.toml` | 2 | 25 |
-| **Total** | **441** | **61,204** |
+| **Total** | **441** | **61,256** |
 
 ## Surface area
 
