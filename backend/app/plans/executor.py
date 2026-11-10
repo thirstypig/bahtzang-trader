@@ -12,7 +12,6 @@ from app.guardrails import apply_risk_preset
 from app.decision_coercion import coerce_bad_price_to_hold, coerce_zero_qty_to_hold
 from app.pipeline_types import CycleResult
 from app.earnings.client import days_until_earnings, format_earnings_csv
-from app.circuit_breaker import check_circuit_breakers, RED
 from app.technical_analysis import get_indicators, format_indicators_csv
 from app.sector_rotation import get_sector_signals, format_sector_csv
 from app.brokers.alpaca import AlpacaBroker
@@ -933,9 +932,8 @@ async def run_all_plans(db: Session, exit_only: bool = False) -> dict[int, list[
 
     Portfolio-only model: there is no global kill switch. Each portfolio's
     is_active flag serves as its own kill switch — set is_active=False to
-    halt that portfolio. The broker-wide circuit breaker still triggers on
-    account-level drawdown and, when RED, deactivates every active portfolio
-    in one shot (faster than per-portfolio toggles in a panic).
+    halt that portfolio. Loss halts and the hard stop are per portfolio
+    (plans/limits.py); there is no account-wide breaker.
 
     exit_only=True is the 3:30 PM risk check: sells/holds only.
     """
@@ -963,18 +961,10 @@ async def run_all_plans(db: Session, exit_only: bool = False) -> dict[int, list[
         except Exception as e:
             logger.error("Plan %d: reconcile while paused failed: %s", p.id, e)
 
-    # 2. Account-wide circuit breaker — uses default thresholds (5% / 10%).
-    # Per-portfolio thresholds (Portfolio.circuit_breaker_*) are honored
-    # inside each portfolio's own validation.
-    cb_level, cb_reason = check_circuit_breakers(
-        db=db, portfolio_value=balance["total_value"], config={},
-    )
-    if cb_level == RED:
-        logger.warning("Circuit breaker RED: %s — deactivating all portfolios", cb_reason)
-        for p in db.query(Portfolio).filter(Portfolio.is_active.is_(True)).all():
-            p.is_active = False
-        db.commit()
-        return {}
+    # 2. (Retired 2026-11-09) The account-wide circuit breaker used to switch off
+    # every portfolio on an account-level drop — including positions no portfolio
+    # owns — with no Slack alert. Charter §3 limits (plans/limits.py) are per
+    # strategy and alert on every halt; they replace it.
 
     # 3. Get active portfolios so we can include their tickers in market data
     active_plans = db.query(Portfolio).filter(Portfolio.is_active.is_(True)).all()

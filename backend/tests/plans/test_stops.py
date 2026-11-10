@@ -73,6 +73,19 @@ class TestReconcileStops:
         assert buy.stop_state == "filled"
         slack.assert_awaited_once()
 
+    async def test_stop_sell_dated_at_broker_fill_time(self, db_session, slack):
+        """A stop that fires Friday 2:45 PM ET is recorded on the next run (Monday) —
+        the sell must carry Friday's fill time so the weekly report counts it in Friday's week."""
+        from datetime import datetime, timezone
+        from app.plans.stops import reconcile_stops
+        plan = make_plan(db_session, virtual_cash=500.0)
+        _open_buy(db_session, plan)
+        at = datetime(2026, 11, 13, 19, 45, tzinfo=timezone.utc)
+
+        [sell] = await reconcile_stops(db_session, plan, _broker(**{"leg-1": {**_filled(), "filled_at": at}}))
+
+        assert sell.timestamp.replace(tzinfo=None) == at.replace(tzinfo=None)
+
     @pytest.mark.parametrize("status", ["held", "new", "accepted"])
     async def test_open_stop_untouched(self, db_session, slack, status):
         from app.plans.stops import reconcile_stops

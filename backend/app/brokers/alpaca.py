@@ -143,6 +143,7 @@ class AlpacaBroker(BrokerInterface):
             "filled_avg_price": (
                 float(order.filled_avg_price) if order.filled_avg_price else None
             ),
+            "filled_at": order.filled_at,  # tz-aware UTC, or None if not filled
         }
 
     async def cancel_order(self, order_id: str) -> str:

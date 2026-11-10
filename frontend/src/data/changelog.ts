@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "0.38.1",
+    date: "2026-11-09",
+    changes: [
+      { type: "fix", title: "Retired the old account-wide circuit breaker. It could switch off both strategies over a bad day in positions no portfolio owns, without any alert. Each strategy's own loss halts and hard stop (which do alert on Slack) replace it" },
+      { type: "fix", title: "A stop that fires between runs is now dated when it actually filled at Alpaca, not when the next run noticed it, so a Friday stop lands in Friday's weekly report" },
+    ],
+  },
+  {
     version: "0.38.0",
     date: "2026-11-09",
     changes: [

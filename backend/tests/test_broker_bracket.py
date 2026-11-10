@@ -94,8 +94,9 @@ from alpaca.common.exceptions import APIError  # noqa: E402
 from alpaca.trading.enums import OrderStatus, OrderSide  # noqa: E402
 
 
-def _order(status, filled_qty="0", filled_avg_price=None, legs=None, oid="ord-1"):
+def _order(status, filled_qty="0", filled_avg_price=None, legs=None, oid="ord-1", filled_at=None):
     o = MagicMock()
+    o.filled_at = filled_at
     o.id = oid
     o.status = status
     o.filled_qty = filled_qty
@@ -130,7 +131,18 @@ async def test_get_order_normalizes_status():
     client.get_order_by_id.return_value = _order(OrderStatus.FILLED, "10", "46.0")
     with patch("app.brokers.alpaca._get_client", return_value=client):
         res = await AlpacaBroker().get_order("leg-1")
-    assert res == {"status": "filled", "filled_qty": 10.0, "filled_avg_price": 46.0}
+    assert res == {"status": "filled", "filled_qty": 10.0, "filled_avg_price": 46.0, "filled_at": None}
+
+
+@pytest.mark.asyncio
+async def test_get_order_returns_fill_time():
+    from datetime import datetime, timezone
+    at = datetime(2026, 11, 13, 19, 45, tzinfo=timezone.utc)
+    client = MagicMock()
+    client.get_order_by_id.return_value = _order(OrderStatus.FILLED, "10", "46.0", filled_at=at)
+    with patch("app.brokers.alpaca._get_client", return_value=client):
+        res = await AlpacaBroker().get_order("leg-1")
+    assert res["filled_at"] == at
 
 
 @pytest.mark.asyncio

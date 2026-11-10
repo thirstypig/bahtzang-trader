@@ -149,3 +149,29 @@ class TestReviewFixes:
         db_session.refresh(plan)
         assert float(plan.virtual_cash) == 9_960.0
         assert db_session.query(Trade).filter_by(portfolio_id=plan.id, action="sell").count() == 1
+
+
+class TestAccountBreakerRetired:
+    async def test_account_drawdown_does_not_switch_off_portfolios(self, db_session):
+        """Charter §3 limits are per strategy. A bad day in the whole Alpaca account
+        (incl. positions no portfolio owns) must not switch the strategies off."""
+        from datetime import date
+        from app.models import PortfolioSnapshot
+        from app.plans.executor import run_all_plans
+        plan = _make_rules_portfolio(db_session, "claude_decides")
+        today = date.today()
+        for d, eq in ((today - timedelta(days=2), 100_000), (today - timedelta(days=1), 100_000)):
+            db_session.add(PortfolioSnapshot(date=d, total_equity=eq, cash=0, invested=eq, unrealized_pnl=0))
+        db_session.commit()
+        b = _broker()
+        b.get_positions = AsyncMock(return_value=[])
+        b.get_account_balance = AsyncMock(return_value={"cash_available": 0, "total_value": 92_000})
+        with patch("app.plans.executor.broker", b), \
+             patch("app.plans.executor.fetch_market_data", new_callable=AsyncMock,
+                   return_value=([], {}, [], [], "", "", "", "")), \
+             patch("app.plans.executor.run_plan_cycle", new_callable=AsyncMock, return_value=[]) as cycle:
+            await run_all_plans(db_session)
+
+        db_session.refresh(plan)
+        assert plan.is_active is True
+        cycle.assert_awaited_once()
